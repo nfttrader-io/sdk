@@ -2,9 +2,9 @@
   "name": "@nfttrader-io/sdk",
   "version": "2.0.0",
   "description": "The NFT Trader Official Javascript SDK",
-  "main": "dist/src/index.js",
+  "main": "dist/index.js",
   "browser": "dist/nfttrader-io-sdk.min.js",
-  "types": "dist/src/index.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],

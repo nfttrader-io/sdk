@@ -1,5 +1,5 @@
 import * as ethers from "ethers"
-import contracts from "../lib/contracts"
+import contracts from "./lib/contracts"
 const { swap } = contracts
 
 /**

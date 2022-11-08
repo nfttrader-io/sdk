@@ -1,8 +1,8 @@
 import * as ethers from "ethers"
-import contracts from "../lib/contracts"
-import events from "../lib/events"
-import TradeClientEventsMap from "../interfaces/tradeClient/eventsMap"
-import CallbackParams from "../interfaces/tradeClient/callbackParams"
+import contracts from "./lib/contracts"
+import events from "./lib/events"
+import TradeClientEventsMap from "./interfaces/tradeClient/eventsMap"
+import CallbackParams from "./interfaces/tradeClient/callbackParams"
 const {
   swap,
   royaltyRegistriesEngines,
