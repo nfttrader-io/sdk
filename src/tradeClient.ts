@@ -11,7 +11,7 @@ const {
   royaltyRegistryEngineAbi,
 } = contracts
 
-export default class TradeAPI {
+export default class TradeClient {
   private provider:
     | ethers.providers.Web3Provider
     | ethers.providers.JsonRpcProvider
@@ -36,7 +36,7 @@ export default class TradeAPI {
   )
 
   /**
-   * Create an instance of the NFTTrader TradeAPI object.
+   * Create an instance of the NFTTrader TradeClient object.
    *
    * @param config - Configuration object for the sdk.
    */
@@ -53,7 +53,7 @@ export default class TradeAPI {
     network: "ETHEREUM" | "POLYGON" | "MUMBAI"
   })
   /**
-   * Create an instance of the NFTTrader TradeAPI object.
+   * Create an instance of the NFTTrader TradeClient object.
    *
    * @param config - Configuration object for the sdk.
    */
@@ -184,7 +184,7 @@ export default class TradeAPI {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this.eventsCollectorCallbacks.find((eventItem) => {
+    const event = this.eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -203,7 +203,7 @@ export default class TradeAPI {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this.eventsCollectorCallbacks.find((eventItem) => {
+    const event = this.eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -217,7 +217,7 @@ export default class TradeAPI {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex((func) => {
+      const index = event.callbacks.findIndex(func => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -236,7 +236,7 @@ export default class TradeAPI {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this.eventsCollectorCallbacks.find((eventItem) => {
+    const event = this.eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
