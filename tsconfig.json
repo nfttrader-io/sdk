@@ -15,6 +15,6 @@
     "noFallthroughCasesInSwitch": true,
     "allowUnreachableCode": true
   },
-  "include": ["src/**/*", "lib/**/*", "interfaces/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "**/test/*", "dist"]
 }

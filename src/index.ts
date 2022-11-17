@@ -1,11 +1,9 @@
 import TradeClient from "./tradeClient"
+import PostClient from "./postClient"
 import AssetsArray from "./assetsArray"
 import WebSocketProvider from "./webSocketProvider"
-import _Asset from "./interfaces/assetsArray/asset"
 
-declare namespace NFTTrader {
-  type Asset = _Asset
-  // TODO
-}
+export * as Asset from "./interfaces/assetsArray/asset"
 
-export { TradeClient, AssetsArray, WebSocketProvider, NFTTrader }
+export { TradeClient, PostClient, AssetsArray, WebSocketProvider }
+export default { TradeClient, PostClient, AssetsArray, WebSocketProvider }
