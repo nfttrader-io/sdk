@@ -14,13 +14,15 @@ export default [
       exports: "named",
       globals: {
         ethers: "ethers",
+        http: "http",
+        https: "https",
       },
     },
-    external: ["ethers"],
+    external: ["ethers", "http", "https"],
     plugins: [
-      resolve({ skip: ["ethers"] }),
+      resolve({ skip: ["ethers", "http", "https"] }),
       commonjs({
-        exclude: ["ethers"],
+        exclude: ["ethers", "http", "https"],
       }),
       terser(),
     ],

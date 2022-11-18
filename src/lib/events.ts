@@ -1,4 +1,4 @@
-import TradeClientEventsMap from "../interfaces/tradeClient/eventsMap"
+import TradeClientEventsMap from "../types/tradeClient/eventsMap"
 
 export default [
   "createSwapTransactionCreated",

@@ -1,8 +1,9 @@
 import * as ethers from "ethers"
 import contracts from "./lib/contracts"
 import events from "./lib/events"
-import TradeClientEventsMap from "./interfaces/tradeClient/eventsMap"
-import CallbackParams from "./interfaces/tradeClient/callbackParams"
+import TradeClientEventsMap from "./types/tradeClient/eventsMap"
+import CallbackParams from "./types/tradeClient/callbackParams"
+import Network from "./types/general/network"
 const {
   swap,
   royaltyRegistriesEngines,
@@ -50,7 +51,7 @@ export default class TradeClient {
     /**
      * The network of the chain.
      */
-    network: "ETHEREUM" | "POLYGON" | "MUMBAI"
+    network: Network
   })
   /**
    * Create an instance of the NFTTrader TradeClient object.
@@ -65,7 +66,7 @@ export default class TradeClient {
     /**
      * The network of the chain.
      */
-    network: "ETHEREUM" | "POLYGON" | "MUMBAI"
+    network: Network
     /**
      * The signer object.
      */
@@ -84,7 +85,7 @@ export default class TradeClient {
     config:
       | {
           jsonRpcProvider: string
-          network: "ETHEREUM" | "POLYGON" | "MUMBAI"
+          network: Network
           signer: Record<"privateKey", string> & { [k: string]: any }
           avoidPrivateKeySigner?: boolean
         }
@@ -92,7 +93,7 @@ export default class TradeClient {
           web3Provider:
             | ethers.providers.ExternalProvider
             | ethers.providers.JsonRpcFetchFunc
-          network: "ETHEREUM" | "POLYGON" | "MUMBAI"
+          network: Network
         }
   ) {
     const web3Provider =

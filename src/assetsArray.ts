@@ -1,4 +1,4 @@
-import Asset from "./interfaces/assetsArray/asset"
+import Asset from "./types/assetsArray/asset"
 
 /**
  * This class represents an array of assets.
