@@ -238,7 +238,7 @@ export default class PostClient {
         : null
 
     try {
-      const res = await this.fetch(
+      const { data } = await this.fetch<Array<Post>>(
         "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/posts",
         {
           method: "POST",
@@ -250,9 +250,9 @@ export default class PostClient {
         }
       )
 
-      console.log("res", res)
+      return data ?? []
     } catch (e) {
-      console.error("error >", e)
+      throw e
     }
 
     return []
