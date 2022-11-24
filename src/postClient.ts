@@ -5,15 +5,17 @@ import ListPostsFilter from "./types/postClient/listPostsFilter"
 import ListPostsOrder from "./types/postClient/listPostsOrder"
 import ListPostsResponse from "./types/postClient/listPostsResponse"
 import GetPostResponse from "./types/postClient/getPostResponse"
+import CreatePost from "./types/postClient/createPost"
 
 export default class PostClient {
-  private apiKey: Maybe<string> = null
+  private _apiKey: Maybe<string> = null
 
+  // ? Should apiKey be in general constructor or PostClient specific
   constructor(config?: { apiKey: string }) {
-    this.apiKey = config?.apiKey ?? null
+    this._apiKey = config?.apiKey ?? null
   }
 
-  private async fetchJS<RT = any>(
+  private async _fetchJS<RT = any>(
     url: string | URL,
     options: HTTPRequestInit
   ): Promise<HTTPResponse<RT>> {
@@ -60,7 +62,7 @@ export default class PostClient {
     })
   }
 
-  private async fetchNode<ReturnType = any>(
+  private async _fetchNode<ReturnType = any>(
     url: string | URL,
     options: HTTPRequestInit
   ): Promise<HTTPResponse<ReturnType>> {
@@ -126,7 +128,8 @@ export default class PostClient {
     })
   }
 
-  private fetch<ReturnType = any>(
+  // TODO - Change Bearer in ApiKey
+  private _fetch<ReturnType = any>(
     url: string | URL,
     options: HTTPRequestInit = {
       method: "GET",
@@ -134,17 +137,18 @@ export default class PostClient {
       body: undefined,
     }
   ): Promise<HTTPResponse<ReturnType>> {
-    if (this.apiKey)
+    if (this._apiKey)
       options.headers = {
         ...options.headers,
-        Authorization: `Bearer ${this.apiKey}`,
+        Authorization: `Bearer ${this._apiKey}`,
       }
 
     return globalThis.document
-      ? this.fetchJS<ReturnType>(url, options)
-      : this.fetchNode<ReturnType>(url, options)
+      ? this._fetchJS<ReturnType>(url, options)
+      : this._fetchNode<ReturnType>(url, options)
   }
 
+  // ! RETURNS wanted and offered assets as Object instead of Array<Object>
   /**
    * Get a post by its id
    *
@@ -152,7 +156,7 @@ export default class PostClient {
    */
   public async getPost(id: string): Promise<GetPostResponse> {
     try {
-      const { data } = await this.fetch<GetPostResponse>(
+      const { data } = await this._fetch<GetPostResponse>(
         `https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/${id}`
       )
 
@@ -171,7 +175,7 @@ export default class PostClient {
    *
    * @param filter - An object that contains filter options
    */
-  public async listPosts(filter: ListPostsFilter): Promise<ListPostsResponse>
+  public async listPosts(filters: ListPostsFilter): Promise<ListPostsResponse>
   /**
    * List posts and order the list
    *
@@ -195,7 +199,7 @@ export default class PostClient {
    * - opt2
    */
   public async listPosts(
-    filter: ListPostsFilter,
+    filters: ListPostsFilter,
     order: ListPostsOrder
   ): Promise<ListPostsResponse>
   /**
@@ -207,7 +211,7 @@ export default class PostClient {
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
-    filter: ListPostsFilter,
+    filters: ListPostsFilter,
     next: string
   ): Promise<ListPostsResponse>
   /**
@@ -222,60 +226,62 @@ export default class PostClient {
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
-    filter: ListPostsFilter,
+    filters: ListPostsFilter,
     order: ListPostsOrder,
     next: string
   ): Promise<ListPostsResponse>
   // Implementation
   public async listPosts(
-    filterOrOrderOptionsOrNextKey?: Maybe<
+    filtersOrOrderOptionsOrNextKey?: Maybe<
       ListPostsFilter | ListPostsOrder | string
     >,
     orderOptionsOrNextKey?: Maybe<ListPostsOrder | string>,
     nextKey?: string | null
   ): Promise<ListPostsResponse> {
-    const filter =
-      filterOrOrderOptionsOrNextKey &&
-      typeof filterOrOrderOptionsOrNextKey !== "string" &&
-      !("field" in filterOrOrderOptionsOrNextKey) &&
-      !("direction" in filterOrOrderOptionsOrNextKey) &&
-      Object.keys(filterOrOrderOptionsOrNextKey).length
-        ? { ...filterOrOrderOptionsOrNextKey }
+    const filters =
+      filtersOrOrderOptionsOrNextKey &&
+      typeof filtersOrOrderOptionsOrNextKey !== "string" &&
+      !("field" in filtersOrOrderOptionsOrNextKey) &&
+      !("direction" in filtersOrOrderOptionsOrNextKey) &&
+      Object.keys(filtersOrOrderOptionsOrNextKey).length
+        ? { ...filtersOrOrderOptionsOrNextKey }
         : null
 
     const order =
       orderOptionsOrNextKey && typeof orderOptionsOrNextKey !== "string"
         ? { ...orderOptionsOrNextKey }
-        : filterOrOrderOptionsOrNextKey &&
-          typeof filterOrOrderOptionsOrNextKey !== "string" &&
-          "field" in filterOrOrderOptionsOrNextKey &&
-          "direction" in filterOrOrderOptionsOrNextKey
-        ? { ...filterOrOrderOptionsOrNextKey }
+        : filtersOrOrderOptionsOrNextKey &&
+          typeof filtersOrOrderOptionsOrNextKey !== "string" &&
+          "field" in filtersOrOrderOptionsOrNextKey &&
+          "direction" in filtersOrOrderOptionsOrNextKey
+        ? { ...filtersOrOrderOptionsOrNextKey }
         : null
 
     const next =
-      typeof filterOrOrderOptionsOrNextKey === "string"
-        ? filterOrOrderOptionsOrNextKey
+      typeof filtersOrOrderOptionsOrNextKey === "string"
+        ? filtersOrOrderOptionsOrNextKey
         : typeof orderOptionsOrNextKey === "string"
         ? orderOptionsOrNextKey
         : nextKey
         ? nextKey
         : null
 
+    console.log({ filters, order, next })
+
     try {
-      const { data } = await this.fetch<ListPostsResponse>(
+      const { data } = await this._fetch<ListPostsResponse>(
         "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/posts",
         {
           method: "POST",
           body: {
-            filter,
+            filters,
             order,
             next,
           },
         }
       )
 
-      return data ?? { posts: [] }
+      return data ?? { posts: [], next: null }
     } catch (e) {
       throw e
     }
@@ -287,9 +293,17 @@ export default class PostClient {
    * POST - https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/insert
    * @param post - A post to be created
    */
-  public async createPost(post: {}): Promise<string> {
+  private async _createPost(post: {}): Promise<string> {
     return "id"
   }
+
+  // TODO
+  public async createPost(post: CreatePost) {
+    // Here to prevent unused variable error
+    this._createPost
+  }
+
+  public async createPostReply(post: {}, parentId: string) {}
 
   /**
    * Bulk create posts
