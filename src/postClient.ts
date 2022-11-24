@@ -3,12 +3,19 @@ import HTTPResponse from "./types/postClient/httpResponse"
 import HTTPRequestInit from "./types/postClient/httpRequestInit"
 import ListPostsFilter from "./types/postClient/listPostsFilter"
 import ListPostsOrder from "./types/postClient/listPostsOrder"
-import Post from "./types/postClient/post"
+import ListPostsResponse from "./types/postClient/listPostsResponse"
+import GetPostResponse from "./types/postClient/getPostResponse"
 
 export default class PostClient {
+  private apiKey: Maybe<string> = null
+
+  constructor(config?: { apiKey: string }) {
+    this.apiKey = config?.apiKey ?? null
+  }
+
   private async fetchJS<RT = any>(
     url: string | URL,
-    options: HTTPRequestInit = { method: "GET", body: undefined }
+    options: HTTPRequestInit
   ): Promise<HTTPResponse<RT>> {
     const req = new XMLHttpRequest()
 
@@ -46,13 +53,16 @@ export default class PostClient {
       )
 
       req.open(options.method, url)
+      if (options.headers)
+        for (const [name, value] of Object.entries(options.headers))
+          req.setRequestHeader(name, value)
       req.send(options.body ? new URLSearchParams(options.body) : null)
     })
   }
 
   private async fetchNode<ReturnType = any>(
     url: string | URL,
-    options: HTTPRequestInit = { method: "GET", body: undefined }
+    options: HTTPRequestInit
   ): Promise<HTTPResponse<ReturnType>> {
     const client =
       url instanceof URL
@@ -71,7 +81,7 @@ export default class PostClient {
     return new Promise((resolve, reject) => {
       const request = client.request(
         url,
-        { method: options.method },
+        { method: options.method, headers: options.headers ?? undefined },
         response => {
           const statusCode = response.statusCode!,
             statusMessage = response.statusMessage!
@@ -118,8 +128,18 @@ export default class PostClient {
 
   private fetch<ReturnType = any>(
     url: string | URL,
-    options?: HTTPRequestInit
+    options: HTTPRequestInit = {
+      method: "GET",
+      headers: undefined,
+      body: undefined,
+    }
   ): Promise<HTTPResponse<ReturnType>> {
+    if (this.apiKey)
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${this.apiKey}`,
+      }
+
     return globalThis.document
       ? this.fetchJS<ReturnType>(url, options)
       : this.fetchNode<ReturnType>(url, options)
@@ -128,37 +148,42 @@ export default class PostClient {
   /**
    * Get a post by its id
    *
-   * GET - https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/{postid}
    * @param id - The id of the post
    */
-  public async getPost(id: string): Promise<{}> {
-    return {
-      // post object
+  public async getPost(id: string): Promise<GetPostResponse> {
+    try {
+      const { data } = await this.fetch<GetPostResponse>(
+        `https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/${id}`
+      )
+
+      return data ?? { post: null }
+    } catch (e) {
+      throw e
     }
   }
 
   /**
    * List posts
    */
-  public async listPosts(): Promise<Array<Post>>
+  public async listPosts(): Promise<ListPostsResponse>
   /**
    * List posts that match the filter object
    *
    * @param filter - An object that contains filter options
    */
-  public async listPosts(filter: ListPostsFilter): Promise<Array<Post>>
+  public async listPosts(filter: ListPostsFilter): Promise<ListPostsResponse>
   /**
    * List posts and order the list
    *
    * @param order - An object that contains order options
    */
-  public async listPosts(order: ListPostsOrder): Promise<Array<Post>>
+  public async listPosts(order: ListPostsOrder): Promise<ListPostsResponse>
   /**
    * List `next` posts page in the list
    *
    * @param next - A string to include to fetch the next page of posts list
    */
-  public async listPosts(next: string): Promise<Array<Post>>
+  public async listPosts(next: string): Promise<ListPostsResponse>
   /**
    * Lists posts filtered by `filter` and orders the list based on `order`
    *
@@ -172,7 +197,7 @@ export default class PostClient {
   public async listPosts(
     filter: ListPostsFilter,
     order: ListPostsOrder
-  ): Promise<Array<Post>>
+  ): Promise<ListPostsResponse>
   /**
    * Lists posts filtered by `filter` and orders the list based on `order`
    *
@@ -184,7 +209,7 @@ export default class PostClient {
   public async listPosts(
     filter: ListPostsFilter,
     next: string
-  ): Promise<Array<Post>>
+  ): Promise<ListPostsResponse>
   /**
    * Lists posts filtered by `filter` and orders the list based on `order`
    *
@@ -200,7 +225,7 @@ export default class PostClient {
     filter: ListPostsFilter,
     order: ListPostsOrder,
     next: string
-  ): Promise<Array<Post>>
+  ): Promise<ListPostsResponse>
   // Implementation
   public async listPosts(
     filterOrOrderOptionsOrNextKey?: Maybe<
@@ -208,7 +233,7 @@ export default class PostClient {
     >,
     orderOptionsOrNextKey?: Maybe<ListPostsOrder | string>,
     nextKey?: string | null
-  ): Promise<Array<Post>> {
+  ): Promise<ListPostsResponse> {
     const filter =
       filterOrOrderOptionsOrNextKey &&
       typeof filterOrOrderOptionsOrNextKey !== "string" &&
@@ -238,7 +263,7 @@ export default class PostClient {
         : null
 
     try {
-      const { data } = await this.fetch<Array<Post>>(
+      const { data } = await this.fetch<ListPostsResponse>(
         "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/posts",
         {
           method: "POST",
@@ -250,12 +275,10 @@ export default class PostClient {
         }
       )
 
-      return data ?? []
+      return data ?? { posts: [] }
     } catch (e) {
       throw e
     }
-
-    return []
   }
 
   /**
