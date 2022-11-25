@@ -17,7 +17,7 @@ export default interface Post {
   accepted: boolean
   createdAt: string
   networkId: string
-  expirationDate: string
+  expirationDate: number
   numberOffers: number
   creator: Collector
   messages: Array<{ type: string }>

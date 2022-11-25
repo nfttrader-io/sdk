@@ -1,8 +1,7 @@
 import Maybe from "../general/maybe"
-import Post from "./post"
+import PostResponse from "./postResponse"
 
 export default interface ListPostsResponse {
-  // TODO
-  posts: Array<Post>
+  posts: Array<PostResponse>
   next: Maybe<string>
 }

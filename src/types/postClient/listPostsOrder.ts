@@ -1,5 +1,5 @@
 export default interface ListPostsOrder {
-  field: "date" | "expirationDate" | "offered" | "wanted"
+  field: "creationDate" | "expirationDate" | "assetsOffered" | "assetsWanted"
   /**
    * Order direction, can be ascendent(`ASC`) or descendent(`DESC`). Defaults to `ASC`
    */

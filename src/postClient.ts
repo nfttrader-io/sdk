@@ -4,13 +4,13 @@ import HTTPRequestInit from "./types/postClient/httpRequestInit"
 import ListPostsFilter from "./types/postClient/listPostsFilter"
 import ListPostsOrder from "./types/postClient/listPostsOrder"
 import ListPostsResponse from "./types/postClient/listPostsResponse"
-import GetPostResponse from "./types/postClient/getPostResponse"
+import PostResponse from "./types/postClient/postResponse"
 import CreatePost from "./types/postClient/createPost"
 
 export default class PostClient {
   private _apiKey: Maybe<string> = null
 
-  // ? Should apiKey be in general constructor or PostClient specific
+  // TODO? Should apiKey be in general constructor or PostClient specific
   constructor(config?: { apiKey: string }) {
     this._apiKey = config?.apiKey ?? null
   }
@@ -148,19 +148,20 @@ export default class PostClient {
       : this._fetchNode<ReturnType>(url, options)
   }
 
-  // ! RETURNS wanted and offered assets as Object instead of Array<Object>
   /**
    * Get a post by its id
    *
    * @param id - The id of the post
    */
-  public async getPost(id: string): Promise<GetPostResponse> {
+  public async getPost(id: string): Promise<Maybe<PostResponse>> {
+    if (!id) throw new Error('Invalid parameter "id"')
+
     try {
-      const { data } = await this._fetch<GetPostResponse>(
+      const { data } = await this._fetch<PostResponse>(
         `https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/${id}`
       )
 
-      return data ?? { post: null }
+      return data ?? null
     } catch (e) {
       throw e
     }
@@ -173,13 +174,13 @@ export default class PostClient {
   /**
    * List posts that match the filter object
    *
-   * @param filter - An object that contains filter options
+   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
    */
   public async listPosts(filters: ListPostsFilter): Promise<ListPostsResponse>
   /**
    * List posts and order the list
    *
-   * @param order - An object that contains order options
+   * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
    */
   public async listPosts(order: ListPostsOrder): Promise<ListPostsResponse>
   /**
@@ -191,12 +192,8 @@ export default class PostClient {
   /**
    * Lists posts filtered by `filter` and orders the list based on `order`
    *
-   * @param filter - An object that contains filter options. Available options are:
-   * - opt1
-   * - opt2
-   * @param order - An object that contains order options. Available options are:
-   * - opt1
-   * - opt2
+   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
+   * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
    */
   public async listPosts(
     filters: ListPostsFilter,
@@ -205,9 +202,7 @@ export default class PostClient {
   /**
    * Lists posts filtered by `filter` and orders the list based on `order`
    *
-   * @param filter - An object that contains filter options. Available options are:
-   * - opt1
-   * - opt2
+   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
@@ -217,12 +212,8 @@ export default class PostClient {
   /**
    * Lists posts filtered by `filter` and orders the list based on `order`
    *
-   * @param filter - An object that contains filter options. Available options are:
-   * - opt1
-   * - opt2
-   * @param order - An object that contains order options. Available options are:
-   * - opt1
-   * - opt2
+   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
+   * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
@@ -230,7 +221,7 @@ export default class PostClient {
     order: ListPostsOrder,
     next: string
   ): Promise<ListPostsResponse>
-  // Implementation
+
   public async listPosts(
     filtersOrOrderOptionsOrNextKey?: Maybe<
       ListPostsFilter | ListPostsOrder | string
@@ -238,7 +229,7 @@ export default class PostClient {
     orderOptionsOrNextKey?: Maybe<ListPostsOrder | string>,
     nextKey?: string | null
   ): Promise<ListPostsResponse> {
-    const filters =
+    const filtersInput =
       filtersOrOrderOptionsOrNextKey &&
       typeof filtersOrOrderOptionsOrNextKey !== "string" &&
       !("field" in filtersOrOrderOptionsOrNextKey) &&
@@ -247,13 +238,85 @@ export default class PostClient {
         ? { ...filtersOrOrderOptionsOrNextKey }
         : null
 
+    let filters = null
+    if (filtersInput) {
+      const { collections } = filtersInput
+      if (collections === null || collections === undefined)
+        filters = { ...filtersInput }
+      else if (
+        (typeof collections !== "string" &&
+          !Array.isArray(collections) &&
+          collections.constructor &&
+          collections.constructor !== new Object().constructor) ||
+        (typeof collections === "string" && !collections.length) ||
+        (Array.isArray(collections) &&
+          (!collections.length ||
+            collections.some(c => typeof c !== "string" || !c.length))) ||
+        (collections.constructor === new Object().constructor &&
+          (!Object.keys(collections).length ||
+            Object.keys(collections).some(
+              key => !["offered", "wanted"].includes(key)
+            )))
+      ) {
+        throw new Error('invalid parameter "filter.collections"')
+      } else if (
+        typeof collections !== "string" &&
+        !Array.isArray(collections) &&
+        collections.constructor === new Object().constructor
+      ) {
+        if (
+          (collections.offered &&
+            typeof collections.offered !== "string" &&
+            !Array.isArray(collections.offered)) ||
+          (Array.isArray(collections.offered) &&
+            collections.offered.some(o => typeof o !== "string" || !o.length))
+        )
+          throw new Error('invalid parameter "filter.collections.offered"')
+        if (
+          (collections.wanted &&
+            typeof collections.wanted !== "string" &&
+            !Array.isArray(collections.wanted)) ||
+          (Array.isArray(collections.wanted) &&
+            collections.wanted.some(w => typeof w !== "string" || !w.length))
+        )
+          throw new Error('invalid parameter "filter.collections.wanted"')
+      }
+
+      const collectionsWanted = collections
+        ? typeof collections === "string"
+          ? [collections]
+          : Array.isArray(collections)
+          ? [...collections]
+          : collections.wanted
+          ? typeof collections.wanted === "string"
+            ? [collections.wanted]
+            : [...collections.wanted]
+          : undefined
+        : undefined
+      const collectionsOffered = collections
+        ? typeof collections === "string"
+          ? [collections]
+          : Array.isArray(collections)
+          ? [...collections]
+          : collections.offered
+          ? typeof collections.offered === "string"
+            ? [collections.offered]
+            : [...collections.offered]
+          : undefined
+        : undefined
+
+      if (collectionsWanted) filters = { ...(filters ?? {}), collectionsWanted }
+      if (collectionsOffered)
+        filters = { ...(filters ?? {}), collectionsOffered }
+    }
+
     const order =
       orderOptionsOrNextKey && typeof orderOptionsOrNextKey !== "string"
         ? { ...orderOptionsOrNextKey }
         : filtersOrOrderOptionsOrNextKey &&
           typeof filtersOrOrderOptionsOrNextKey !== "string" &&
-          "field" in filtersOrOrderOptionsOrNextKey &&
-          "direction" in filtersOrOrderOptionsOrNextKey
+          ("field" in filtersOrOrderOptionsOrNextKey ||
+            "direction" in filtersOrOrderOptionsOrNextKey)
         ? { ...filtersOrOrderOptionsOrNextKey }
         : null
 
@@ -266,7 +329,10 @@ export default class PostClient {
         ? nextKey
         : null
 
-    console.log({ filters, order, next })
+    // TODO? should filters.collections be only array
+    // TODO? expirationDate is in seconds, should it be parsed in milliseconds
+    // TODO delete next line
+    console.log("payload:", { filters, order, next })
 
     try {
       const { data } = await this._fetch<ListPostsResponse>(
