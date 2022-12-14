@@ -1,4 +1,4 @@
-import TOKEN_CONSTANTS from "./lib/tokenConstants"
+import TOKEN_CONSTANTS from "./lib/assetsArray/tokenConstants"
 import Asset from "./types/assetsArray/asset"
 
 /**

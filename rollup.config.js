@@ -13,7 +13,7 @@ export default [
       sourcemap: true,
       exports: "named",
       globals: {
-        "@opensea/seaport-js": "@opensea/seaport-js",
+        "@opensea/seaport-js": "seaport",
         ethers: "ethers",
         http: "http",
         https: "https",

@@ -11,28 +11,18 @@ import PostStatus from "./types/postClient/postStatus"
 import validateListPostsFilters from "./lib/postClient/validateListPostsFilters"
 import PostType from "./types/postClient/postType"
 import Post from "./types/postClient/post"
+import POST_STATUS from "./lib/postClient/postStatus"
+import POST_TYPE from "./lib/postClient/postType"
 
 export default class PostClient {
   private _apiKey: Maybe<string> = null
 
   public static get POST_STATUS(): PostStatus {
-    return {
-      ACTIVE: 0,
-      COMPLETED: 1,
-      EXPIRED: 2,
-      CANCELED: 3,
-      RESERVED: 4,
-    }
+    return { ...POST_STATUS }
   }
 
   public static get POST_TYPE(): PostType {
-    return {
-      A1: 0,
-      A2: 1,
-      B1: 2,
-      B2: 3,
-      C1: 4,
-    }
+    return { ...POST_TYPE }
   }
 
   // TODO? Should apiKey be in general constructor or PostClient specific

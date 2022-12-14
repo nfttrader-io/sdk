@@ -1,6 +1,7 @@
-import PostClient from "../../postClient"
 import ListPostsFilters from "../../types/postClient/listPostsFilters"
 import contracts from "../contracts"
+import POST_STATUS from "./postStatus"
+import POST_TYPE from "./postType"
 
 export default function validateListPostsFiltersField<
   FilterName extends keyof ListPostsFilters
@@ -79,9 +80,9 @@ export default function validateListPostsFiltersField<
       else if (
         (typeof _value !== "string" && typeof _value !== "number") ||
         (typeof _value === "string" &&
-          !Object.keys(PostClient.POST_STATUS).includes(_value)) ||
+          !Object.keys(POST_STATUS).includes(_value)) ||
         (typeof _value === "number" &&
-          !Object.values(PostClient.POST_STATUS).includes(_value))
+          !Object.values(POST_STATUS).includes(_value))
       )
         throw new Error('invalid parameter "filters.status"')
 
@@ -94,9 +95,9 @@ export default function validateListPostsFiltersField<
       else if (
         (typeof _value !== "string" && typeof _value !== "number") ||
         (typeof _value === "string" &&
-          !Object.keys(PostClient.POST_TYPE).includes(_value)) ||
+          !Object.keys(POST_TYPE).includes(_value)) ||
         (typeof _value === "number" &&
-          !Object.values(PostClient.POST_TYPE).includes(_value))
+          !Object.values(POST_TYPE).includes(_value))
       )
         throw new Error('invalid parameter "filters.type"')
 
