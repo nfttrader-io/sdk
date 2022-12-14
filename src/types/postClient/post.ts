@@ -1,28 +1,26 @@
-import POST_STATUS from "../../enums/postClient/postStatus"
-import POST_TYPE from "../../enums/postClient/postType"
 import Collector from "./collector"
 import PostAssets from "./postAssets"
+import PostStatus from "./postStatus"
+import PostStatusName from "./postStatusName"
+import PostType from "./postType"
+import PostTypeName from "./postTypeName"
 
 export default interface Post {
   id: string
-  isOwner: boolean
   parentId: string
   score: number
   like: number
   assetsChecked: boolean
-  status: POST_STATUS
-  type: POST_TYPE
+  status: PostStatus[PostStatusName]
+  type: PostType[PostTypeName]
   typeWanted: string
   typeOffered: string
   accepted: boolean
-  createdAt: string
+  creationDate: number
   networkId: string
   expirationDate: number
   numberOffers: number
   creator: Collector
   messages: Array<{ type: string }>
   assets: PostAssets
-  spicyest: {
-    amountCurrency: string
-  }
 }

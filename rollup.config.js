@@ -13,16 +13,17 @@ export default [
       sourcemap: true,
       exports: "named",
       globals: {
+        "@opensea/seaport-js": "@opensea/seaport-js",
         ethers: "ethers",
         http: "http",
         https: "https",
       },
     },
-    external: ["ethers", "http", "https"],
+    external: ["ethers", "@opensea/seaport-js", "http", "https"],
     plugins: [
-      resolve({ skip: ["ethers", "http", "https"] }),
+      resolve({ skip: ["ethers", "@opensea/seaport-js", "http", "https"] }),
       commonjs({
-        exclude: ["ethers", "http", "https"],
+        exclude: ["ethers", "@opensea/seaport-js", "http", "https"],
       }),
       terser(),
     ],

@@ -1,9 +1,11 @@
-import POST_STATUS from "../../enums/postClient/postStatus"
-import POST_TYPE from "../../enums/postClient/postType"
 import Bitmap from "../general/bitmap"
 import Network from "../general/network"
+import PostStatus from "./postStatus"
+import PostStatusName from "./postStatusName"
+import PostType from "./postType"
+import PostTypeName from "./postTypeName"
 
-export default interface ListPostsFilter {
+export default interface ListPostsFilters {
   /**
    * Filter posts owned by `owner` username or address
    */
@@ -26,11 +28,11 @@ export default interface ListPostsFilter {
   /**
    * Filter posts based on status, to see possible statuses visit [this link](https://www.google.com)
    */
-  status?: POST_STATUS
+  status?: PostStatusName | PostStatus[PostStatusName]
   /**
    * Filter posts based on type, to see possible types visit [this link](https://www.google.com)
    */
-  type?: POST_TYPE
+  type?: PostTypeName | PostType[PostTypeName]
   /**
    * Filter posts...
    */

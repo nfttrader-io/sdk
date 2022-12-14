@@ -2,15 +2,6 @@ import * as ethers from "ethers"
 import TradeClientEventError from "./eventError"
 
 export default interface TradeClientEventsMap {
-  createSwapTransactionCreated: (p: {
-    tx: ethers.providers.TransactionResponse
-  }) => any
-  createSwapTransactionMined: (p: {
-    receipt: ethers.providers.TransactionReceipt
-  }) => any
-  createSwapTransactionError: (
-    p: TradeClientEventError<"createSwapTransactionError">
-  ) => any
   cancelSwapTransactionCreated: (p: {
     tx: ethers.providers.TransactionResponse
   }) => any
@@ -28,14 +19,5 @@ export default interface TradeClientEventsMap {
   }) => any
   closeSwapTransactionError: (
     p: TradeClientEventError<"closeSwapTransactionError">
-  ) => any
-  editTakerTransactionCreated: (p: {
-    tx: ethers.providers.TransactionResponse
-  }) => any
-  editTakerTransactionMined: (p: {
-    receipt: ethers.providers.TransactionReceipt
-  }) => any
-  editTakerTransactionError: (
-    p: TradeClientEventError<"editTakerTransactionError">
   ) => any
 }

@@ -1,10 +1,13 @@
-type Asset = [
-  address: string,
-  type: number,
-  addressIds: Array<string | number>,
-  amount: Array<string | number>,
-  roy: Array<string | number>,
-  x: []
-]
+import AssetTypeName from "./assetTypeName"
+import AssetTypeValue from "./assetTypeValue"
+
+type Asset = {
+  itemType: AssetTypeName | AssetTypeValue
+} & Partial<{
+  amount: string
+  token: string
+  identifier: string
+  recipient: string
+}>
 
 export default Asset

@@ -1,21 +1,8 @@
 import Post from "./post"
 
-type CreatePost = Omit<
+type CreatePost = Pick<
   Post,
-  | "id"
-  | "isOwner"
-  | "parentId"
-  | "score"
-  | "like"
-  | "assetsChecked"
-  | "status"
-  | "typeWanted"
-  | "typeOffered"
-  | "accepted"
-  | "createdAt"
-  | "numberOffers"
-  | "creator"
-  | "spicyest"
+  "assets" | "expirationDate" | "messages" | "networkId" | "type"
 > & { creator: string }
 
 export default CreatePost

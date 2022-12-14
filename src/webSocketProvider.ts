@@ -1,5 +1,6 @@
 import * as ethers from "ethers"
 import contracts from "./lib/contracts"
+import Network from "./types/general/network"
 const { swap } = contracts
 
 /**
@@ -10,13 +11,7 @@ export default class WebSocketProvider {
   private webSocketProvider: ethers.providers.WebSocketProvider | null = null
   private contractAddressWebSocketProvider: string | null = null
 
-  constructor({
-    url,
-    network,
-  }: {
-    url: string
-    network: "ETHEREUM" | "RINKEBY" | "POLYGON" | "MUMBAI"
-  }) {
+  constructor({ url, network }: { url: string; network: Network }) {
     try {
       this.webSocketProvider = new ethers.providers.WebSocketProvider(
         url,

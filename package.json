@@ -42,6 +42,7 @@
     "typescript": "^4.8.4"
   },
   "dependencies": {
+    "@opensea/seaport-js": "^1.0.8",
     "ethers": "^5.7.2"
   }
 }

@@ -1,14 +1,39 @@
 import Maybe from "./types/general/maybe"
 import HTTPResponse from "./types/postClient/httpResponse"
 import HTTPRequestInit from "./types/postClient/httpRequestInit"
-import ListPostsFilter from "./types/postClient/listPostsFilter"
+import ListPostsFilters from "./types/postClient/listPostsFilters"
 import ListPostsOrder from "./types/postClient/listPostsOrder"
 import ListPostsResponse from "./types/postClient/listPostsResponse"
 import PostResponse from "./types/postClient/postResponse"
 import CreatePost from "./types/postClient/createPost"
+import CreatePostReply from "./types/postClient/createPostReply"
+import PostStatus from "./types/postClient/postStatus"
+import validateListPostsFilters from "./lib/postClient/validateListPostsFilters"
+import PostType from "./types/postClient/postType"
+import Post from "./types/postClient/post"
 
 export default class PostClient {
   private _apiKey: Maybe<string> = null
+
+  public static get POST_STATUS(): PostStatus {
+    return {
+      ACTIVE: 0,
+      COMPLETED: 1,
+      EXPIRED: 2,
+      CANCELED: 3,
+      RESERVED: 4,
+    }
+  }
+
+  public static get POST_TYPE(): PostType {
+    return {
+      A1: 0,
+      A2: 1,
+      B1: 2,
+      B2: 3,
+      C1: 4,
+    }
+  }
 
   // TODO? Should apiKey be in general constructor or PostClient specific
   constructor(config?: { apiKey: string }) {
@@ -176,7 +201,7 @@ export default class PostClient {
    *
    * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
    */
-  public async listPosts(filters: ListPostsFilter): Promise<ListPostsResponse>
+  public async listPosts(filters: ListPostsFilters): Promise<ListPostsResponse>
   /**
    * List posts and order the list
    *
@@ -196,7 +221,7 @@ export default class PostClient {
    * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
    */
   public async listPosts(
-    filters: ListPostsFilter,
+    filters: ListPostsFilters,
     order: ListPostsOrder
   ): Promise<ListPostsResponse>
   /**
@@ -206,7 +231,7 @@ export default class PostClient {
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
-    filters: ListPostsFilter,
+    filters: ListPostsFilters,
     next: string
   ): Promise<ListPostsResponse>
   /**
@@ -217,14 +242,14 @@ export default class PostClient {
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
-    filters: ListPostsFilter,
+    filters: ListPostsFilters,
     order: ListPostsOrder,
     next: string
   ): Promise<ListPostsResponse>
 
   public async listPosts(
     filtersOrOrderOptionsOrNextKey?: Maybe<
-      ListPostsFilter | ListPostsOrder | string
+      ListPostsFilters | ListPostsOrder | string
     >,
     orderOptionsOrNextKey?: Maybe<ListPostsOrder | string>,
     nextKey?: string | null
@@ -233,54 +258,22 @@ export default class PostClient {
       filtersOrOrderOptionsOrNextKey &&
       typeof filtersOrOrderOptionsOrNextKey !== "string" &&
       !("field" in filtersOrOrderOptionsOrNextKey) &&
-      !("direction" in filtersOrOrderOptionsOrNextKey) &&
-      Object.keys(filtersOrOrderOptionsOrNextKey).length
+      !("direction" in filtersOrOrderOptionsOrNextKey)
         ? { ...filtersOrOrderOptionsOrNextKey }
         : null
 
     let filters = null
     if (filtersInput) {
-      const { collections } = filtersInput
-      if (collections === null || collections === undefined)
-        filters = { ...filtersInput }
-      else if (
-        (typeof collections !== "string" &&
-          !Array.isArray(collections) &&
-          collections.constructor &&
-          collections.constructor !== new Object().constructor) ||
-        (typeof collections === "string" && !collections.length) ||
-        (Array.isArray(collections) &&
-          (!collections.length ||
-            collections.some(c => typeof c !== "string" || !c.length))) ||
-        (collections.constructor === new Object().constructor &&
-          (!Object.keys(collections).length ||
-            Object.keys(collections).some(
-              key => !["offered", "wanted"].includes(key)
-            )))
-      ) {
-        throw new Error('invalid parameter "filter.collections"')
-      } else if (
-        typeof collections !== "string" &&
-        !Array.isArray(collections) &&
-        collections.constructor === new Object().constructor
-      ) {
-        if (
-          (collections.offered &&
-            typeof collections.offered !== "string" &&
-            !Array.isArray(collections.offered)) ||
-          (Array.isArray(collections.offered) &&
-            collections.offered.some(o => typeof o !== "string" || !o.length))
-        )
-          throw new Error('invalid parameter "filter.collections.offered"')
-        if (
-          (collections.wanted &&
-            typeof collections.wanted !== "string" &&
-            !Array.isArray(collections.wanted)) ||
-          (Array.isArray(collections.wanted) &&
-            collections.wanted.some(w => typeof w !== "string" || !w.length))
-        )
-          throw new Error('invalid parameter "filter.collections.wanted"')
+      try {
+        validateListPostsFilters(filtersInput)
+      } catch (e) {
+        throw e
       }
+      const { collections, status, type, deals } = filtersInput
+      delete filtersInput.collections
+      delete filtersInput.status
+      delete filtersInput.type
+      delete filtersInput.deals
 
       const collectionsWanted = collections
         ? typeof collections === "string"
@@ -308,6 +301,27 @@ export default class PostClient {
       if (collectionsWanted) filters = { ...(filters ?? {}), collectionsWanted }
       if (collectionsOffered)
         filters = { ...(filters ?? {}), collectionsOffered }
+      if (status)
+        filters = {
+          ...(filters ?? {}),
+          status:
+            typeof status === "string"
+              ? PostClient.POST_STATUS[status]
+              : status,
+        }
+      if (type)
+        filters = {
+          ...(filters ?? {}),
+          type: typeof type === "string" ? PostClient.POST_TYPE[type] : type,
+        }
+
+      if (deals) filters = { ...(filters ?? {}), deals }
+
+      filters = Object.fromEntries(
+        Object.entries({ ...(filters ?? {}), ...filtersInput }).filter(
+          ([_name, value]) => value !== undefined && value !== null
+        )
+      )
     }
 
     const order =
@@ -329,21 +343,18 @@ export default class PostClient {
         ? nextKey
         : null
 
-    // TODO? should filters.collections be only array
-    // TODO? expirationDate is in seconds, should it be parsed in milliseconds
-    // TODO delete next line
-    console.log("payload:", { filters, order, next })
+    const body = {
+      filters: filters ? (Object.keys(filters).length ? filters : null) : null,
+      order,
+      next,
+    }
 
     try {
       const { data } = await this._fetch<ListPostsResponse>(
         "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/posts",
         {
           method: "POST",
-          body: {
-            filters,
-            order,
-            next,
-          },
+          body,
         }
       )
 
@@ -353,23 +364,44 @@ export default class PostClient {
     }
   }
 
+  private async _createPost<
+    P extends (CreatePost | CreatePostReply) & Partial<Pick<Post, "parentId">>
+  >(post: P): Promise<Maybe<string>> {
+    try {
+      const res = await this._fetch<string>(
+        "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/insert",
+        {
+          method: "POST",
+          body: post,
+        }
+      )
+
+      console.log(res)
+
+      return res.data ?? null
+    } catch (e) {
+      throw e
+    }
+  }
+
   /**
    * Create a post
    *
-   * POST - https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/insert
    * @param post - A post to be created
    */
-  private async _createPost(post: {}): Promise<string> {
-    return "id"
-  }
-
-  // TODO
   public async createPost(post: CreatePost) {
-    // Here to prevent unused variable error
-    this._createPost
+    return this._createPost(post)
   }
 
-  public async createPostReply(post: {}, parentId: string) {}
+  /**
+   * Create a post reply
+   *
+   * @param reply - A reply to be created in the context of a parent post
+   * @param parentId - The parent post id to whom this reply belongs to
+   */
+  public async createPostReply(reply: CreatePostReply, parentId: string) {
+    return this._createPost({ ...reply, parentId })
+  }
 
   /**
    * Bulk create posts
