@@ -252,7 +252,10 @@ export default class TradeClient {
       addressMaker
     )
 
-    return executeAllActions()
+    const order = await executeAllActions()
+    const hash = this.seaport.getOrderHash(order.parameters)
+
+    return { hash, ...order }
   }
 
   public async closeSwap(order: Swap, taker: string) {
