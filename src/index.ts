@@ -17,7 +17,8 @@ export * as CallbackParams from "./types/tradeClient/callbackParams"
 export * as CreateSwapPeer from "./types/tradeClient/createSwapPeer"
 export * as Swap from "./types/tradeClient/swap"
 export * as SwapParameters from "./types/tradeClient/swapParameters"
-export * as TradeClientInit from "./types/tradeClient/tradeClientInit"
+export * as TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
+export * as TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 
 export { TradeClient, PostClient, AssetsArray, WebSocketProvider }
 export default { TradeClient, PostClient, AssetsArray, WebSocketProvider }

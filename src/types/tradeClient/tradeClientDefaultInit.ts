@@ -1,8 +1,6 @@
 import Network from "../general/network"
-import TradeClientJsonRpcInit from "./tradeClientJsonRPCInit"
-import TradeClientWeb3Init from "./tradeClientWeb3Init"
 
-type TradeClientInit = (TradeClientJsonRpcInit | TradeClientWeb3Init) & {
+type TradeClientDefaultInit = {
   /**
    * The network of the chain.
    */
@@ -15,4 +13,4 @@ type TradeClientInit = (TradeClientJsonRpcInit | TradeClientWeb3Init) & {
   blocksNumberConfirmationRequired?: number
 }
 
-export default TradeClientInit
+export default TradeClientDefaultInit

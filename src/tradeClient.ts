@@ -10,7 +10,8 @@ import CreateSwapPeer from "./types/tradeClient/createSwapPeer"
 import TradeClientEventsMap from "./types/tradeClient/eventsMap"
 import Swap from "./types/tradeClient/swap"
 import SwapParameters from "./types/tradeClient/swapParameters"
-import TradeClientInit from "./types/tradeClient/tradeClientInit"
+import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
+import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 const { swap, contractAbi } = contracts
 
 // TODO rename in tradeClient.ts, this will be the only tradeClient
@@ -41,7 +42,19 @@ export default class TradeClient {
    *
    * @param config - Configuration object for the sdk.
    */
-  constructor(config: TradeClientInit) {
+  constructor(config: TradeClientJsonRpcInit)
+  /**
+   * Create an instance of the NFTTrader TradeClient object.
+   *
+   * @param config - Configuration object for the sdk.
+   */
+  constructor(config: TradeClientWeb3Init)
+  /**
+   * Create an instance of the NFTTrader TradeClient object.
+   *
+   * @param config - Configuration object for the sdk.
+   */
+  constructor(config: TradeClientJsonRpcInit | TradeClientWeb3Init) {
     if (
       ("web3Provider" in config && "jsonRpcProvider" in config) ||
       (!("web3Provider" in config) && !("jsonRpcProvider" in config))
