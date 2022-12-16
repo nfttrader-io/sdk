@@ -3,14 +3,13 @@
   "version": "2.0.0",
   "description": "The NFT Trader Official Javascript SDK",
   "main": "dist/index.js",
-  "browser": "dist/nfttrader-io-sdk.min.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc && rollup -c"
+    "build": "tsc"
   },
   "publishConfig": {
     "access": "public",
@@ -35,14 +34,12 @@
   },
   "homepage": "https://github.com/nfttrader-io/sdk#readme",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "rollup": "^2.79.1",
-    "rollup-plugin-terser": "^7.0.2",
     "typescript": "^4.8.4"
   },
   "dependencies": {
     "@opensea/seaport-js": "^1.0.8",
-    "ethers": "^5.7.2"
+    "bufferutil": "^4.0.7",
+    "ethers": "^5.7.2",
+    "utf-8-validate": "^5.0.10"
   }
 }

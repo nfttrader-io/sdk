@@ -1,7 +1,6 @@
 import * as ethers from "ethers"
 import contracts from "./lib/contracts"
 import Network from "./types/general/network"
-const { swap } = contracts
 
 /**
  * This class contains the WebSocket Provider objects to listen the events emitted by the smart contract.
@@ -17,8 +16,6 @@ export default class WebSocketProvider {
         url,
         network
       )
-
-      this.contractAddressWebSocketProvider = swap[network]
     } catch (error: any) {
       throw new Error(error)
     }

@@ -1,15 +1,10 @@
 import Network from "../types/general/network"
 
-const swap: Record<Network, string> = {
-  ETHEREUM: "0x657E383EdB9A7407E468acBCc9Fe4C9730c7C275",
-  POLYGON: "0x4ee6e8885b684a3de405a3dca83b8823a5acf216",
-  MUMBAI: "0x42B7a2f083f05De5C231Ac15C440A01Ce26e2F5B",
-}
-
 const royaltyRegistriesEngines: Record<Network, string> = {
-  ETHEREUM: "0x0385603ab55642cb4Dd5De3aE9e306809991804f",
-  POLYGON: "0x28EdFcF0Be7E86b07493466e7631a213bDe8eEF2",
-  MUMBAI: "0x0a01E11887f727D1b1Cd81251eeEE9BEE4262D07",
+  1: "0x0385603ab55642cb4Dd5De3aE9e306809991804f",
+  137: "0x28EdFcF0Be7E86b07493466e7631a213bDe8eEF2",
+  80001: "0x0a01E11887f727D1b1Cd81251eeEE9BEE4262D07",
+  5: "0xe7c9cb6d966f76f3b5142167088927bf34966a1f",
 }
 
 const contractAbi = [
@@ -1179,7 +1174,6 @@ const royaltyRegistryEngineAbi = [
 ]
 
 export default {
-  swap,
   royaltyRegistriesEngines,
   contractAbi,
   erc721Abi,

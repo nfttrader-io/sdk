@@ -1,4 +1,4 @@
-import Maybe from "../general/maybe"
+import Maybe from "./maybe"
 
 export default interface HTTPResponse<DataType = any> {
   statusCode: number

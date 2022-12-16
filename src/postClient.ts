@@ -1,6 +1,6 @@
 import Maybe from "./types/general/maybe"
-import HTTPResponse from "./types/postClient/httpResponse"
-import HTTPRequestInit from "./types/postClient/httpRequestInit"
+import HTTPResponse from "./types/general/httpResponse"
+import HTTPRequestInit from "./types/general/httpRequestInit"
 import ListPostsFilters from "./types/postClient/listPostsFilters"
 import ListPostsOrder from "./types/postClient/listPostsOrder"
 import ListPostsResponse from "./types/postClient/listPostsResponse"
@@ -13,8 +13,9 @@ import PostType from "./types/postClient/postType"
 import Post from "./types/postClient/post"
 import POST_STATUS from "./lib/postClient/postStatus"
 import POST_TYPE from "./lib/postClient/postType"
+import GlobalFetch from "./lib/globalFetch"
 
-export default class PostClient {
+export default class PostClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
 
   public static get POST_STATUS(): PostStatus {
@@ -27,124 +28,12 @@ export default class PostClient {
 
   // TODO? Should apiKey be in general constructor or PostClient specific
   constructor(config?: { apiKey: string }) {
+    super()
     this._apiKey = config?.apiKey ?? null
   }
 
-  private async _fetchJS<RT = any>(
-    url: string | URL,
-    options: HTTPRequestInit
-  ): Promise<HTTPResponse<RT>> {
-    const req = new XMLHttpRequest()
-
-    return new Promise((resolve, reject) => {
-      req.addEventListener("load", () => {
-        const {
-          status: statusCode,
-          statusText: statusMessage,
-          responseText,
-        } = req
-        const data = responseText.length ? JSON.parse(responseText) : null
-
-        if (statusCode >= 400)
-          reject({
-            statusCode,
-            statusMessage,
-            error: data,
-            isFetchError: true,
-          })
-        else
-          resolve({
-            statusCode,
-            statusMessage,
-            data,
-          })
-      })
-
-      req.addEventListener("error", error =>
-        reject({
-          statusCode: req.status,
-          statusMessage: req.statusText,
-          error,
-          isFetchError: false,
-        })
-      )
-
-      req.open(options.method, url)
-      if (options.headers)
-        for (const [name, value] of Object.entries(options.headers))
-          req.setRequestHeader(name, value)
-      req.send(options.body ? new URLSearchParams(options.body) : null)
-    })
-  }
-
-  private async _fetchNode<ReturnType = any>(
-    url: string | URL,
-    options: HTTPRequestInit
-  ): Promise<HTTPResponse<ReturnType>> {
-    const client =
-      url instanceof URL
-        ? url.protocol === "https:"
-          ? await import("https")
-          : url.protocol === "http:"
-          ? await import("http")
-          : null
-        : /^https?(?=:)/g.test(url)
-        ? url.substring(0, 5) === "https"
-          ? await import("https")
-          : await import("http")
-        : null
-    if (!client) throw new Error("Invalid url protocol")
-
-    return new Promise((resolve, reject) => {
-      const request = client.request(
-        url,
-        { method: options.method, headers: options.headers ?? undefined },
-        response => {
-          const statusCode = response.statusCode!,
-            statusMessage = response.statusMessage!
-          let result = ""
-
-          response.on(
-            "data",
-            chunk => (result += chunk.toString ? chunk.toString() : "")
-          )
-
-          response.on("error", error =>
-            reject({
-              statusCode,
-              statusMessage,
-              error,
-              isFetchError: false,
-            })
-          )
-
-          response.on("end", () => {
-            const data = result.length ? JSON.parse(result) : null
-
-            if (statusCode >= 400)
-              reject({
-                statusCode,
-                statusMessage,
-                error: data,
-                isFetchError: true,
-              })
-            else
-              resolve({
-                statusCode,
-                statusMessage,
-                data,
-              })
-          })
-        }
-      )
-
-      if (options.body) request.write(JSON.stringify(options.body))
-      request.end()
-    })
-  }
-
   // TODO - Change Bearer in ApiKey
-  private _fetch<ReturnType = any>(
+  private _fetchWithAuth<ReturnType = any>(
     url: string | URL,
     options: HTTPRequestInit = {
       method: "GET",
@@ -158,9 +47,7 @@ export default class PostClient {
         Authorization: `Bearer ${this._apiKey}`,
       }
 
-    return globalThis.document
-      ? this._fetchJS<ReturnType>(url, options)
-      : this._fetchNode<ReturnType>(url, options)
+    return this._fetch(url, options)
   }
 
   /**
@@ -172,7 +59,7 @@ export default class PostClient {
     if (!id) throw new Error('Invalid parameter "id"')
 
     try {
-      const { data } = await this._fetch<PostResponse>(
+      const { data } = await this._fetchWithAuth<PostResponse>(
         `https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/${id}`
       )
 
@@ -340,7 +227,7 @@ export default class PostClient {
     }
 
     try {
-      const { data } = await this._fetch<ListPostsResponse>(
+      const { data } = await this._fetchWithAuth<ListPostsResponse>(
         "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/posts",
         {
           method: "POST",
@@ -358,7 +245,7 @@ export default class PostClient {
     P extends (CreatePost | CreatePostReply) & Partial<Pick<Post, "parentId">>
   >(post: P): Promise<Maybe<string>> {
     try {
-      const res = await this._fetch<string>(
+      const res = await this._fetchWithAuth<string>(
         "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/insert",
         {
           method: "POST",

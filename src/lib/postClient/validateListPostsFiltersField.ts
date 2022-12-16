@@ -132,20 +132,21 @@ export default function validateListPostsFiltersField<
     }
     case "networks": {
       const _value = value as ListPostsFilters["networks"]
-      const { swap } = contracts
+      const { royaltyRegistriesEngines } = contracts
 
       if (_value === null || _value === undefined) return
       else if (
-        (typeof _value !== "string" && !Array.isArray(_value)) ||
-        (typeof _value === "string" &&
-          (!_value.length || !Object.keys(swap).includes(_value))) ||
+        (typeof _value !== "number" && !Array.isArray(_value)) ||
+        (typeof _value === "number" &&
+          (!_value ||
+            !Object.keys(royaltyRegistriesEngines).includes(`${_value}`))) ||
         (Array.isArray(_value) &&
           (!_value.length ||
             _value.some(
               _v =>
-                typeof _v !== "string" ||
-                !_v.length ||
-                !Object.keys(swap).includes(_v)
+                typeof _v !== "number" ||
+                !_v ||
+                !Object.keys(royaltyRegistriesEngines).includes(`${_v}`)
             )))
       )
         throw new Error('invalid parameter "filters.networks"')

@@ -5,7 +5,6 @@ import TradeClientEventsMap from "./types/tradeClient/eventsMap"
 import CallbackParams from "./types/tradeClient/callbackParams"
 import Network from "./types/general/network"
 const {
-  swap,
   royaltyRegistriesEngines,
   contractAbi,
   erc721Abi,
@@ -78,8 +77,6 @@ export default class TradeClient {
     if (typeof web3Provider === "string" && typeof web3Provider !== "undefined")
       throw new Error("web3Provider must be an object -> Eg. window.ethereum")
 
-    if (swap[network] === void 0) throw new Error("network not supported.")
-
     if (typeof jsonRpcProvider === "string") {
       if (!this.avoidPrivateKeySigner) {
         if (typeof signer === "undefined" || signer === null)
@@ -114,17 +111,9 @@ export default class TradeClient {
         else this.provider = web3Provider
       }
 
-      this.contractAddress = swap[network]
-      this.contract = new ethers.Contract(
-        this.contractAddress,
-        contractAbi,
-        this.provider ?? undefined
-      )
-
       if (!this.isJsonRpcProvider || this.avoidPrivateKeySigner) return
 
       if (!this.signer) throw new Error("signer unset")
-      this.contract = this.contract.connect(this.signer)
     } catch (error: any) {
       throw new Error(error)
     }
@@ -293,13 +282,6 @@ export default class TradeClient {
    */
   public getEthersJSInstance() {
     return ethers
-  }
-
-  /**
-   * Returns the instance of networks currently supported by this SDK.
-   */
-  public getNetworksAvailable() {
-    return swap
   }
 
   /**
