@@ -45,7 +45,7 @@ export default class GlobalFetch {
       if (options.headers)
         for (const [name, value] of Object.entries(options.headers))
           req.setRequestHeader(name, value)
-      req.send(options.body ? new URLSearchParams(options.body) : null)
+      req.send(JSON.stringify(options.body))
     })
   }
 
@@ -123,6 +123,11 @@ export default class GlobalFetch {
       body: undefined,
     }
   ): Promise<HTTPResponse<ReturnType>> {
+    options.headers = {
+      ...options.headers,
+      "Content-Type": "application/json",
+    }
+
     return globalThis.document
       ? this._fetchJS<ReturnType>(url, options)
       : this._fetchNode<ReturnType>(url, options)

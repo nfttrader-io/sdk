@@ -158,7 +158,7 @@ export default class TradeClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      Authorization: `${this._jwt ? "Bearer" : "ApiKey"} ${
+      authorization: `${this._jwt ? "Bearer" : "ApiKey"} ${
         this._jwt ?? this._apiKey
       }`,
     }
@@ -423,8 +423,9 @@ export default class TradeClient extends GlobalFetch {
       !orderTypes.offer.hasToken
     ) {
       return {
+        ...orderInit,
         offer: orderInit.offer,
-        consideration: {
+        consideration: [
           ...orderInit.consideration.concat([
             {
               recipient: this._getNFTTraderGnosis() ?? "",
@@ -433,7 +434,7 @@ export default class TradeClient extends GlobalFetch {
                 .toString(),
             },
           ]),
-        },
+        ],
       }
     }
     if (
@@ -507,18 +508,25 @@ export default class TradeClient extends GlobalFetch {
     const orderHash = this._seaport.getOrderHash(order.parameters)
 
     // TODO in prod delete "develop.""
-    await this._fetchWithAuth("https://api.nfttrader.io/trade/insertTrade", {
-      method: "POST",
-      body: {
-        network: `${this._network}`,
-        orderInit,
-        order: {
-          orderHash,
-          orderType: order.parameters.orderType,
-          ...order,
-        },
-      },
-    })
+    try {
+      await this._fetchWithAuth(
+        "https://develop.api.nfttrader.io/trade/insertTrade",
+        {
+          method: "POST",
+          body: {
+            network: `${this._network}`,
+            orderInit,
+            order: {
+              orderHash,
+              orderType: order.parameters.orderType,
+              ...order,
+            },
+          },
+        }
+      )
+    } catch (e) {
+      console.warn(e)
+    }
 
     return { hash: orderHash, ...order }
   }
