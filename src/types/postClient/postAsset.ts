@@ -16,5 +16,7 @@ export default interface PostAsset {
   amount: Maybe<string>
   amountHumanReadable: Maybe<string>
   checked: boolean
+  isDifferent: boolean
   collection?: Collection
+  amountUSD?: string
 }
