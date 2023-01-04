@@ -9,6 +9,7 @@ export default interface Post {
   id: string
   parentId: string
   score: number
+  isDifferent: boolean
   like: number
   assetsChecked: boolean
   status: PostStatus[PostStatusName]
