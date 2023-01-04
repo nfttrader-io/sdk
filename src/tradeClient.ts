@@ -16,6 +16,8 @@ import CreateSwapPeer from "./types/tradeClient/createSwapPeer"
 import TradeClientEventsMap from "./types/tradeClient/eventsMap"
 import Fee from "./types/tradeClient/fee"
 import JWTAuthorized from "./types/tradeClient/jwtAuthorized"
+import MultiSigWallet from "./types/tradeClient/multisigWallet"
+import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import PartialSwap from "./types/tradeClient/partialSwap"
 import Swap from "./types/tradeClient/swap"
 import SwapParameters from "./types/tradeClient/swapParameters"
@@ -48,6 +50,7 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
+  private _BACKEND_URL: string = "https://develop.api.nfttrader.io" // TODO in prod delete "develop.""
 
   /**
    * Create an instance of the NFTTrader TradeClient object.
@@ -158,10 +161,13 @@ export default class TradeClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      authorization: `${this._jwt ? "Bearer" : "ApiKey"} ${
+      authorization: `${this._jwt ? "Bearer" : "x-api-key"} ${
         this._jwt ?? this._apiKey
       }`,
     }
+
+    if (this._jwt) options.headers["authorizer-type"] = "token"
+    else if (this._apiKey) options.headers["authorizer-type"] = "request"
 
     return this._fetch(url, options)
   }
@@ -176,7 +182,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -195,7 +201,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -209,7 +215,7 @@ export default class TradeClient extends GlobalFetch {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex(func => {
+      const index = event.callbacks.findIndex((func) => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -228,7 +234,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -255,54 +261,42 @@ export default class TradeClient extends GlobalFetch {
     this._blocksNumberConfirmationRequired = blocksNumberConfirmationRequired
   }
 
-  private _getNFTTraderGnosis = () => {
-    if (this._network && [1, 137, 4, 5, 80001].includes(this._network)) {
-      switch (this._network) {
-        case 1: // "ETHEREUM"
-          return "0x83Db44123E76503203fDf83D2bE58BE60c15B894"
-          break
-        case 137: // "POLYGON"
-          return "0xDD0f6C1E0842869520a49b219676590E8AD14a15"
-          break
-        // case 4: // "RINKEBY"
-        //   return "0x83Db44123E76503203fDf83D2bE58BE60c15B894"
-        //   break
-        case 5: // "GOERLI"
-          return "0x83Db44123E76503203fDf83D2bE58BE60c15B894"
-          break
-        case 80001: // "MUMBAI",
-          return "0xDD0f6C1E0842869520a49b219676590E8AD14a15"
-          break
+  //todo
+  private _getNFTTraderGnosis = async (): Promise<MultiSigWallet | null> => {
+    try {
+      const response = await this._fetchWithAuth<MultiSigWallet>(
+        `${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`
+      )
+
+      if (response.data) {
+        return response.data
+      } else {
+        console.warn("no data field in response")
+        return null
       }
-    } else {
-      throw "network not supported"
+    } catch (error) {
+      console.warn(error)
+      return null
     }
-    return null
   }
 
-  private _getNFTTraderFlatFee = () => {
-    if ([1, 137, 4, 5, 80001].includes(this._network)) {
-      switch (this._network) {
-        case 1: // "ETHEREUM"
-          return "0.01"
-          break
-        case 137: // "POLYGON"
-          return "10"
-          break
-        // case 4: // "RINKEBY"
-        //   return "0.01"
-        //   break
-        case 5: // "GOERLI"
-          return "0.01"
-          break
-        case 80001: // "MUMBAI",
-          return "10"
-          break
+  //todo
+  private _getNFTTraderFees = async (): Promise<NFTTraderFees | null> => {
+    try {
+      const response = await this._fetchWithAuth<NFTTraderFees>(
+        `${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`
+      )
+
+      if (response.data) {
+        return response.data
+      } else {
+        console.warn("no data field in response")
+        return null
       }
-    } else {
-      throw "network not supported"
+    } catch (error) {
+      console.warn(error)
+      return null
     }
-    return null
   }
 
   private _analyzeOrder = (orderInit: CreateOrderInput) => {
@@ -411,10 +405,29 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
-  private _addNFTTraderFee = (
+  private _addNFTTraderFee = async (
     orderInit: CreateOrderInput
-  ): CreateOrderInput => {
+  ): Promise<CreateOrderInput> => {
     const orderTypes = this._analyzeOrder(orderInit)
+    const nftTraderFees: NFTTraderFees | null = await this._getNFTTraderFees()
+    const nftTraderGnosis: MultiSigWallet | null =
+      await this._getNFTTraderGnosis()
+
+    let flatFee: string | undefined
+    let basisPoints: number | undefined
+    let gnosisRecipient: string = ""
+
+    if (nftTraderFees) {
+      flatFee = nftTraderFees.flatFee[0].fee
+      basisPoints = nftTraderFees.percentageFee[0].basisPoints
+    } else {
+      flatFee = "0"
+      basisPoints = 50
+    }
+
+    if (nftTraderGnosis)
+      gnosisRecipient = nftTraderGnosis.multisig[0].multisigAddress
+
     if (
       this._network &&
       orderTypes.consideration.hasNFT &&
@@ -428,15 +441,14 @@ export default class TradeClient extends GlobalFetch {
         consideration: [
           ...orderInit.consideration.concat([
             {
-              recipient: this._getNFTTraderGnosis() ?? "",
-              amount: ethers.utils
-                .parseEther(this._getNFTTraderFlatFee() ?? "0")
-                .toString(),
+              recipient: gnosisRecipient,
+              amount: ethers.utils.parseEther(flatFee).toString(),
             },
           ]),
         ],
       }
     }
+
     if (
       this._network &&
       orderTypes.consideration.hasToken &&
@@ -445,8 +457,8 @@ export default class TradeClient extends GlobalFetch {
     ) {
       orderInit.fees = [
         {
-          recipient: this._getNFTTraderGnosis() ?? "",
-          basisPoints: 50,
+          recipient: gnosisRecipient,
+          basisPoints: basisPoints,
         },
       ]
     }
@@ -471,9 +483,9 @@ export default class TradeClient extends GlobalFetch {
 
     const [addressMaker] = await this._provider.listAccounts()
 
-    const orderInit = this._addNFTTraderFee({
+    const orderInit = await this._addNFTTraderFee({
       offer: [...(maker.assets ?? [])].map(
-        a =>
+        (a) =>
           ({
             ...a,
             itemType:
@@ -483,7 +495,7 @@ export default class TradeClient extends GlobalFetch {
           } as { itemType: ItemType } & typeof a)
       ),
       consideration: [...(taker.assets ?? [])].map(
-        a =>
+        (a) =>
           ({
             ...a,
             itemType:
@@ -507,23 +519,19 @@ export default class TradeClient extends GlobalFetch {
     const order = await executeAllActions()
     const orderHash = this._seaport.getOrderHash(order.parameters)
 
-    // TODO in prod delete "develop.""
     try {
-      await this._fetchWithAuth(
-        "https://develop.api.nfttrader.io/trade/insertTrade",
-        {
-          method: "POST",
-          body: {
-            network: `${this._network}`,
-            orderInit,
-            order: {
-              orderHash,
-              orderType: order.parameters.orderType,
-              ...order,
-            },
+      await this._fetchWithAuth(`${this._BACKEND_URL}/trade/insertTrade`, {
+        method: "POST",
+        body: {
+          network: `${this._network}`,
+          orderInit,
+          order: {
+            orderHash,
+            orderType: order.parameters.orderType,
+            ...order,
           },
-        }
-      )
+        },
+      })
     } catch (e) {
       console.warn(e)
     }
