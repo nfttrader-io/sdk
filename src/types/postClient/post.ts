@@ -24,4 +24,5 @@ export default interface Post {
   creator: Collector
   messages: Array<{ type: string }>
   assets: PostAssets
+  disabled: boolean
 }
