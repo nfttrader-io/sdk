@@ -4,5 +4,5 @@ export default interface TradeClientEventError<
   EventName extends keyof TradeClientErrorTypeMap
 > {
   error: any
-  typeError: "waitError" | TradeClientErrorTypeMap[EventName]
+  typeError: "waitError" | "ApiError" | TradeClientErrorTypeMap[EventName]
 }

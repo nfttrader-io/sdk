@@ -10,6 +10,7 @@ export default interface TradeClientEventsMap {
   cancelSwapTransactionError: (
     p: TradeClientEventError<"cancelSwapTransactionError">
   ) => any
+  cancelSwapError: (p: TradeClientEventError<"cancelSwapError">) => any
   execSwapTransactionCreated: (p: {
     tx: ethers.providers.TransactionResponse
   }) => any
@@ -19,4 +20,5 @@ export default interface TradeClientEventsMap {
   execSwapTransactionError: (
     p: TradeClientEventError<"execSwapTransactionError">
   ) => any
+  execSwapError: (p: TradeClientEventError<"execSwapError">) => any
 }

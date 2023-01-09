@@ -547,42 +547,109 @@ export default class TradeClient extends GlobalFetch {
     return { hash: orderHash, ...order }
   }
 
-  public async execSwap(
-    swap: PartialSwap,
-    taker: string
-  ): Promise<ethers.ContractTransaction> {
-    const { executeAllActions } = await this._seaport.fulfillOrder({
-      order: swap,
-      accountAddress: taker,
-    })
+  /**
+   * Execute the swap and finalize the order
+   *
+   * @param maker - The maker of the swap
+   * @param taker - The taker (counterparty) of the swap
+   * @param end - The number of the days representing the validity of the swap
+   * @param fees - The array of fees to apply on the swap
+   */
+  public async execSwap(swap: PartialSwap, taker: string) {
+    try {
+      const { executeAllActions } = await this._seaport.fulfillOrder({
+        order: swap,
+        accountAddress: taker,
+      })
+      this.__emit("execSwapTransactionCreated")
 
-    return executeAllActions()
+      const transact = await executeAllActions()
+      try {
+        const receipt = await transact.wait(
+          this._blocksNumberConfirmationRequired
+        )
+        this.__emit("execSwapTransactionMined", { receipt })
+      } catch (error) {
+        this.__emit("execSwapTransactionError", {
+          error,
+          typeError: "waitError",
+        })
+        return
+      }
+    } catch (error) {
+      this.__emit("execSwapTransactionError", {
+        error,
+        typeError: "execSwapTransactionError",
+      })
+    }
   }
 
+  /**
+   * Cancel the swap specified
+   *
+   * @param {string} swapId - The id of the swap
+   * @param {number} gasLimit - the gas limit of the transaction
+   * @param {string} gasPrice - the gas price of the transaction
+   */
   public async cancelSwap(
-    swapParameters: SwapParameters,
-    maker: string,
-    gasLimit = 2000000,
-    gasPrice = null
+    swapId: string,
+    gasLimit: number = 2000000,
+    gasPrice: string | null = null
   ) {
-    //api call
-
-    const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
-    gasLimit && (txOverrides["gasLimit"] = gasLimit)
-    gasPrice && (txOverrides["gasPrice"] = gasPrice)
-
     try {
-      const tx = this._seaport.cancelOrders([swapParameters], maker)
-      this.__emit("cancelSwapTransactionCreated", { tx })
-      const transact = await tx.transact({ ...txOverrides })
-      const receipt = await transact.wait(
-        this._blocksNumberConfirmationRequired
+      const response = await this._fetchWithAuth(
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
-      this.__emit("cancelSwapTransactionMined", { receipt })
+      if (response.data) {
+        const data: {
+          master: Array<any>
+          detail: Array<any>
+          parameters: {
+            addressMaker: string
+            order: { orderHash: string; parameters: SwapParameters }
+          }
+        } = response.data[0]
+
+        const parameters = data.parameters.order.parameters
+        const maker = data.parameters.addressMaker
+        const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
+
+        gasLimit && gasLimit !== 2000000 && (txOverrides["gasLimit"] = gasLimit)
+        gasPrice && (txOverrides["gasPrice"] = gasPrice)
+
+        try {
+          const tx = this._seaport.cancelOrders([parameters], maker)
+          this.__emit("cancelSwapTransactionCreated", { tx })
+          const transact = await tx.transact({ ...txOverrides })
+          try {
+            const receipt = await transact.wait(
+              this._blocksNumberConfirmationRequired
+            )
+            this.__emit("cancelSwapTransactionMined", { receipt })
+          } catch (error) {
+            this.__emit("cancelSwapTransactionError", {
+              error,
+              typeError: "waitError",
+            })
+            return
+          }
+        } catch (error) {
+          this.__emit("cancelSwapTransactionError", {
+            error,
+            typeError: "cancelSwapTransactionError",
+          })
+          return
+        }
+      } else {
+        this.__emit("cancelSwapError", {
+          error: "response data is empty",
+          typeError: "ApiError",
+        })
+      }
     } catch (error) {
-      this.__emit("cancelSwapTransactionError", {
+      this.__emit("cancelSwapError", {
         error,
-        typeError: "cancelSwapIntentError",
+        typeError: "ApiError",
       })
     }
   }
