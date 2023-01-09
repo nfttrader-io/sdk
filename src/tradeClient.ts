@@ -24,7 +24,7 @@ import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 import WithAddress from "./types/tradeClient/withAddress"
-const { royaltyRegistriesEngines } = contracts
+const { royaltyRegistriesEngines, seaportSmartContracts } = contracts
 
 // TODO rename in tradeClient.ts, this will be the only tradeClient
 // TODO change import in index.ts
@@ -134,7 +134,7 @@ export default class TradeClient extends GlobalFetch {
 
     this._blocksNumberConfirmationRequired = blocksNumberConfirmationRequired
       ? blocksNumberConfirmationRequired
-      : network === 1
+      : network === "1"
       ? 7
       : 35
 
@@ -259,6 +259,14 @@ export default class TradeClient extends GlobalFetch {
       )
 
     this._blocksNumberConfirmationRequired = blocksNumberConfirmationRequired
+  }
+
+  /**
+   * Get a list of all seaport smart contracts address deployed
+   *
+   */
+  public getSeaportContractsAddresses(): Record<Network, string> {
+    return seaportSmartContracts
   }
 
   //todo
