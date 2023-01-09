@@ -547,7 +547,10 @@ export default class TradeClient extends GlobalFetch {
     return { hash: orderHash, ...order }
   }
 
-  public async closeSwap(swap: PartialSwap, taker: string) {
+  public async execSwap(
+    swap: PartialSwap,
+    taker: string
+  ): Promise<ethers.ContractTransaction> {
     const { executeAllActions } = await this._seaport.fulfillOrder({
       order: swap,
       accountAddress: taker,
@@ -556,15 +559,31 @@ export default class TradeClient extends GlobalFetch {
     return executeAllActions()
   }
 
-  public async cancelSwap(swapParameters: SwapParameters, maker: string) {
-    const tx = this._seaport.cancelOrders([swapParameters], maker)
+  public async cancelSwap(
+    swapParameters: SwapParameters,
+    maker: string,
+    gasLimit = 2000000,
+    gasPrice = null
+  ) {
+    //api call
+
+    const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
+    gasLimit && (txOverrides["gasLimit"] = gasLimit)
+    gasPrice && (txOverrides["gasPrice"] = gasPrice)
 
     try {
-      tx.estimateGas()
-    } catch (e) {
-      throw new Error("TX reverted")
+      const tx = this._seaport.cancelOrders([swapParameters], maker)
+      this.__emit("cancelSwapTransactionCreated", { tx })
+      const transact = await tx.transact({ ...txOverrides })
+      const receipt = await transact.wait(
+        this._blocksNumberConfirmationRequired
+      )
+      this.__emit("cancelSwapTransactionMined", { receipt })
+    } catch (error) {
+      this.__emit("cancelSwapTransactionError", {
+        error,
+        typeError: "cancelSwapIntentError",
+      })
     }
-
-    return tx.transact()
   }
 }

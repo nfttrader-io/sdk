@@ -1,6 +1,4 @@
 export default interface TradeClientErrorTypeMap {
-  createSwapTransactionError: "createSwapIntentError"
-  closeSwapTransactionError: "closeSwapIntentError"
+  execSwapTransactionError: "execSwapIntentError"
   cancelSwapTransactionError: "cancelSwapIntentError"
-  editTakerTransactionError: "editCounterpartError"
 }
