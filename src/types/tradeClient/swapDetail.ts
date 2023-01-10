@@ -28,6 +28,10 @@ export type DealMaster = {
   flatFeeMakerNative: number
   flatFeeTaker: string
   flatFeeTakerNative: number
+  percentageFeeMaker: string
+  percentageFeeMakerNative: number
+  percentageFeeTaker: string
+  percentageFeeTakerNative: number
 }
 
 export type SwapDetail = {
