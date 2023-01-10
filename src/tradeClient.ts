@@ -29,7 +29,11 @@ import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 import WithAddress from "./types/tradeClient/withAddress"
-const { royaltyRegistriesEngines, seaportSmartContracts } = contracts
+const {
+  royaltyRegistriesEngines,
+  seaportSmartContracts,
+  royaltyRegistryEngineAbi,
+} = contracts
 
 // TODO rename in tradeClient.ts, this will be the only tradeClient
 // TODO change import in index.ts
@@ -272,6 +276,22 @@ export default class TradeClient extends GlobalFetch {
    */
   public getSeaportContractsAddresses(): Record<Network, string> {
     return seaportSmartContracts
+  }
+
+  /**
+   * Get a list of all royalties engine smart contracts address deployed
+   *
+   */
+  public getRoyaltyRegistriesEngines(): Record<Network, string> {
+    return royaltyRegistriesEngines
+  }
+
+  /**
+   * Get the ABI of the royalty engine smart contract
+   *
+   */
+  public getRoyaltyRegistryEngineABI(): Array<any> {
+    return royaltyRegistryEngineAbi
   }
 
   //todo
