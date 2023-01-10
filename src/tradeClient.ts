@@ -19,8 +19,12 @@ import JWTAuthorized from "./types/tradeClient/jwtAuthorized"
 import MultiSigWallet from "./types/tradeClient/multisigWallet"
 import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import PartialSwap from "./types/tradeClient/partialSwap"
-import { OrderComponents } from "@opensea/seaport-js/lib/types"
 import Swap from "./types/tradeClient/swap"
+import {
+  DealDetail,
+  DealMaster,
+  SwapDetail,
+} from "./types/tradeClient/swapDetail"
 import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
@@ -559,18 +563,7 @@ export default class TradeClient extends GlobalFetch {
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
       if (response.data) {
-        const data: {
-          master: Array<any>
-          detail: Array<any>
-          parameters: {
-            addressTaker: string
-            order: {
-              orderHash: string
-              parameters: SwapParameters
-              signature: string
-            }
-          }
-        } = response.data[0]
+        const data: SwapDetail = response.data[0]
 
         const parameters = data.parameters.order.parameters
         const taker = data.parameters.addressTaker
@@ -637,15 +630,7 @@ export default class TradeClient extends GlobalFetch {
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
       if (response.data) {
-        const data: {
-          master: Array<any>
-          detail: Array<any>
-          parameters: {
-            addressMaker: string
-            order: { orderHash: string; parameters: SwapParameters }
-          }
-        } = response.data[0]
-
+        const data: SwapDetail = response.data[0]
         const parameters = data.parameters.order.parameters
         const maker = data.parameters.addressMaker
         const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
@@ -688,5 +673,20 @@ export default class TradeClient extends GlobalFetch {
         typeError: "ApiError",
       })
     }
+  }
+
+  public async getSwapOrder(swapId: string): Promise<SwapDetail | null> {
+    try {
+      const response = await this._fetchWithAuth<Array<SwapDetail>>(
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
+      )
+
+      if (response.data) {
+        return response.data[0]
+      }
+    } catch (error) {
+      console.warn(error)
+    }
+    return null
   }
 }
