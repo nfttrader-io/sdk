@@ -16,6 +16,7 @@ export * as AssetTypeValue from "./types/assetsArray/assetTypeValue"
 // TRADECLIENT
 export * as CallbackParams from "./types/tradeClient/callbackParams"
 export * as CreateSwapPeer from "./types/tradeClient/createSwapPeer"
+export * as WithAddress from "./types/tradeClient/withAddress"
 export * as Fee from "./types/tradeClient/fee"
 export * as Swap from "./types/tradeClient/swap"
 export * as SwapParameters from "./types/tradeClient/swapParameters"
