@@ -24,6 +24,10 @@ export type DealMaster = {
   symbol: string
   valueMaker: string
   valueTaker: string
+  flatFeeMaker: string
+  flatFeeMakerNative: number
+  flatFeeTaker: string
+  flatFeeTakerNative: number
 }
 
 export type SwapDetail = {
