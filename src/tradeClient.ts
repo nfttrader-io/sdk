@@ -19,6 +19,7 @@ import JWTAuthorized from "./types/tradeClient/jwtAuthorized"
 import MultiSigWallet from "./types/tradeClient/multisigWallet"
 import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import PartialSwap from "./types/tradeClient/partialSwap"
+import { OrderComponents } from "@opensea/seaport-js/lib/types"
 import Swap from "./types/tradeClient/swap"
 import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
@@ -550,36 +551,71 @@ export default class TradeClient extends GlobalFetch {
   /**
    * Execute the swap and finalize the order
    *
-   * @param maker - The maker of the swap
-   * @param taker - The taker (counterparty) of the swap
-   * @param end - The number of the days representing the validity of the swap
-   * @param fees - The array of fees to apply on the swap
+   * @param swapId - The id of the swap
    */
-  public async execSwap(swap: PartialSwap, taker: string) {
+  public async execSwap(swapId: string) {
     try {
-      const { executeAllActions } = await this._seaport.fulfillOrder({
-        order: swap,
-        accountAddress: taker,
-      })
-      this.__emit("execSwapTransactionCreated")
+      const response = await this._fetchWithAuth(
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
+      )
+      if (response.data) {
+        const data: {
+          master: Array<any>
+          detail: Array<any>
+          parameters: {
+            addressTaker: string
+            order: {
+              orderHash: string
+              parameters: SwapParameters
+              signature: string
+            }
+          }
+        } = response.data[0]
 
-      const transact = await executeAllActions()
-      try {
-        const receipt = await transact.wait(
-          this._blocksNumberConfirmationRequired
-        )
-        this.__emit("execSwapTransactionMined", { receipt })
-      } catch (error) {
-        this.__emit("execSwapTransactionError", {
-          error,
-          typeError: "waitError",
+        const parameters = data.parameters.order.parameters
+        const taker = data.parameters.addressTaker
+        const swap: PartialSwap = {
+          hash: data.parameters.order.orderHash,
+          parameters: parameters,
+          signature: data.parameters.order.signature,
+        }
+
+        try {
+          const { executeAllActions } = await this._seaport.fulfillOrder({
+            order: swap,
+            accountAddress: taker,
+          })
+          this.__emit("execSwapTransactionCreated")
+
+          const transact = await executeAllActions()
+          try {
+            const receipt = await transact.wait(
+              this._blocksNumberConfirmationRequired
+            )
+            this.__emit("execSwapTransactionMined", { receipt })
+          } catch (error) {
+            this.__emit("execSwapTransactionError", {
+              error,
+              typeError: "waitError",
+            })
+            return
+          }
+        } catch (error) {
+          this.__emit("execSwapTransactionError", {
+            error,
+            typeError: "execSwapTransactionError",
+          })
+        }
+      } else {
+        this.__emit("execSwapError", {
+          error: "response data is empty",
+          typeError: "ApiError",
         })
-        return
       }
     } catch (error) {
-      this.__emit("execSwapTransactionError", {
+      this.__emit("execSwapError", {
         error,
-        typeError: "execSwapTransactionError",
+        typeError: "ApiError",
       })
     }
   }
