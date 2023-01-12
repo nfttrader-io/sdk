@@ -17,6 +17,9 @@ import GlobalFetch from "./lib/globalFetch"
 
 export default class PostClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
+  private get _BACKEND_BASE_URL() {
+    return "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev" //TODO change dev in prod
+  }
 
   public static get POST_STATUS(): PostStatus {
     return { ...POST_STATUS }
@@ -44,7 +47,7 @@ export default class PostClient extends GlobalFetch {
     if (this._apiKey)
       options.headers = {
         ...options.headers,
-        Authorization: `Bearer ${this._apiKey}`,
+        authorization: `Bearer ${this._apiKey}`,
       }
 
     return this._fetch(url, options)
@@ -60,7 +63,7 @@ export default class PostClient extends GlobalFetch {
 
     try {
       const { data } = await this._fetchWithAuth<PostResponse>(
-        `https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/${id}`
+        `${this._BACKEND_BASE_URL}/post/${id}`
       )
 
       return data ?? null
@@ -129,7 +132,7 @@ export default class PostClient extends GlobalFetch {
       ListPostsFilters | ListPostsOrder | string
     >,
     orderOptionsOrNextKey?: Maybe<ListPostsOrder | string>,
-    nextKey?: string | null
+    nextKey?: Maybe<string>
   ): Promise<ListPostsResponse> {
     const filtersInput =
       filtersOrOrderOptionsOrNextKey &&
@@ -228,7 +231,7 @@ export default class PostClient extends GlobalFetch {
 
     try {
       const { data } = await this._fetchWithAuth<ListPostsResponse>(
-        "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/posts",
+        `${this._BACKEND_BASE_URL}/posts`,
         {
           method: "POST",
           body,
@@ -246,7 +249,7 @@ export default class PostClient extends GlobalFetch {
   >(post: P): Promise<Maybe<string>> {
     try {
       const res = await this._fetchWithAuth<string>(
-        "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/insert",
+        `${this._BACKEND_BASE_URL}/post/insert`,
         {
           method: "POST",
           body: post,
@@ -281,41 +284,17 @@ export default class PostClient extends GlobalFetch {
   }
 
   /**
-   * Bulk create posts
-   *
-   * ? POST - https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/insert
-   * @param posts - An array of posts to be created
-   */
-  public async bulkCreatePosts(posts: Array<{}>): Promise<Array<string>> {
-    return ["id1", "id2"]
-  }
-
-  /**
    * Delete a post by its id
    *
-   * DELETE - https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev/post/{postid}/delete
    * @param id - The id of the post to delete
    */
-  public async deletePost(id: string): Promise<{}> {
-    return {
-      // post object
+  public async deletePost(id: string): Promise<void> {
+    try {
+      await this._fetchWithAuth(`${this._BACKEND_BASE_URL}/post/${id}/delete`, {
+        method: "DELETE",
+      })
+    } catch (e) {
+      throw e
     }
-  }
-
-  /**
-   * Delete posts by their id
-   *
-   * POST -
-   * @param ids - The ids of the posts to delete
-   */
-  public async bulkDeletePosts(ids: Array<string>): Promise<Array<{}>> {
-    return [
-      {
-        // post object
-      },
-      {
-        // post object
-      },
-    ]
   }
 }

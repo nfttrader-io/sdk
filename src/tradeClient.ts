@@ -21,10 +21,12 @@ import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import PartialSwap from "./types/tradeClient/partialSwap"
 import Swap from "./types/tradeClient/swap"
 import { SwapDetail } from "./types/tradeClient/swapDetail"
-import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 import WithAddress from "./types/tradeClient/withAddress"
+import GetFullListResponse from "./types/tradeClient/getFullTradeListResponse"
+import GetFullTradeListResponse from "./types/tradeClient/getFullTradeListResponse"
+import GetSwapListResponse from "./types/tradeClient/getSwapListResponse"
 const {
   royaltyRegistriesEngines,
   seaportSmartContracts,
@@ -55,7 +57,7 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL = "https://develop.api.nfttrader.io" // TODO in prod delete "develop.""
+  private _BACKEND_URL = "https://develop.api.nfttrader.io" // TODO in prod delete "develop."
 
   /**
    * Create an instance of the NFTTrader TradeClient object.
@@ -288,7 +290,7 @@ export default class TradeClient extends GlobalFetch {
   }
 
   //todo
-  private _getNFTTraderGnosis = async (): Promise<Maybe<MultiSigWallet>> => {
+  private async _getNFTTraderGnosis(): Promise<Maybe<MultiSigWallet>> {
     try {
       const response = await this._fetchWithAuth<MultiSigWallet>(
         `${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`
@@ -299,13 +301,13 @@ export default class TradeClient extends GlobalFetch {
       console.warn("no data field in response")
     } catch (error) {
       console.warn(error)
-    } finally {
-      return null
     }
+
+    return null
   }
 
   //todo
-  private _getNFTTraderFees = async (): Promise<Maybe<NFTTraderFees>> => {
+  private async _getNFTTraderFees(): Promise<Maybe<NFTTraderFees>> {
     try {
       const response = await this._fetchWithAuth<NFTTraderFees>(
         `${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`
@@ -321,7 +323,7 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
-  private _analyzeOrder = (orderInit: CreateOrderInput) => {
+  private _analyzeOrder(orderInit: CreateOrderInput) {
     if (!orderInit || orderInit.constructor.name !== "Object")
       throw new Error("Invalid argument")
 
@@ -398,17 +400,17 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
-  private _addNFTTraderFee = async (
+  private async _addNFTTraderFee(
     orderInit: CreateOrderInput
-  ): Promise<CreateOrderInput> => {
+  ): Promise<CreateOrderInput> {
     const orderTypes = this._analyzeOrder(orderInit)
-    const nftTraderFees: NFTTraderFees | null = await this._getNFTTraderFees()
-    const nftTraderGnosis: MultiSigWallet | null =
+    const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
+    const nftTraderGnosis: Maybe<MultiSigWallet> =
       await this._getNFTTraderGnosis()
 
     let flatFee: string | undefined
     let basisPoints: number | undefined
-    let gnosisRecipient: string = ""
+    let gnosisRecipient = ""
 
     if (nftTraderFees) {
       flatFee = nftTraderFees.flatFee[0].fee
@@ -451,7 +453,7 @@ export default class TradeClient extends GlobalFetch {
       orderInit.fees = [
         {
           recipient: gnosisRecipient,
-          basisPoints: basisPoints,
+          basisPoints,
         },
       ]
     }
@@ -664,5 +666,139 @@ export default class TradeClient extends GlobalFetch {
     }
 
     return null
+  }
+
+  public async getFullTradeList(
+    networkId: string,
+    status: number,
+    skip: number,
+    take: number
+  ): Promise<GetFullTradeListResponse>
+  public async getFullTradeList(
+    networkId: string,
+    status: number,
+    skip: number,
+    take: number,
+    from: number,
+    to: number
+  ): Promise<GetFullTradeListResponse>
+  public async getFullTradeList(
+    networkId: string,
+    status: number,
+    skip: number,
+    take: number,
+    from: number,
+    to: number,
+    searchAddress: string
+  ): Promise<GetFullTradeListResponse>
+  public async getFullTradeList(
+    networkId: string,
+    status: number,
+    skip: number,
+    take: number,
+    from?: number,
+    to?: number,
+    searchAddress?: string
+  ): Promise<GetFullTradeListResponse> {
+    try {
+      const tradeList = (
+        await this._fetchWithAuth<Array<GetFullListResponse>>(
+          `${
+            this._BACKEND_URL
+          }/tradelist/getFullList/${networkId}/${status}/${skip}/${take}${
+            from !== undefined &&
+            from !== null &&
+            to !== undefined &&
+            to !== null
+              ? `/${from}/${to}`
+              : ""
+          }${
+            from !== undefined &&
+            from !== null &&
+            to !== undefined &&
+            to !== null &&
+            searchAddress !== undefined &&
+            searchAddress !== null
+              ? `/${searchAddress}`
+              : ""
+          }`
+        )
+      ).data?.[0]
+
+      if (!tradeList) throw new Error("Internal server error")
+
+      return tradeList
+    } catch (e) {
+      console.warn(e)
+      throw e
+    }
+  }
+
+  public async getSwapList(
+    networkId: string,
+    address: string,
+    status: number,
+    skip: number,
+    take: number
+  ): Promise<GetSwapListResponse>
+  public async getSwapList(
+    networkId: string,
+    address: string,
+    status: number,
+    skip: number,
+    take: number,
+    from: number,
+    to: number
+  ): Promise<GetSwapListResponse>
+  public async getSwapList(
+    networkId: string,
+    address: string,
+    status: number,
+    skip: number,
+    take: number,
+    from: number,
+    to: number,
+    searchAddress: string
+  ): Promise<GetSwapListResponse>
+  public async getSwapList(
+    networkId: string,
+    address: string,
+    status: number,
+    skip: number,
+    take: number,
+    from?: number,
+    to?: number,
+    searchAddress?: string
+  ): Promise<GetSwapListResponse> {
+    try {
+      const swapList = (
+        await this._fetchWithAuth<Array<GetSwapListResponse>>(
+          `/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
+            from !== undefined &&
+            from !== null &&
+            to !== undefined &&
+            to !== null
+              ? `/${from}/${to}`
+              : ""
+          }${
+            from !== undefined &&
+            from !== null &&
+            to !== undefined &&
+            to !== null &&
+            searchAddress !== undefined &&
+            searchAddress !== null
+              ? `/${searchAddress}`
+              : ""
+          }`
+        )
+      ).data?.[0]
+
+      if (!swapList) throw new Error("Internal server error")
+
+      return swapList
+    } catch (e) {
+      console.warn(e)
+      throw e
+    }
   }
 }
