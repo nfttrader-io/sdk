@@ -21,7 +21,6 @@ import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import PartialSwap from "./types/tradeClient/partialSwap"
 import Swap from "./types/tradeClient/swap"
 import { SwapDetail } from "./types/tradeClient/swapDetail"
-import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 import WithAddress from "./types/tradeClient/withAddress"
@@ -652,6 +651,12 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
+  /**
+   * Get the order specified by the swapId provided as a paramater
+   *
+   * @param swapId
+   * @returns promiseOrder
+   */
   public async getSwapOrder(swapId: string): Promise<Maybe<SwapDetail>> {
     try {
       const response = await this._fetchWithAuth<Array<SwapDetail>>(
