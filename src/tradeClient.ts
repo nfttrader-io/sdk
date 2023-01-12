@@ -20,11 +20,7 @@ import MultiSigWallet from "./types/tradeClient/multisigWallet"
 import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import PartialSwap from "./types/tradeClient/partialSwap"
 import Swap from "./types/tradeClient/swap"
-import {
-  DealDetail,
-  DealMaster,
-  SwapDetail,
-} from "./types/tradeClient/swapDetail"
+import { SwapDetail } from "./types/tradeClient/swapDetail"
 import SwapParameters from "./types/tradeClient/swapParameters"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
@@ -59,7 +55,7 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL: string = "https://develop.api.nfttrader.io" // TODO in prod delete "develop.""
+  private _BACKEND_URL = "https://develop.api.nfttrader.io" // TODO in prod delete "develop.""
 
   /**
    * Create an instance of the NFTTrader TradeClient object.
@@ -191,7 +187,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this._eventsCollectorCallbacks.find((eventItem) => {
+    const event = this._eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -210,7 +206,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this._eventsCollectorCallbacks.find((eventItem) => {
+    const event = this._eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -224,7 +220,7 @@ export default class TradeClient extends GlobalFetch {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex((func) => {
+      const index = event.callbacks.findIndex(func => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -243,7 +239,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this._eventsCollectorCallbacks.find((eventItem) => {
+    const event = this._eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -272,7 +268,6 @@ export default class TradeClient extends GlobalFetch {
 
   /**
    * Get a list of all seaport smart contracts address deployed
-   *
    */
   public getSeaportContractsAddresses(): Record<Network, string> {
     return seaportSmartContracts
@@ -280,7 +275,6 @@ export default class TradeClient extends GlobalFetch {
 
   /**
    * Get a list of all royalties engine smart contracts address deployed
-   *
    */
   public getRoyaltyRegistriesEngines(): Record<Network, string> {
     return royaltyRegistriesEngines
@@ -288,153 +282,119 @@ export default class TradeClient extends GlobalFetch {
 
   /**
    * Get the ABI of the royalty engine smart contract
-   *
    */
   public getRoyaltyRegistryEngineABI(): Array<any> {
     return royaltyRegistryEngineAbi
   }
 
   //todo
-  private _getNFTTraderGnosis = async (): Promise<MultiSigWallet | null> => {
+  private _getNFTTraderGnosis = async (): Promise<Maybe<MultiSigWallet>> => {
     try {
       const response = await this._fetchWithAuth<MultiSigWallet>(
         `${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`
       )
 
-      if (response.data) {
-        return response.data
-      } else {
-        console.warn("no data field in response")
-        return null
-      }
+      if (response.data) return response.data
+
+      console.warn("no data field in response")
     } catch (error) {
       console.warn(error)
+    } finally {
       return null
     }
   }
 
   //todo
-  private _getNFTTraderFees = async (): Promise<NFTTraderFees | null> => {
+  private _getNFTTraderFees = async (): Promise<Maybe<NFTTraderFees>> => {
     try {
       const response = await this._fetchWithAuth<NFTTraderFees>(
         `${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`
       )
 
-      if (response.data) {
-        return response.data
-      } else {
-        console.warn("no data field in response")
-        return null
-      }
+      if (response.data) return response.data
+
+      console.warn("no data field in response")
     } catch (error) {
       console.warn(error)
+    } finally {
       return null
     }
   }
 
   private _analyzeOrder = (orderInit: CreateOrderInput) => {
-    let ohasNFT: boolean = false,
-      ohasToken: boolean = false,
-      oNFTs: number = 0,
-      oNFTcollections: Array<string> = [],
-      oNFTcollectionsIdentifiers: Array<Array<string>> = []
-    if (
-      orderInit != null &&
-      orderInit.constructor.name === "Object" &&
-      orderInit.hasOwnProperty("offer")
-    )
-      if (Array.isArray(orderInit.offer) && orderInit.offer.length > 0) {
-        orderInit.offer.forEach((offer: any) => {
-          if (offer && offer.hasOwnProperty("itemType")) {
-            switch (offer.itemType) {
-              case ItemType.ERC721:
-                ohasNFT = true
-                oNFTs++
-                if (offer.token && !oNFTcollections.includes(offer.token))
-                  oNFTcollections.push(offer.token)
-                if (
-                  offer.token &&
-                  oNFTcollectionsIdentifiers[offer.token] == undefined
-                )
-                  oNFTcollectionsIdentifiers[offer.token] = []
-                oNFTcollectionsIdentifiers[offer.token].push(offer.identifier)
-                break
-              case ItemType.ERC20:
-                ohasToken = true
-                break
-              case ItemType.ERC1155:
-                break
-              case ItemType.NATIVE:
-                ohasToken = true
-                break
-            }
-          } else {
-            ohasToken = true
-          }
-        })
-      }
+    if (!orderInit || orderInit.constructor.name !== "Object")
+      throw new Error("Invalid argument")
 
-    let chasNFT: boolean = false,
-      chasToken: boolean = false,
-      cNFTs: number = 0,
-      cNFTcollections: Array<string> = [],
-      cNFTcollectionsIdentifiers: Array<Array<string>> = []
+    const offer = {
+        hasNFT: false,
+        hasToken: false,
+        NFTs: 0,
+        NFTcollections: [] as Array<string>,
+        NFTcollectionsIdentifiers: {} as Record<string, Array<string>>,
+      },
+      consideration = { ...offer }
+
     if (
-      orderInit != null &&
-      orderInit.constructor.name === "Object" &&
-      orderInit.hasOwnProperty("consideration")
+      "offer" in orderInit &&
+      Array.isArray(orderInit.offer) &&
+      orderInit.offer.length
     )
-      if (
-        Array.isArray(orderInit.consideration) &&
-        orderInit.consideration.length > 0
-      ) {
-        orderInit.consideration.forEach((consideration: any) => {
-          if (consideration && consideration.hasOwnProperty("itemType")) {
-            switch (consideration.itemType) {
-              case ItemType.ERC721:
-                chasNFT = true
-                cNFTs++
-                if (!cNFTcollections.includes(consideration.token))
-                  cNFTcollections.push(consideration.token)
-                if (
-                  consideration.token &&
-                  cNFTcollectionsIdentifiers[consideration.token] == undefined
-                )
-                  cNFTcollectionsIdentifiers[consideration.token] = []
-                cNFTcollectionsIdentifiers[consideration.token].push(
-                  consideration.identifier
-                )
-                break
-              case ItemType.ERC20:
-                chasToken = true
-                break
-              case ItemType.NATIVE:
-                chasToken = true
-                break
-              case ItemType.ERC1155:
-                break
-            }
-          } else {
-            chasToken = true
+      for (const o of orderInit.offer.filter(
+        rawOffer =>
+          rawOffer?.itemType !== undefined && rawOffer.itemType !== null
+      ))
+        switch (o.itemType) {
+          case ItemType.ERC1155:
+          case ItemType.ERC721:
+            offer.hasNFT = true
+            offer.NFTs++
+
+            if (!offer.NFTcollections.includes(o.token))
+              offer.NFTcollections.push(o.token)
+
+            offer.NFTcollectionsIdentifiers[o.token] = [
+              ...(offer.NFTcollectionsIdentifiers[o.token] ?? []),
+              o.identifier,
+            ]
+
+            break
+          case ItemType.ERC20:
+            offer.hasToken = true
+        }
+
+    if (
+      "consideration" in orderInit &&
+      Array.isArray(orderInit.consideration) &&
+      orderInit.consideration.length
+    )
+      for (const c of orderInit.consideration)
+        if ("itemType" in c)
+          switch (c.itemType) {
+            case ItemType.ERC1155:
+            case ItemType.ERC721:
+              consideration.hasNFT = true
+              consideration.NFTs++
+
+              if (!consideration.NFTcollections.includes(c.token))
+                consideration.NFTcollections.push(c.token)
+
+              consideration.NFTcollectionsIdentifiers[c.token] = [
+                ...(consideration.NFTcollectionsIdentifiers[c.token] ?? []),
+                c.identifier,
+              ]
+
+              break
+            case ItemType.ERC20:
+              consideration.hasToken = true
+              break
+            case ItemType.NATIVE:
+              consideration.hasToken = true
           }
-        })
-      }
+        else consideration.hasToken = true
 
     return {
-      offer: {
-        hasNFT: ohasNFT,
-        hasToken: ohasToken,
-        NFTs: oNFTs,
-        NFTcollections: oNFTcollections,
-        NFTcollectionsIdentifiers: oNFTcollectionsIdentifiers,
-      },
-      consideration: {
-        hasNFT: chasNFT,
-        hasToken: chasToken,
-        NFTs: cNFTs,
-        NFTcollections: cNFTcollections,
-        NFTcollectionsIdentifiers: cNFTcollectionsIdentifiers,
-      },
+      offer,
+      consideration,
     }
   }
 
@@ -518,7 +478,7 @@ export default class TradeClient extends GlobalFetch {
 
     const orderInit = await this._addNFTTraderFee({
       offer: [...(maker.assets ?? [])].map(
-        (a) =>
+        a =>
           ({
             ...a,
             itemType:
@@ -528,7 +488,7 @@ export default class TradeClient extends GlobalFetch {
           } as { itemType: ItemType } & typeof a)
       ),
       consideration: [...(taker.assets ?? [])].map(
-        (a) =>
+        a =>
           ({
             ...a,
             itemType:
@@ -539,7 +499,7 @@ export default class TradeClient extends GlobalFetch {
           } as { itemType: ItemType } & typeof a)
       ),
       zone: taker.address,
-      endTime: `${end}`,
+      endTime: `${end * 24 * 60 * 60}`, // days in seconds (UNIX timestamp)
       fees,
       restrictedByZone: true,
     })
@@ -582,47 +542,46 @@ export default class TradeClient extends GlobalFetch {
       const response = await this._fetchWithAuth(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
-      if (response.data) {
-        const data: SwapDetail = response.data[0]
 
-        const parameters = data.parameters.order.parameters
-        const taker = data.parameters.addressTaker
-        const swap: PartialSwap = {
-          hash: data.parameters.order.orderHash,
-          parameters: parameters,
-          signature: data.parameters.order.signature,
-        }
-
-        try {
-          const { executeAllActions } = await this._seaport.fulfillOrder({
-            order: swap,
-            accountAddress: taker,
-          })
-          this.__emit("execSwapTransactionCreated")
-
-          const transact = await executeAllActions()
-          try {
-            const receipt = await transact.wait(
-              this._blocksNumberConfirmationRequired
-            )
-            this.__emit("execSwapTransactionMined", { receipt })
-          } catch (error) {
-            this.__emit("execSwapTransactionError", {
-              error,
-              typeError: "waitError",
-            })
-            return
-          }
-        } catch (error) {
-          this.__emit("execSwapTransactionError", {
-            error,
-            typeError: "execSwapTransactionError",
-          })
-        }
-      } else {
-        this.__emit("execSwapError", {
+      if (!response.data)
+        return this.__emit("execSwapError", {
           error: "response data is empty",
           typeError: "ApiError",
+        })
+
+      const data: SwapDetail = response.data[0]
+
+      const parameters = data.parameters.order.parameters
+      const taker = data.parameters.addressTaker
+      const swap: PartialSwap = {
+        hash: data.parameters.order.orderHash,
+        parameters: parameters,
+        signature: data.parameters.order.signature,
+      }
+
+      try {
+        const { executeAllActions } = await this._seaport.fulfillOrder({
+          order: swap,
+          accountAddress: taker,
+        })
+        this.__emit("execSwapTransactionCreated")
+
+        const transact = await executeAllActions()
+        try {
+          const receipt = await transact.wait(
+            this._blocksNumberConfirmationRequired
+          )
+          this.__emit("execSwapTransactionMined", { receipt })
+        } catch (error) {
+          return this.__emit("execSwapTransactionError", {
+            error,
+            typeError: "waitError",
+          })
+        }
+      } catch (error) {
+        this.__emit("execSwapTransactionError", {
+          error,
+          typeError: "execSwapTransactionError",
         })
       }
     } catch (error) {
@@ -636,55 +595,53 @@ export default class TradeClient extends GlobalFetch {
   /**
    * Cancel the swap specified
    *
-   * @param {string} swapId - The id of the swap
-   * @param {number} gasLimit - the gas limit of the transaction
-   * @param {string} gasPrice - the gas price of the transaction
+   * @param swapId - The id of the swap
+   * @param gasLimit - the gas limit of the transaction
+   * @param gasPrice - the gas price of the transaction
    */
   public async cancelSwap(
     swapId: string,
     gasLimit: number = 2000000,
-    gasPrice: string | null = null
+    gasPrice: Maybe<string> = null
   ) {
     try {
       const response = await this._fetchWithAuth(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
-      if (response.data) {
-        const data: SwapDetail = response.data[0]
-        const parameters = data.parameters.order.parameters
-        const maker = data.parameters.addressMaker
-        const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
 
-        gasLimit && gasLimit !== 2000000 && (txOverrides["gasLimit"] = gasLimit)
-        gasPrice && (txOverrides["gasPrice"] = gasPrice)
-
-        try {
-          const tx = this._seaport.cancelOrders([parameters], maker)
-          this.__emit("cancelSwapTransactionCreated", { tx })
-          const transact = await tx.transact({ ...txOverrides })
-          try {
-            const receipt = await transact.wait(
-              this._blocksNumberConfirmationRequired
-            )
-            this.__emit("cancelSwapTransactionMined", { receipt })
-          } catch (error) {
-            this.__emit("cancelSwapTransactionError", {
-              error,
-              typeError: "waitError",
-            })
-            return
-          }
-        } catch (error) {
-          this.__emit("cancelSwapTransactionError", {
-            error,
-            typeError: "cancelSwapTransactionError",
-          })
-          return
-        }
-      } else {
-        this.__emit("cancelSwapError", {
+      if (!response.data)
+        return this.__emit("cancelSwapError", {
           error: "response data is empty",
           typeError: "ApiError",
+        })
+
+      const data: SwapDetail = response.data[0]
+      const parameters = data.parameters.order.parameters
+      const maker = data.parameters.addressMaker
+      const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
+
+      if (gasLimit && gasLimit !== 2000000) txOverrides.gasLimit = gasLimit
+      if (gasPrice) txOverrides.gasPrice = gasPrice
+
+      try {
+        const tx = this._seaport.cancelOrders([parameters], maker)
+        this.__emit("cancelSwapTransactionCreated", { tx })
+        const transact = await tx.transact({ ...txOverrides })
+        try {
+          const receipt = await transact.wait(
+            this._blocksNumberConfirmationRequired
+          )
+          this.__emit("cancelSwapTransactionMined", { receipt })
+        } catch (error) {
+          return this.__emit("cancelSwapTransactionError", {
+            error,
+            typeError: "waitError",
+          })
+        }
+      } catch (error) {
+        return this.__emit("cancelSwapTransactionError", {
+          error,
+          typeError: "cancelSwapTransactionError",
         })
       }
     } catch (error) {
@@ -695,18 +652,17 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
-  public async getSwapOrder(swapId: string): Promise<SwapDetail | null> {
+  public async getSwapOrder(swapId: string): Promise<Maybe<SwapDetail>> {
     try {
       const response = await this._fetchWithAuth<Array<SwapDetail>>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
 
-      if (response.data) {
-        return response.data[0]
-      }
+      if (response.data) return response.data[0]
     } catch (error) {
       console.warn(error)
     }
+
     return null
   }
 }
