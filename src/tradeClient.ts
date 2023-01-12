@@ -186,7 +186,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -205,7 +205,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -219,7 +219,7 @@ export default class TradeClient extends GlobalFetch {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex(func => {
+      const index = event.callbacks.findIndex((func) => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -238,7 +238,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -298,9 +298,9 @@ export default class TradeClient extends GlobalFetch {
       console.warn("no data field in response")
     } catch (error) {
       console.warn(error)
-    } finally {
-      return null
     }
+
+    return null
   }
 
   //todo
@@ -315,9 +315,9 @@ export default class TradeClient extends GlobalFetch {
       console.warn("no data field in response")
     } catch (error) {
       console.warn(error)
-    } finally {
-      return null
     }
+
+    return null
   }
 
   private _analyzeOrder = (orderInit: CreateOrderInput) => {
@@ -339,7 +339,7 @@ export default class TradeClient extends GlobalFetch {
       orderInit.offer.length
     )
       for (const o of orderInit.offer.filter(
-        rawOffer =>
+        (rawOffer) =>
           rawOffer?.itemType !== undefined && rawOffer.itemType !== null
       ))
         switch (o.itemType) {
@@ -417,6 +417,8 @@ export default class TradeClient extends GlobalFetch {
       basisPoints = 50
     }
 
+    console.log(nftTraderGnosis)
+
     if (nftTraderGnosis)
       gnosisRecipient = nftTraderGnosis.multisig[0].multisigAddress
 
@@ -477,7 +479,7 @@ export default class TradeClient extends GlobalFetch {
 
     const orderInit = await this._addNFTTraderFee({
       offer: [...(maker.assets ?? [])].map(
-        a =>
+        (a) =>
           ({
             ...a,
             itemType:
@@ -487,7 +489,7 @@ export default class TradeClient extends GlobalFetch {
           } as { itemType: ItemType } & typeof a)
       ),
       consideration: [...(taker.assets ?? [])].map(
-        a =>
+        (a) =>
           ({
             ...a,
             itemType:
@@ -670,4 +672,20 @@ export default class TradeClient extends GlobalFetch {
 
     return null
   }
+
+  /**
+   * 
+   * getFullList: "tradelist/getFullList/{networkId}/{status}/{skip}/{take}",
+  getSwapListByAddress:
+    "tradelist/getFullList/{networkId}/{status}/{skip}/{take}/null/null/{searchAddress}",
+  getPersonalSwapList:
+    "tradelist/getSwapList/{networkId}/{address}/{status}/{skip}/{take}",
+  searchPersonalSwapList:
+    "tradelist/getSwapList/{networkId}/{address}/{status}/{skip}/{take}/null/null/{searchAddress}",
+   * 
+   */
+
+  public async getGlobalSwapsList() {}
+
+  public async getUserSwapsList() {}
 }
