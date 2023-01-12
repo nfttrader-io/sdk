@@ -417,8 +417,6 @@ export default class TradeClient extends GlobalFetch {
       basisPoints = 50
     }
 
-    console.log(nftTraderGnosis)
-
     if (nftTraderGnosis)
       gnosisRecipient = nftTraderGnosis.multisig[0].multisigAddress
 

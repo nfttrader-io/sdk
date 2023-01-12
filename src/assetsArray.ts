@@ -68,6 +68,7 @@ export default class AssetsArray {
         token: address,
         amount,
         itemType: AssetsArray.TOKEN_COSTANTS.ERC20,
+        identifier: "0",
       },
       recipient
     )
