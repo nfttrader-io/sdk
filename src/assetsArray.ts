@@ -1,3 +1,4 @@
+import { ethers } from "ethers"
 import TOKEN_CONSTANTS from "./lib/assetsArray/tokenConstants"
 import Asset from "./types/assetsArray/asset"
 
@@ -39,8 +40,10 @@ export default class AssetsArray {
 
     this._addAsset(
       {
-        itemType: AssetsArray.TOKEN_COSTANTS.NATIVE,
         amount,
+        itemType: AssetsArray.TOKEN_COSTANTS.NATIVE,
+        token: ethers.constants.AddressZero,
+        identifier: "0",
       },
       recipient
     )
@@ -62,9 +65,10 @@ export default class AssetsArray {
 
     this._addAsset(
       {
-        itemType: AssetsArray.TOKEN_COSTANTS.ERC20,
         token: address,
         amount,
+        itemType: AssetsArray.TOKEN_COSTANTS.ERC20,
+        identifier: "0",
       },
       recipient
     )

@@ -24,9 +24,9 @@ import { SwapDetail } from "./types/tradeClient/swapDetail"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 import WithAddress from "./types/tradeClient/withAddress"
-import GetFullListResponse from "./types/tradeClient/getFullTradeListResponse"
-import GetFullTradeListResponse from "./types/tradeClient/getFullTradeListResponse"
-import GetSwapListResponse from "./types/tradeClient/getSwapListResponse"
+import GetFullListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
+import GetGlobalSwapsListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
+import GetUserSwapsListResponse from "./types/tradeClient/getUserSwapsListResponse"
 const {
   royaltyRegistriesEngines,
   seaportSmartContracts,
@@ -318,9 +318,9 @@ export default class TradeClient extends GlobalFetch {
       console.warn("no data field in response")
     } catch (error) {
       console.warn(error)
-    } finally {
-      return null
     }
+
+    return null
   }
 
   private _analyzeOrder(orderInit: CreateOrderInput) {
@@ -654,6 +654,12 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
+  /**
+   * Get the order specified by the swapId provided as a paramater
+   *
+   * @param swapId
+   * @returns promiseOrder
+   */
   public async getSwapOrder(swapId: string): Promise<Maybe<SwapDetail>> {
     try {
       const response = await this._fetchWithAuth<Array<SwapDetail>>(
@@ -668,21 +674,21 @@ export default class TradeClient extends GlobalFetch {
     return null
   }
 
-  public async getFullTradeList(
+  public async getGlobalSwapsList(
     networkId: string,
     status: number,
     skip: number,
     take: number
-  ): Promise<GetFullTradeListResponse>
-  public async getFullTradeList(
+  ): Promise<GetGlobalSwapsListResponse>
+  public async getGlobalSwapsList(
     networkId: string,
     status: number,
     skip: number,
     take: number,
     from: number,
     to: number
-  ): Promise<GetFullTradeListResponse>
-  public async getFullTradeList(
+  ): Promise<GetGlobalSwapsListResponse>
+  public async getGlobalSwapsList(
     networkId: string,
     status: number,
     skip: number,
@@ -690,8 +696,8 @@ export default class TradeClient extends GlobalFetch {
     from: number,
     to: number,
     searchAddress: string
-  ): Promise<GetFullTradeListResponse>
-  public async getFullTradeList(
+  ): Promise<GetGlobalSwapsListResponse>
+  public async getGlobalSwapsList(
     networkId: string,
     status: number,
     skip: number,
@@ -699,7 +705,7 @@ export default class TradeClient extends GlobalFetch {
     from?: number,
     to?: number,
     searchAddress?: string
-  ): Promise<GetFullTradeListResponse> {
+  ): Promise<GetGlobalSwapsListResponse> {
     try {
       const tradeList = (
         await this._fetchWithAuth<Array<GetFullListResponse>>(
@@ -734,14 +740,14 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
-  public async getSwapList(
+  public async getUserSwapsList(
     networkId: string,
     address: string,
     status: number,
     skip: number,
     take: number
-  ): Promise<GetSwapListResponse>
-  public async getSwapList(
+  ): Promise<GetUserSwapsListResponse>
+  public async getUserSwapsList(
     networkId: string,
     address: string,
     status: number,
@@ -749,8 +755,8 @@ export default class TradeClient extends GlobalFetch {
     take: number,
     from: number,
     to: number
-  ): Promise<GetSwapListResponse>
-  public async getSwapList(
+  ): Promise<GetUserSwapsListResponse>
+  public async getUserSwapsList(
     networkId: string,
     address: string,
     status: number,
@@ -759,8 +765,8 @@ export default class TradeClient extends GlobalFetch {
     from: number,
     to: number,
     searchAddress: string
-  ): Promise<GetSwapListResponse>
-  public async getSwapList(
+  ): Promise<GetUserSwapsListResponse>
+  public async getUserSwapsList(
     networkId: string,
     address: string,
     status: number,
@@ -769,10 +775,10 @@ export default class TradeClient extends GlobalFetch {
     from?: number,
     to?: number,
     searchAddress?: string
-  ): Promise<GetSwapListResponse> {
+  ): Promise<GetUserSwapsListResponse> {
     try {
       const swapList = (
-        await this._fetchWithAuth<Array<GetSwapListResponse>>(
+        await this._fetchWithAuth<Array<GetUserSwapsListResponse>>(
           `/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
             from !== undefined &&
             from !== null &&

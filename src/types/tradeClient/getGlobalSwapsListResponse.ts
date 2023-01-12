@@ -1,6 +1,6 @@
 import Trade from "./trade"
 
-export default interface GetSwapListResponse {
+export default interface GetGlobalSwapsListResponse {
   swapList: Array<Trade>
   count: number
 }
