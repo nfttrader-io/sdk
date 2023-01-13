@@ -437,7 +437,7 @@ export default class TradeClient extends GlobalFetch {
           ...orderInit.consideration.concat([
             {
               recipient: gnosisRecipient,
-              itemType: AssetsArray.TOKEN_COSTANTS.NATIVE,
+              itemType: AssetsArray.TOKEN_COSTANTS.NATIVE as any,
               token: ethers.constants.AddressZero,
               amount: ethers.utils.parseEther(flatFee).toString(),
               identifier: "0",
