@@ -3,8 +3,8 @@ import Collector from "../postClient/collector"
 
 export default interface Trade {
   networkId: string
-  swapId: number
-  swapStatus: number
+  swapId: string
+  swapStatus: 0 | 1 | 2
   txHash: string
   addressMaker: string
   usernameMaker: Maybe<string>
@@ -21,14 +21,14 @@ export default interface Trade {
   maker: Array<Collector>
   taker: Array<Collector>
   collections: Array<{
-    creator: number
-    networkId: Maybe<string>
-    collectionAddress: Maybe<string>
-    abi: Maybe<Array<any>>
-    name: Maybe<string>
-    symbol: Maybe<string>
-    assetLogo: Maybe<string>
-    type: Maybe<string>
-    statusVerification: number
+    creator: 0 | 1
+    networkId: string
+    collectionAddress: string
+    abi: Array<any>
+    name: string
+    symbol: string
+    assetLogo: string
+    type: "ERC721" | "ERC1155" | "ERC20" | "NATIVE"
+    statusVerification: 0 | 1 | 2
   }>
 }

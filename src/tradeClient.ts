@@ -678,37 +678,14 @@ export default class TradeClient extends GlobalFetch {
     networkId: string,
     status: number,
     skip: number,
-    take: number
-  ): Promise<GetGlobalSwapsListResponse>
-  public async getGlobalSwapsList(
-    networkId: string,
-    status: number,
-    skip: number,
     take: number,
-    from: number,
-    to: number
-  ): Promise<GetGlobalSwapsListResponse>
-  public async getGlobalSwapsList(
-    networkId: string,
-    status: number,
-    skip: number,
-    take: number,
-    from: number,
-    to: number,
-    searchAddress: string
-  ): Promise<GetGlobalSwapsListResponse>
-  public async getGlobalSwapsList(
-    networkId: string,
-    status: number,
-    skip: number,
-    take: number,
-    from?: number,
-    to?: number,
+    from?: number | "null",
+    to?: number | "null",
     searchAddress?: string
   ): Promise<GetGlobalSwapsListResponse> {
     try {
       const tradeList = (
-        await this._fetchWithAuth<Array<GetFullListResponse>>(
+        await this._fetchWithAuth<{ data: Array<GetFullListResponse> }>(
           `${
             this._BACKEND_URL
           }/tradelist/getFullList/${networkId}/${status}/${skip}/${take}${
@@ -729,7 +706,7 @@ export default class TradeClient extends GlobalFetch {
               : ""
           }`
         )
-      ).data?.[0]
+      ).data?.data?.[0]
 
       if (!tradeList) throw new Error("Internal server error")
 
@@ -745,41 +722,17 @@ export default class TradeClient extends GlobalFetch {
     address: string,
     status: number,
     skip: number,
-    take: number
-  ): Promise<GetUserSwapsListResponse>
-  public async getUserSwapsList(
-    networkId: string,
-    address: string,
-    status: number,
-    skip: number,
     take: number,
-    from: number,
-    to: number
-  ): Promise<GetUserSwapsListResponse>
-  public async getUserSwapsList(
-    networkId: string,
-    address: string,
-    status: number,
-    skip: number,
-    take: number,
-    from: number,
-    to: number,
-    searchAddress: string
-  ): Promise<GetUserSwapsListResponse>
-  public async getUserSwapsList(
-    networkId: string,
-    address: string,
-    status: number,
-    skip: number,
-    take: number,
-    from?: number,
-    to?: number,
+    from?: number | "null",
+    to?: number | "null",
     searchAddress?: string
   ): Promise<GetUserSwapsListResponse> {
     try {
       const swapList = (
-        await this._fetchWithAuth<Array<GetUserSwapsListResponse>>(
-          `/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
+        await this._fetchWithAuth<{ data: Array<GetUserSwapsListResponse> }>(
+          `${
+            this._BACKEND_URL
+          }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
             from !== undefined &&
             from !== null &&
             to !== undefined &&
@@ -797,7 +750,7 @@ export default class TradeClient extends GlobalFetch {
               : ""
           }`
         )
-      ).data?.[0]
+      ).data?.data?.[0]
 
       if (!swapList) throw new Error("Internal server error")
 
