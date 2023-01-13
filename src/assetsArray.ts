@@ -13,7 +13,7 @@ export default class AssetsArray {
     this.__assets = [...assets]
   }
   private __assets!: Array<Asset>
-  public static get TOKEN_COSTANTS() {
+  public static get TOKEN_CONSTANTS() {
     return { ...TOKEN_CONSTANTS }
   }
 
@@ -41,7 +41,7 @@ export default class AssetsArray {
     this._addAsset(
       {
         amount,
-        itemType: AssetsArray.TOKEN_COSTANTS.NATIVE,
+        itemType: AssetsArray.TOKEN_CONSTANTS.NATIVE,
         token: ethers.constants.AddressZero,
         identifier: "0",
       },
@@ -67,7 +67,7 @@ export default class AssetsArray {
       {
         token: address,
         amount,
-        itemType: AssetsArray.TOKEN_COSTANTS.ERC20,
+        itemType: AssetsArray.TOKEN_CONSTANTS.ERC20,
         identifier: "0",
       },
       recipient
@@ -89,7 +89,7 @@ export default class AssetsArray {
 
     this._addAsset(
       {
-        itemType: AssetsArray.TOKEN_COSTANTS.ERC721,
+        itemType: AssetsArray.TOKEN_CONSTANTS.ERC721,
         token: address,
         identifier: id,
       },
@@ -119,7 +119,7 @@ export default class AssetsArray {
 
     this._addAsset(
       {
-        itemType: AssetsArray.TOKEN_COSTANTS.ERC1155,
+        itemType: AssetsArray.TOKEN_CONSTANTS.ERC1155,
         token: address,
         identifier: id,
         amount,

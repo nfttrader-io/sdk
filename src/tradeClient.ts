@@ -434,15 +434,14 @@ export default class TradeClient extends GlobalFetch {
         ...orderInit,
         offer: orderInit.offer,
         consideration: [
-          ...orderInit.consideration.concat([
-            {
-              recipient: gnosisRecipient,
-              itemType: AssetsArray.TOKEN_COSTANTS.NATIVE as any,
-              token: ethers.constants.AddressZero,
-              amount: ethers.utils.parseEther(flatFee).toString(),
-              identifier: "0",
-            },
-          ]),
+          ...orderInit.consideration,
+          {
+            recipient: gnosisRecipient,
+            itemType: AssetsArray.TOKEN_CONSTANTS.NATIVE as any,
+            token: ethers.constants.AddressZero,
+            amount: ethers.utils.parseEther(flatFee).toString(),
+            identifier: "0",
+          },
         ],
       }
     }
@@ -488,7 +487,7 @@ export default class TradeClient extends GlobalFetch {
             ...a,
             itemType:
               typeof a.itemType === "string"
-                ? AssetsArray.TOKEN_COSTANTS[a.itemType]
+                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
                 : a.itemType,
           } as { itemType: ItemType } & typeof a)
       ),
@@ -498,7 +497,7 @@ export default class TradeClient extends GlobalFetch {
             ...a,
             itemType:
               typeof a.itemType === "string"
-                ? AssetsArray.TOKEN_COSTANTS[a.itemType]
+                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
                 : a.itemType,
             recipient: a.recipient ? a.recipient : addressMaker,
           } as { itemType: ItemType } & typeof a)
