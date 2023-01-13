@@ -437,7 +437,10 @@ export default class TradeClient extends GlobalFetch {
           ...orderInit.consideration.concat([
             {
               recipient: gnosisRecipient,
+              itemType: AssetsArray.TOKEN_COSTANTS.NATIVE,
+              token: ethers.constants.AddressZero,
               amount: ethers.utils.parseEther(flatFee).toString(),
+              identifier: "0",
             },
           ]),
         ],
@@ -506,6 +509,8 @@ export default class TradeClient extends GlobalFetch {
       restrictedByZone: true,
     })
 
+    console.log("ORDER")
+    console.log(orderInit)
     const { executeAllActions } = await this._seaport.createOrder(
       orderInit,
       addressMaker
