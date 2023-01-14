@@ -450,7 +450,7 @@ export default class TradeClient extends GlobalFetch {
       this._network &&
       orderTypes.consideration.hasToken &&
       orderTypes.offer.hasNFT &&
-      orderTypes.offer.NFTcollections.length == 1
+      orderTypes.offer.NFTcollections.length > 0
     ) {
       if (
         !(`fees` in orderInit) ||
