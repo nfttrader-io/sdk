@@ -514,7 +514,9 @@ export default class TradeClient extends GlobalFetch {
           } as { itemType: ItemType } & typeof a)
       ),
       zone: taker.address,
-      endTime: `${end * 24 * 60 * 60}`, // days in seconds (UNIX timestamp)
+      endTime: Math.floor(
+        new Date().setDate(new Date().getDate() + end) / 1000
+      ).toString(), // days in seconds (UNIX timestamp)
       fees,
       restrictedByZone: true,
     })
