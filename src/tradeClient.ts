@@ -189,7 +189,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -208,7 +208,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -222,7 +222,7 @@ export default class TradeClient extends GlobalFetch {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex(func => {
+      const index = event.callbacks.findIndex((func) => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -241,7 +241,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -342,7 +342,7 @@ export default class TradeClient extends GlobalFetch {
       orderInit.offer.length
     )
       for (const o of orderInit.offer.filter(
-        rawOffer =>
+        (rawOffer) =>
           rawOffer?.itemType !== undefined && rawOffer.itemType !== null
       ))
         switch (o.itemType) {
@@ -452,12 +452,23 @@ export default class TradeClient extends GlobalFetch {
       orderTypes.offer.hasNFT &&
       orderTypes.offer.NFTcollections.length == 1
     ) {
-      orderInit.fees = [
-        {
+      if (
+        !(`fees` in orderInit) ||
+        typeof orderInit === "undefined" ||
+        (Array.isArray(orderInit.fees) && orderInit.fees.length === 0)
+      )
+        orderInit.fees = [
+          {
+            recipient: gnosisRecipient,
+            basisPoints,
+          },
+        ]
+      else if (Array.isArray(orderInit.fees) && orderInit.fees.length > 0) {
+        orderInit.fees.push({
           recipient: gnosisRecipient,
           basisPoints,
-        },
-      ]
+        })
+      }
     }
     return orderInit
   }
@@ -482,7 +493,7 @@ export default class TradeClient extends GlobalFetch {
 
     const orderInit = await this._addNFTTraderFee({
       offer: [...(maker.assets ?? [])].map(
-        a =>
+        (a) =>
           ({
             ...a,
             itemType:
@@ -492,7 +503,7 @@ export default class TradeClient extends GlobalFetch {
           } as { itemType: ItemType } & typeof a)
       ),
       consideration: [...(taker.assets ?? [])].map(
-        a =>
+        (a) =>
           ({
             ...a,
             itemType:
