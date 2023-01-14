@@ -677,11 +677,10 @@ export default class TradeClient extends GlobalFetch {
    */
   public async getSwapOrder(swapId: string): Promise<Maybe<SwapDetail>> {
     try {
-      const response = await this._fetchWithAuth<Array<SwapDetail>>(
+      const response = await this._fetchWithAuth<{ data: Array<SwapDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
-
-      if (response.data) return response.data[0]
+      if (response.data) return response.data.data[0]
     } catch (error) {
       console.warn(error)
     }
