@@ -57,7 +57,8 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL = "https://develop.api.nfttrader.io" // TODO in prod delete "develop."
+  private _BACKEND_URL: string = "https://develop.api.nfttrader.io" // TODO in prod delete "develop."
+  private _MIN_BLOCKS_REQUIRED: number = 3
 
   /**
    * Create an instance of the NFTTrader TradeClient object.
@@ -141,9 +142,7 @@ export default class TradeClient extends GlobalFetch {
 
     this._blocksNumberConfirmationRequired = blocksNumberConfirmationRequired
       ? blocksNumberConfirmationRequired
-      : network === "1"
-      ? 7
-      : 35
+      : this._MIN_BLOCKS_REQUIRED
 
     if (
       (!("jwt" in config) && !("apiKey" in config)) ||
@@ -152,7 +151,7 @@ export default class TradeClient extends GlobalFetch {
       ("apiKey" in config &&
         (typeof config.apiKey !== "string" || !config.apiKey.length))
     )
-      throw new Error("At least apiKey or jwt must be passed")
+      throw new Error("At least apiKey or jwt must be provided")
 
     if ("jwt" in config) this._jwt = config.jwt
     else this._apiKey = config.apiKey
@@ -488,6 +487,16 @@ export default class TradeClient extends GlobalFetch {
     fees?: Array<Fee>
   ): Promise<Swap> {
     if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
+    if (`assets` in maker && maker.assets && maker.assets.length > 0) {
+      //seaport supports erc20 tokens in the offer array object but NFT Trader not,
+      //so we throw an error if someone try to place tokens in the offer
+      const token = maker.assets.find((asset) => {
+        return asset.itemType === AssetsArray.TOKEN_CONSTANTS["ERC20"]
+      })
+
+      if (token)
+        throw new Error("You cannot add an ERC20 token in the maker assets.")
+    }
 
     const [addressMaker] = await this._provider.listAccounts()
 
@@ -521,8 +530,6 @@ export default class TradeClient extends GlobalFetch {
       restrictedByZone: true,
     })
 
-    console.log("ORDER")
-    console.log(orderInit)
     const { executeAllActions } = await this._seaport.createOrder(
       orderInit,
       addressMaker
@@ -558,7 +565,7 @@ export default class TradeClient extends GlobalFetch {
    */
   public async execSwap(swapId: string) {
     try {
-      const response = await this._fetchWithAuth(
+      const response = await this._fetchWithAuth<{ data: Array<SwapDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
 
@@ -568,7 +575,7 @@ export default class TradeClient extends GlobalFetch {
           typeError: "ApiError",
         })
 
-      const data: SwapDetail = response.data[0]
+      const data: SwapDetail = response.data.data[0]
 
       const parameters = data.parameters.order.parameters
       const taker = data.parameters.addressTaker
@@ -624,7 +631,7 @@ export default class TradeClient extends GlobalFetch {
     gasPrice: Maybe<string> = null
   ) {
     try {
-      const response = await this._fetchWithAuth(
+      const response = await this._fetchWithAuth<{ data: Array<SwapDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
       )
 
@@ -634,7 +641,7 @@ export default class TradeClient extends GlobalFetch {
           typeError: "ApiError",
         })
 
-      const data: SwapDetail = response.data[0]
+      const data: SwapDetail = response.data.data[0]
       const parameters = data.parameters.order.parameters
       const maker = data.parameters.addressMaker
       const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
@@ -646,10 +653,12 @@ export default class TradeClient extends GlobalFetch {
         const tx = this._seaport.cancelOrders([parameters], maker)
         this.__emit("cancelSwapTransactionCreated", { tx })
         const transact = await tx.transact({ ...txOverrides })
+
         try {
           const receipt = await transact.wait(
             this._blocksNumberConfirmationRequired
           )
+
           this.__emit("cancelSwapTransactionMined", { receipt })
         } catch (error) {
           return this.__emit("cancelSwapTransactionError", {
