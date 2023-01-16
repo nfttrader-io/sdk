@@ -3,6 +3,8 @@ import SwapParameters from "./swapParameters"
 export type DealDetail = {
   blc: string | null
   blcNative: number
+  blcPercentage: string
+  blcPercentageNative: number
   collectionAddress: string
   collectionLogo: string
   creator: 0 | 1
