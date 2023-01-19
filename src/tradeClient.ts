@@ -57,7 +57,7 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL: string = "https://develop.api.nfttrader.io" // TODO in prod delete "develop."
+  private _BACKEND_URL: string = "https://api.nfttrader.io" // TODO in prod delete "develop."
   private _MIN_BLOCKS_REQUIRED: number = 3
 
   /**
