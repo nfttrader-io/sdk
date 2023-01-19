@@ -530,7 +530,6 @@ export default class TradeClient extends GlobalFetch {
       restrictedByZone: true,
     })
 
-    console.log(orderInit)
     const { executeAllActions } = await this._seaport.createOrder(
       orderInit,
       addressMaker
