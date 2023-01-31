@@ -6,6 +6,7 @@ const POST_TYPE: PostType = {
   B1: 2,
   B2: 3,
   C1: 4,
+  R1: 5,
 }
 
 export default POST_TYPE
