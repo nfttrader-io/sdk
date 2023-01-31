@@ -14,12 +14,14 @@ import Post from "./types/postClient/post"
 import POST_STATUS from "./lib/postClient/postStatus"
 import POST_TYPE from "./lib/postClient/postType"
 import GlobalFetch from "./lib/globalFetch"
+import JWTAuthorized from "./types/postClient/jwtAuthorized"
+import ApiKeyAuthorized from "./types/postClient/apiKeyAuthorized"
+import PostClientConfig from "./types/postClient/postClientConfig"
 
 export default class PostClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
-  private get _BACKEND_BASE_URL() {
-    return "https://fg4fmqp559.execute-api.eu-west-1.amazonaws.com/dev" //TODO change dev in prod
-  }
+  private _jwt: Maybe<string> = null
+  private _BACKEND_URL: string = "https://api.nfttrader.io"
 
   public static get POST_STATUS(): PostStatus {
     return { ...POST_STATUS }
@@ -29,28 +31,10 @@ export default class PostClient extends GlobalFetch {
     return { ...POST_TYPE }
   }
 
-  // TODO? Should apiKey be in general constructor or PostClient specific
-  constructor(config?: { apiKey: string }) {
+  constructor(config: JWTAuthorized | ApiKeyAuthorized) {
     super()
-    this._apiKey = config?.apiKey ?? null
-  }
-
-  // TODO - Change Bearer in ApiKey
-  private _fetchWithAuth<ReturnType = any>(
-    url: string | URL,
-    options: HTTPRequestInit = {
-      method: "GET",
-      headers: undefined,
-      body: undefined,
-    }
-  ): Promise<HTTPResponse<ReturnType>> {
-    if (this._apiKey)
-      options.headers = {
-        ...options.headers,
-        authorization: `Bearer ${this._apiKey}`,
-      }
-
-    return this._fetch(url, options)
+    if (`jwt` in config) this._jwt = config.jwt
+    else if (`apiKey` in config) this._apiKey = config.apiKey
   }
 
   /**
@@ -63,7 +47,7 @@ export default class PostClient extends GlobalFetch {
 
     try {
       const { data } = await this._fetchWithAuth<PostResponse>(
-        `${this._BACKEND_BASE_URL}/post/${id}`
+        `${this._BACKEND_URL}/post/${id}`
       )
 
       return data ?? null
@@ -231,7 +215,7 @@ export default class PostClient extends GlobalFetch {
 
     try {
       const { data } = await this._fetchWithAuth<ListPostsResponse>(
-        `${this._BACKEND_BASE_URL}/posts`,
+        `${this._BACKEND_URL}/posts`,
         {
           method: "POST",
           body,
@@ -239,26 +223,6 @@ export default class PostClient extends GlobalFetch {
       )
 
       return data ?? { posts: [], next: null }
-    } catch (e) {
-      throw e
-    }
-  }
-
-  private async _createPost<
-    P extends (CreatePost | CreatePostReply) & Partial<Pick<Post, "parentId">>
-  >(post: P): Promise<Maybe<string>> {
-    try {
-      const res = await this._fetchWithAuth<string>(
-        `${this._BACKEND_BASE_URL}/post/insert`,
-        {
-          method: "POST",
-          body: post,
-        }
-      )
-
-      console.log(res)
-
-      return res.data ?? null
     } catch (e) {
       throw e
     }
@@ -290,9 +254,59 @@ export default class PostClient extends GlobalFetch {
    */
   public async deletePost(id: string): Promise<void> {
     try {
-      await this._fetchWithAuth(`${this._BACKEND_BASE_URL}/post/${id}/delete`, {
+      await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
         method: "DELETE",
       })
+    } catch (e) {
+      throw e
+    }
+  }
+
+  /**
+   * Override the basic configurations of this client
+   *
+   * @param config
+   */
+  public config(config: PostClientConfig) {
+    this._BACKEND_URL = config.backendURL
+  }
+
+  private _fetchWithAuth<ReturnType = any>(
+    url: string | URL,
+    options: HTTPRequestInit = {
+      method: "GET",
+      headers: undefined,
+      body: undefined,
+    }
+  ): Promise<HTTPResponse<ReturnType>> {
+    options.headers = {
+      ...options.headers,
+      authorization: `${this._jwt ? "Bearer" : "x-api-key"} ${
+        this._jwt ?? this._apiKey
+      }`,
+    }
+
+    if (this._jwt) options.headers["authorizer-type"] = "token"
+    else if (this._apiKey) options.headers["authorizer-type"] = "request"
+
+    return this._fetch(url, options)
+  }
+
+  private async _createPost<
+    P extends (CreatePost | CreatePostReply) & Partial<Pick<Post, "parentId">>
+  >(post: P): Promise<Maybe<string>> {
+    try {
+      const res = await this._fetchWithAuth<string>(
+        `${this._BACKEND_URL}/post/insert`,
+        {
+          method: "POST",
+          body: post,
+        }
+      )
+
+      console.log(res)
+
+      return res.data ?? null
     } catch (e) {
       throw e
     }

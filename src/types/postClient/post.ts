@@ -25,4 +25,5 @@ export default interface Post {
   expirationDate?: number
   numberOffers?: number
   numberOffersRead?: number
+  parent?: Post | null
 }

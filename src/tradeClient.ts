@@ -27,6 +27,7 @@ import WithAddress from "./types/tradeClient/withAddress"
 import GetFullListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
 import GetGlobalSwapsListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
 import GetUserSwapsListResponse from "./types/tradeClient/getUserSwapsListResponse"
+import TradeClientConfig from "./types/tradeClient/tradeClientConfig"
 const {
   royaltyRegistriesEngines,
   seaportSmartContracts,
@@ -57,7 +58,7 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL: string = "https://api.nfttrader.io" // TODO in prod delete "develop."
+  private _BACKEND_URL: string = "https://api.nfttrader.io"
   private _MIN_BLOCKS_REQUIRED: number = 3
 
   /**
@@ -102,7 +103,7 @@ export default class TradeClient extends GlobalFetch {
         !config.jsonRpcProvider.length
       )
         throw new Error(
-          "jsonRpcProvider must be a string -> Eg. https://rinkeby.infura.io/v3/..."
+          "jsonRpcProvider must be a string -> Eg. https://goerli.infura.io/v3/..."
         )
 
       this._isJsonRpcProvider = true
@@ -286,190 +287,6 @@ export default class TradeClient extends GlobalFetch {
    */
   public getRoyaltyRegistryEngineABI(): Array<any> {
     return royaltyRegistryEngineAbi
-  }
-
-  //todo
-  private async _getNFTTraderGnosis(): Promise<Maybe<MultiSigWallet>> {
-    try {
-      const response = await this._fetchWithAuth<MultiSigWallet>(
-        `${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`
-      )
-
-      if (response.data) return response.data
-
-      console.warn("no data field in response")
-    } catch (error) {
-      console.warn(error)
-    }
-
-    return null
-  }
-
-  //todo
-  private async _getNFTTraderFees(): Promise<Maybe<NFTTraderFees>> {
-    try {
-      const response = await this._fetchWithAuth<NFTTraderFees>(
-        `${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`
-      )
-
-      if (response.data) return response.data
-
-      console.warn("no data field in response")
-    } catch (error) {
-      console.warn(error)
-    }
-
-    return null
-  }
-
-  private _analyzeOrder(orderInit: CreateOrderInput) {
-    if (!orderInit || orderInit.constructor.name !== "Object")
-      throw new Error("Invalid argument")
-
-    const offer = {
-        hasNFT: false,
-        hasToken: false,
-        NFTs: 0,
-        NFTcollections: [] as Array<string>,
-        NFTcollectionsIdentifiers: {} as Record<string, Array<string>>,
-      },
-      consideration = { ...offer }
-
-    if (
-      "offer" in orderInit &&
-      Array.isArray(orderInit.offer) &&
-      orderInit.offer.length
-    )
-      for (const o of orderInit.offer.filter(
-        (rawOffer) =>
-          rawOffer?.itemType !== undefined && rawOffer.itemType !== null
-      ))
-        switch (o.itemType) {
-          case ItemType.ERC1155:
-          case ItemType.ERC721:
-            offer.hasNFT = true
-            offer.NFTs++
-
-            if (!offer.NFTcollections.includes(o.token))
-              offer.NFTcollections.push(o.token)
-
-            offer.NFTcollectionsIdentifiers[o.token] = [
-              ...(offer.NFTcollectionsIdentifiers[o.token] ?? []),
-              o.identifier,
-            ]
-
-            break
-          case ItemType.ERC20:
-            offer.hasToken = true
-        }
-
-    if (
-      "consideration" in orderInit &&
-      Array.isArray(orderInit.consideration) &&
-      orderInit.consideration.length
-    )
-      for (const c of orderInit.consideration)
-        if ("itemType" in c)
-          switch (c.itemType) {
-            case ItemType.ERC1155:
-            case ItemType.ERC721:
-              consideration.hasNFT = true
-              consideration.NFTs++
-
-              if (!consideration.NFTcollections.includes(c.token))
-                consideration.NFTcollections.push(c.token)
-
-              consideration.NFTcollectionsIdentifiers[c.token] = [
-                ...(consideration.NFTcollectionsIdentifiers[c.token] ?? []),
-                c.identifier,
-              ]
-
-              break
-            case ItemType.ERC20:
-              consideration.hasToken = true
-              break
-            case ItemType.NATIVE:
-              consideration.hasToken = true
-          }
-        else consideration.hasToken = true
-
-    return {
-      offer,
-      consideration,
-    }
-  }
-
-  private async _addNFTTraderFee(
-    orderInit: CreateOrderInput
-  ): Promise<CreateOrderInput> {
-    const orderTypes = this._analyzeOrder(orderInit)
-    const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
-    const nftTraderGnosis: Maybe<MultiSigWallet> =
-      await this._getNFTTraderGnosis()
-
-    let flatFee: string | undefined
-    let basisPoints: number | undefined
-    let gnosisRecipient = ""
-
-    if (nftTraderFees) {
-      flatFee = nftTraderFees.flatFee[0].fee
-      basisPoints = nftTraderFees.percentageFee[0].basisPoints
-    } else {
-      flatFee = "0"
-      basisPoints = 50
-    }
-
-    if (nftTraderGnosis)
-      gnosisRecipient = nftTraderGnosis.multisig[0].multisigAddress
-
-    if (
-      this._network &&
-      orderTypes.consideration.hasNFT &&
-      !orderTypes.consideration.hasToken &&
-      orderTypes.offer.hasNFT &&
-      !orderTypes.offer.hasToken
-    ) {
-      return {
-        ...orderInit,
-        offer: orderInit.offer,
-        consideration: [
-          ...orderInit.consideration,
-          {
-            recipient: gnosisRecipient,
-            itemType: AssetsArray.TOKEN_CONSTANTS.NATIVE as any,
-            token: ethers.constants.AddressZero,
-            amount: ethers.utils.parseEther(flatFee).toString(),
-            identifier: "0",
-          },
-        ],
-      }
-    }
-
-    if (
-      this._network &&
-      orderTypes.consideration.hasToken &&
-      orderTypes.offer.hasNFT &&
-      orderTypes.offer.NFTcollections.length > 0
-    ) {
-      if (
-        !(`fees` in orderInit) ||
-        typeof orderInit === "undefined" ||
-        (Array.isArray(orderInit.fees) && orderInit.fees.length === 0)
-      )
-        orderInit.fees = [
-          {
-            recipient: gnosisRecipient,
-            basisPoints,
-          },
-        ]
-      else if (Array.isArray(orderInit.fees) && orderInit.fees.length > 0) {
-        orderInit.fees.push({
-          recipient: gnosisRecipient,
-          basisPoints,
-        })
-      }
-    }
-    return orderInit
   }
 
   /**
@@ -699,6 +516,18 @@ export default class TradeClient extends GlobalFetch {
     return null
   }
 
+  /**
+   * Get the global swaps list
+   *
+   * @param networkId
+   * @param status
+   * @param skip
+   * @param take
+   * @param from
+   * @param to
+   * @param searchAddress
+   * @returns
+   */
   public async getGlobalSwapsList(
     networkId: string,
     status: number,
@@ -742,6 +571,19 @@ export default class TradeClient extends GlobalFetch {
     }
   }
 
+  /**
+   * Get the user swaps list
+   *
+   * @param networkId
+   * @param address
+   * @param status
+   * @param skip
+   * @param take
+   * @param from
+   * @param to
+   * @param searchAddress
+   * @returns
+   */
   public async getUserSwapsList(
     networkId: string,
     address: string,
@@ -784,5 +626,197 @@ export default class TradeClient extends GlobalFetch {
       console.warn(e)
       throw e
     }
+  }
+
+  /**
+   * Override the basic configurations of this client
+   *
+   * @param config
+   */
+  public config(config: TradeClientConfig) {
+    this._BACKEND_URL = config.backendURL
+    this._MIN_BLOCKS_REQUIRED = config.minBlocksRequired
+  }
+
+  private async _getNFTTraderGnosis(): Promise<Maybe<MultiSigWallet>> {
+    try {
+      const response = await this._fetchWithAuth<MultiSigWallet>(
+        `${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`
+      )
+
+      if (response.data) return response.data
+
+      console.warn("no data field in response")
+    } catch (error) {
+      console.warn(error)
+    }
+
+    return null
+  }
+
+  private async _getNFTTraderFees(): Promise<Maybe<NFTTraderFees>> {
+    try {
+      const response = await this._fetchWithAuth<NFTTraderFees>(
+        `${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`
+      )
+
+      if (response.data) return response.data
+
+      console.warn("no data field in response")
+    } catch (error) {
+      console.warn(error)
+    }
+
+    return null
+  }
+
+  private _analyzeOrder(orderInit: CreateOrderInput) {
+    if (!orderInit || orderInit.constructor.name !== "Object")
+      throw new Error("Invalid argument")
+
+    const offer = {
+        hasNFT: false,
+        hasToken: false,
+        NFTs: 0,
+        NFTcollections: [] as Array<string>,
+        NFTcollectionsIdentifiers: {} as Record<string, Array<string>>,
+      },
+      consideration = { ...offer }
+
+    if (
+      "offer" in orderInit &&
+      Array.isArray(orderInit.offer) &&
+      orderInit.offer.length
+    )
+      for (const o of orderInit.offer.filter(
+        (rawOffer) =>
+          rawOffer?.itemType !== undefined && rawOffer.itemType !== null
+      ))
+        switch (o.itemType) {
+          case ItemType.ERC1155:
+          case ItemType.ERC721:
+            offer.hasNFT = true
+            offer.NFTs++
+
+            if (!offer.NFTcollections.includes(o.token))
+              offer.NFTcollections.push(o.token)
+
+            offer.NFTcollectionsIdentifiers[o.token] = [
+              ...(offer.NFTcollectionsIdentifiers[o.token] ?? []),
+              o.identifier,
+            ]
+
+            break
+          case ItemType.ERC20:
+            offer.hasToken = true
+        }
+
+    if (
+      "consideration" in orderInit &&
+      Array.isArray(orderInit.consideration) &&
+      orderInit.consideration.length
+    )
+      for (const c of orderInit.consideration)
+        if ("itemType" in c)
+          switch (c.itemType) {
+            case ItemType.ERC1155:
+            case ItemType.ERC721:
+              consideration.hasNFT = true
+              consideration.NFTs++
+
+              if (!consideration.NFTcollections.includes(c.token))
+                consideration.NFTcollections.push(c.token)
+
+              consideration.NFTcollectionsIdentifiers[c.token] = [
+                ...(consideration.NFTcollectionsIdentifiers[c.token] ?? []),
+                c.identifier,
+              ]
+
+              break
+            case ItemType.ERC20:
+              consideration.hasToken = true
+              break
+            case ItemType.NATIVE:
+              consideration.hasToken = true
+          }
+        else consideration.hasToken = true
+
+    return {
+      offer,
+      consideration,
+    }
+  }
+
+  private async _addNFTTraderFee(
+    orderInit: CreateOrderInput
+  ): Promise<CreateOrderInput> {
+    const orderTypes = this._analyzeOrder(orderInit)
+    const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
+    const nftTraderGnosis: Maybe<MultiSigWallet> =
+      await this._getNFTTraderGnosis()
+
+    let flatFee: string | undefined
+    let basisPoints: number | undefined
+    let gnosisRecipient = ""
+
+    if (nftTraderFees) {
+      flatFee = nftTraderFees.flatFee[0].fee
+      basisPoints = nftTraderFees.percentageFee[0].basisPoints
+    } else {
+      flatFee = "0"
+      basisPoints = 50
+    }
+
+    if (nftTraderGnosis)
+      gnosisRecipient = nftTraderGnosis.multisig[0].multisigAddress
+
+    if (
+      this._network &&
+      orderTypes.consideration.hasNFT &&
+      !orderTypes.consideration.hasToken &&
+      orderTypes.offer.hasNFT &&
+      !orderTypes.offer.hasToken
+    ) {
+      return {
+        ...orderInit,
+        offer: orderInit.offer,
+        consideration: [
+          ...orderInit.consideration,
+          {
+            recipient: gnosisRecipient,
+            itemType: AssetsArray.TOKEN_CONSTANTS.NATIVE as any,
+            token: ethers.constants.AddressZero,
+            amount: ethers.utils.parseEther(flatFee).toString(),
+            identifier: "0",
+          },
+        ],
+      }
+    }
+
+    if (
+      this._network &&
+      orderTypes.consideration.hasToken &&
+      orderTypes.offer.hasNFT &&
+      orderTypes.offer.NFTcollections.length > 0
+    ) {
+      if (
+        !(`fees` in orderInit) ||
+        typeof orderInit === "undefined" ||
+        (Array.isArray(orderInit.fees) && orderInit.fees.length === 0)
+      )
+        orderInit.fees = [
+          {
+            recipient: gnosisRecipient,
+            basisPoints,
+          },
+        ]
+      else if (Array.isArray(orderInit.fees) && orderInit.fees.length > 0) {
+        orderInit.fees.push({
+          recipient: gnosisRecipient,
+          basisPoints,
+        })
+      }
+    }
+    return orderInit
   }
 }
