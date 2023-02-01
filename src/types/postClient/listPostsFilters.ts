@@ -1,4 +1,5 @@
-import Bitmap from "../general/bitmap"
+import BitmapOffered from "../general/bitmapOffered"
+import BitmapWanted from "../general/bitmapWanted"
 import Network from "../general/network"
 import PostStatus from "./postStatus"
 import PostStatusName from "./postStatusName"
@@ -36,11 +37,11 @@ export default interface ListPostsFilters {
   /**
    * Filter posts...
    */
-  typeOffered?: Bitmap
+  typeOffered?: BitmapOffered
   /**
    * Filter posts...
    */
-  typeWanted?: Bitmap
+  typeWanted?: BitmapWanted
   /**
    * Filter posts based on their assets, `verified` returns only posts with all verified collections
    */

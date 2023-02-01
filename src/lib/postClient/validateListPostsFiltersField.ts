@@ -29,7 +29,7 @@ export default function validateListPostsFiltersField<
         (typeof _value === "string" && !_value.length) ||
         (Array.isArray(_value) &&
           (!_value.length ||
-            _value.some(c => typeof c !== "string" || !c.length))) ||
+            _value.some((c) => typeof c !== "string" || !c.length))) ||
         _value.constructor === new Object().constructor
       ) {
         if (
@@ -45,7 +45,7 @@ export default function validateListPostsFiltersField<
               typeof _value.offered !== "string" &&
               !Array.isArray(_value.offered)) ||
             (Array.isArray(_value.offered) &&
-              _value.offered.some(o => typeof o !== "string" || !o.length))
+              _value.offered.some((o) => typeof o !== "string" || !o.length))
           )
             throw new Error('invalid parameter "filters.collections.offered"')
           if (
@@ -53,12 +53,12 @@ export default function validateListPostsFiltersField<
               typeof _value.wanted !== "string" &&
               !Array.isArray(_value.wanted)) ||
             (Array.isArray(_value.wanted) &&
-              _value.wanted.some(w => typeof w !== "string" || !w.length))
+              _value.wanted.some((w) => typeof w !== "string" || !w.length))
           )
             throw new Error('invalid parameter "filters.collections.wanted"')
 
           const invalidKeys = Object.keys(_value).filter(
-            k => !["offered", "wanted"].includes(k)
+            (k) => !["offered", "wanted"].includes(k)
           )
           if (invalidKeys.length)
             throw new Error(
@@ -107,7 +107,7 @@ export default function validateListPostsFiltersField<
       const _value = value as ListPostsFilters["typeOffered"]
 
       if (_value === null || _value === undefined) return
-      else if (typeof _value !== "string" || !/^[0-1]{3}$/g.test(_value))
+      else if (typeof _value !== "string" || !/^[0-1][0-2][0-2]$/g.test(_value))
         throw new Error('invalid parameter "filters.typeOffered"')
 
       return
@@ -116,7 +116,7 @@ export default function validateListPostsFiltersField<
       const _value = value as ListPostsFilters["typeWanted"]
 
       if (_value === null || _value === undefined) return
-      else if (typeof _value !== "string" || !/^[0-1]{3}$/g.test(_value))
+      else if (typeof _value !== "string" || !/^[0-2]{3}$/g.test(_value))
         throw new Error('invalid parameter "filters.typeWanted"')
 
       return
@@ -143,7 +143,7 @@ export default function validateListPostsFiltersField<
         (Array.isArray(_value) &&
           (!_value.length ||
             _value.some(
-              _v =>
+              (_v) =>
                 typeof _v !== "number" ||
                 !_v ||
                 !Object.keys(royaltyRegistriesEngines).includes(`${_v}`)

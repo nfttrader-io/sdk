@@ -6,7 +6,8 @@ import _Network from "./types/general/network"
 
 // TYPES export
 // GENERAL
-export * as Bitmap from "./types/general/bitmap"
+export * as BitmapOffered from "./types/general/bitmapOffered"
+export * as BitmapWanted from "./types/general/bitmapWanted"
 export type Network = _Network
 // ASSETSARRAY
 export * as Asset from "./types/assetsArray/asset"
