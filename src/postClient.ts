@@ -31,6 +31,10 @@ export default class PostClient extends GlobalFetch {
     return { ...POST_TYPE }
   }
 
+  public static get _MESSAGE_TO_SIGN(): string {
+    return `This is the message to sign powered by nfttrader.io`
+  }
+
   constructor(config: JWTAuthorized | ApiKeyAuthorized) {
     super()
     if (`jwt` in config) this._jwt = config.jwt
@@ -232,9 +236,10 @@ export default class PostClient extends GlobalFetch {
    * Create a post
    *
    * @param post - A post to be created
+   * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPost(post: CreatePost) {
-    return this._createPost(post)
+  public async createPost(post: CreatePost, signedMessage?: string) {
+    return this._createPost(post, signedMessage)
   }
 
   /**
@@ -242,9 +247,14 @@ export default class PostClient extends GlobalFetch {
    *
    * @param reply - A reply to be created in the context of a parent post
    * @param parentId - The parent post id to whom this reply belongs to
+   * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPostReply(reply: CreatePostReply, parentId: string) {
-    return this._createPost({ ...reply, parentId })
+  public async createPostReply(
+    reply: CreatePostReply,
+    parentId: string,
+    signedMessage?: string
+  ) {
+    return this._createPost({ ...reply, parentId }, signedMessage)
   }
 
   /**
@@ -252,11 +262,21 @@ export default class PostClient extends GlobalFetch {
    *
    * @param id - The id of the post to delete
    */
-  public async deletePost(id: string): Promise<void> {
+  public async deletePost(id: string, signedMessage?: string): Promise<void> {
     try {
-      await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
-        method: "DELETE",
-      })
+      if (this._apiKey && !signedMessage)
+        throw new Error("signedMessage must be provided.")
+
+      !this._apiKey
+        ? await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
+            method: "DELETE",
+          })
+        : await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
+            method: "DELETE",
+            headers: {
+              "nfttrader-signed-message": signedMessage!,
+            },
+          })
     } catch (e) {
       throw e
     }
@@ -294,17 +314,29 @@ export default class PostClient extends GlobalFetch {
 
   private async _createPost<
     P extends (CreatePost | CreatePostReply) & Partial<Pick<Post, "parentId">>
-  >(post: P): Promise<Maybe<string>> {
-    try {
-      const res = await this._fetchWithAuth<string>(
-        `${this._BACKEND_URL}/post/insert`,
-        {
-          method: "POST",
-          body: post,
-        }
-      )
+  >(post: P, signedMessage?: string): Promise<Maybe<string>> {
+    if (this._apiKey && !signedMessage)
+      throw new Error("signedMessage must be provided.")
 
-      console.log(res)
+    try {
+      const res = !this._apiKey
+        ? await this._fetchWithAuth<string>(
+            `${this._BACKEND_URL}/post/insert`,
+            {
+              method: "POST",
+              body: post,
+            }
+          )
+        : await this._fetchWithAuth<string>(
+            `${this._BACKEND_URL}/post/insert`,
+            {
+              method: "POST",
+              body: post,
+              headers: {
+                "nfttrader-signed-message": signedMessage!,
+              },
+            }
+          )
 
       return res.data ?? null
     } catch (e) {

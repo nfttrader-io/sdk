@@ -15,6 +15,7 @@ export default interface Post {
   creator: Collector
   messages: Array<{ type: string }>
   assets: PostAssets
+  isCreator: boolean
   score?: number
   isDifferent?: boolean
   like?: number
