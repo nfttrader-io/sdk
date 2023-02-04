@@ -3,6 +3,6 @@ import Post from "./post"
 type CreatePost = Pick<
   Post,
   "assets" | "expirationDate" | "messages" | "networkId" | "type"
-> & { creator: string }
+> & { creatorAddress: string }
 
 export default CreatePost
