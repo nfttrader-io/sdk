@@ -28,7 +28,7 @@ import GetFullListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
 import GetGlobalSwapsListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
 import GetUserSwapsListResponse from "./types/tradeClient/getUserSwapsListResponse"
 import TradeClientConfig from "./types/tradeClient/tradeClientConfig"
-import NFTList from "./types/tradeClient/nftList"
+
 const {
   royaltyRegistriesEngines,
   seaportSmartContracts,
@@ -60,8 +60,6 @@ export default class TradeClient extends GlobalFetch {
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io"
-  private _TRADESQUAD_ADDRESS: string =
-    "0xdbd4264248e2f814838702e0cb3015ac3a7157a1"
   private _MIN_BLOCKS_REQUIRED: number = 3
 
   /**
@@ -306,7 +304,6 @@ export default class TradeClient extends GlobalFetch {
     end = 0,
     fees?: Array<Fee>
   ): Promise<Swap> {
-    let flagNfttraderFee: boolean = false
     if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
     if (`assets` in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
@@ -319,21 +316,9 @@ export default class TradeClient extends GlobalFetch {
         throw new Error("You cannot add an ERC20 token in the maker assets.")
     }
 
-    // Retrieve the maker address
     const [addressMaker] = await this._provider.listAccounts()
-    // Retrieve if the maker address own TradeSquad NFTs for remove the fee
-    const response = await this._fetchWithAuth<{ data: Array<NFTList> }>(
-      `${this._BACKEND_URL}/metadata/getNftCollectionAssetsByOwner/1/${this._TRADESQUAD_ADDRESS}/${addressMaker}`
-    )
 
-    if (response.data) {
-      // Check if the user doesn't own any TradeSquad
-      if (response.data.data[0].total == 0) {
-        flagNfttraderFee = true
-      }
-    }
-
-    const orderInit = await this._addNFTTraderFee(flagNfttraderFee, {
+    const orderInit = await this._addNFTTraderFee({
       offer: [...(maker.assets ?? [])].map(
         (a) =>
           ({
@@ -764,7 +749,6 @@ export default class TradeClient extends GlobalFetch {
   }
 
   private async _addNFTTraderFee(
-    flagNfttraderFee: boolean,
     orderInit: CreateOrderInput
   ): Promise<CreateOrderInput> {
     const orderTypes = this._analyzeOrder(orderInit)
@@ -776,19 +760,12 @@ export default class TradeClient extends GlobalFetch {
     let basisPoints: number | undefined
     let gnosisRecipient = ""
 
-    // If TradeSquad is not in the wallet, fee applied
-    if (flagNfttraderFee) {
-      if (nftTraderFees) {
-        flatFee = nftTraderFees.flatFee[0].fee
-        basisPoints = nftTraderFees.percentageFee[0].basisPoints
-      } else {
-        flatFee = "0"
-        basisPoints = 50
-      }
+    if (nftTraderFees) {
+      flatFee = nftTraderFees.flatFee[0].fee
+      basisPoints = nftTraderFees.percentageFee[0].basisPoints
     } else {
-      // If TradeSquad is in the wallet, fee resetted
       flatFee = "0"
-      basisPoints = 0
+      basisPoints = 50
     }
 
     if (nftTraderGnosis)
