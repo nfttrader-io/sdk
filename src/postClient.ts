@@ -137,11 +137,11 @@ export default class PostClient extends GlobalFetch {
       } catch (e) {
         throw e
       }
-      const { collections, status, type, deals } = filtersInput
+      const { collections, status, type, offers } = filtersInput
       delete filtersInput.collections
       delete filtersInput.status
       delete filtersInput.type
-      delete filtersInput.deals
+      delete filtersInput.offers
 
       const collectionsWanted = collections
         ? typeof collections === "string"
@@ -183,7 +183,7 @@ export default class PostClient extends GlobalFetch {
           type: typeof type === "string" ? PostClient.POST_TYPE[type] : type,
         }
 
-      if (deals) filters = { ...(filters ?? {}), deals }
+      if (offers) filters = { ...(filters ?? {}), offers }
 
       filters = Object.fromEntries(
         Object.entries({ ...(filters ?? {}), ...filtersInput }).filter(

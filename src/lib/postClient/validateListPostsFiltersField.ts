@@ -153,12 +153,12 @@ export default function validateListPostsFiltersField<
 
       return
     }
-    case "deals": {
-      const _value = value as ListPostsFilters["deals"]
+    case "offers": {
+      const _value = value as ListPostsFilters["offers"]
 
       if (_value === null || _value === undefined) return
       else if (typeof _value !== "number" || _value < 0)
-        throw new Error('invalid parameter "filters.deals"')
+        throw new Error('invalid parameter "filters.offers"')
 
       return
     }
