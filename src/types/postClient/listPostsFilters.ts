@@ -51,9 +51,9 @@ export default interface ListPostsFilters {
    */
   networks?: Network | Array<Network>
   /**
-   * Filter posts that have at least `deals` number of answers
+   * Filter posts that have at least `offers` number of answers
    */
-  deals?: number
+  offers?: number
   /**
    * Filter posts that are going to expire before or at `expirationDate` timestamp
    */
