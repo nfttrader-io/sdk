@@ -46,15 +46,59 @@ export default class PostClient extends GlobalFetch {
    *
    * @param id - The id of the post
    */
-  public async getPost(id: string): Promise<Maybe<PostResponse>> {
+  public async getPost(
+    id: string,
+    creatorAddress?: string
+  ): Promise<Maybe<PostResponse>> {
     if (!id) throw new Error('Invalid parameter "id"')
+    if (this._apiKey && !creatorAddress)
+      console.warn(
+        "If you are using an API key and you don't provide the 'creatorAddress' param, the response will contain a 'isCreator' field with a value equals to 'false'."
+      )
 
     try {
       const { data } = await this._fetchWithAuth<PostResponse>(
-        `${this._BACKEND_URL}/post/${id}`
+        `${this._BACKEND_URL}/post/${id}` +
+          `${creatorAddress ? `/${creatorAddress}` : ``}`
       )
 
       return data ?? null
+    } catch (e) {
+      throw e
+    }
+  }
+
+  /**
+   * Get a post by its id
+   *
+   * @param id - The id of the post
+   */
+  public async getPostReplies(
+    id: string,
+    next?: string,
+    creatorAddress?: string
+  ): Promise<ListPostsResponse> {
+    if (!id) throw new Error('Invalid parameter "id"')
+    if (this._apiKey && !creatorAddress)
+      console.warn(
+        "If you are using an API key and you don't provide the 'creatorAddress' param, the response will contain a 'isCreator' field with a value equals to 'false'."
+      )
+
+    const body = {
+      next,
+    }
+
+    try {
+      const { data } = await this._fetchWithAuth<ListPostsResponse>(
+        `${this._BACKEND_URL}/replies/${id}` +
+          `${creatorAddress ? `/${creatorAddress}` : ``}`,
+        {
+          method: "POST",
+          body,
+        }
+      )
+
+      return data ?? { posts: [], next: null }
     } catch (e) {
       throw e
     }
