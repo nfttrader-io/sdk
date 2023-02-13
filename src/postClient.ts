@@ -105,74 +105,18 @@ export default class PostClient extends GlobalFetch {
   }
 
   /**
-   * List posts
-   */
-  public async listPosts(): Promise<ListPostsResponse>
-  /**
-   * List posts that match the filter object
-   *
-   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
-   */
-  public async listPosts(filters: ListPostsFilters): Promise<ListPostsResponse>
-  /**
-   * List posts and order the list
-   *
-   * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
-   */
-  public async listPosts(order: ListPostsOrder): Promise<ListPostsResponse>
-  /**
-   * List `next` posts page in the list
-   *
-   * @param next - A string to include to fetch the next page of posts list
-   */
-  public async listPosts(next: string): Promise<ListPostsResponse>
-  /**
-   * Lists posts filtered by `filter` and orders the list based on `order`
-   *
-   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
-   * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
-   */
-  public async listPosts(
-    filters: ListPostsFilters,
-    order: ListPostsOrder
-  ): Promise<ListPostsResponse>
-  /**
-   * Lists posts filtered by `filter` and orders the list based on `order`
-   *
-   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
-   * @param next - A string to include to fetch the next page of posts list
-   */
-  public async listPosts(
-    filters: ListPostsFilters,
-    next: string
-  ): Promise<ListPostsResponse>
-  /**
-   * Lists posts filtered by `filter` and orders the list based on `order`
+   * List posts that match the filter and order object
    *
    * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
    * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
-    filters: ListPostsFilters,
-    order: ListPostsOrder,
-    next: string
-  ): Promise<ListPostsResponse>
-
-  public async listPosts(
-    filtersOrOrderOptionsOrNextKey?: Maybe<
-      ListPostsFilters | ListPostsOrder | string
-    >,
-    orderOptionsOrNextKey?: Maybe<ListPostsOrder | string>,
-    nextKey?: Maybe<string>
+    filtersOptions?: ListPostsFilters,
+    orderOptions?: ListPostsOrder,
+    nextToken?: string
   ): Promise<ListPostsResponse> {
-    const filtersInput =
-      filtersOrOrderOptionsOrNextKey &&
-      typeof filtersOrOrderOptionsOrNextKey !== "string" &&
-      !("field" in filtersOrOrderOptionsOrNextKey) &&
-      !("direction" in filtersOrOrderOptionsOrNextKey)
-        ? { ...filtersOrOrderOptionsOrNextKey }
-        : null
+    const filtersInput = filtersOptions ? { ...filtersOptions } : null
 
     let filters = null
     if (filtersInput) {
@@ -236,24 +180,8 @@ export default class PostClient extends GlobalFetch {
       )
     }
 
-    const order =
-      orderOptionsOrNextKey && typeof orderOptionsOrNextKey !== "string"
-        ? { ...orderOptionsOrNextKey }
-        : filtersOrOrderOptionsOrNextKey &&
-          typeof filtersOrOrderOptionsOrNextKey !== "string" &&
-          ("field" in filtersOrOrderOptionsOrNextKey ||
-            "direction" in filtersOrOrderOptionsOrNextKey)
-        ? { ...filtersOrOrderOptionsOrNextKey }
-        : null
-
-    const next =
-      typeof filtersOrOrderOptionsOrNextKey === "string"
-        ? filtersOrOrderOptionsOrNextKey
-        : typeof orderOptionsOrNextKey === "string"
-        ? orderOptionsOrNextKey
-        : nextKey
-        ? nextKey
-        : null
+    const order = orderOptions ? { ...orderOptions } : null
+    const next = nextToken ? nextToken : null
 
     const body = {
       filters: filters ? (Object.keys(filters).length ? filters : null) : null,
