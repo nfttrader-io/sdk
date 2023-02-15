@@ -1,5 +1,4 @@
 import ListPostsFilters from "../../types/postClient/listPostsFilters"
-import contracts from "../contracts"
 import POST_STATUS from "./postStatus"
 import POST_TYPE from "./postType"
 
@@ -11,7 +10,7 @@ export default function validateListPostsFiltersField<
       const _value = value as ListPostsFilters["owner"]
 
       // Regex can be used
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (typeof _value !== "string" || !_value.length)
         throw new Error('invalid parameter "filters.owner"')
 
@@ -20,7 +19,7 @@ export default function validateListPostsFiltersField<
     case "collections": {
       const _value = value as ListPostsFilters["collections"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (
         (typeof _value !== "string" &&
           !Array.isArray(_value) &&
@@ -76,7 +75,7 @@ export default function validateListPostsFiltersField<
     case "status": {
       const _value = value as ListPostsFilters["status"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (
         (typeof _value !== "string" && typeof _value !== "number") ||
         (typeof _value === "string" &&
@@ -91,7 +90,7 @@ export default function validateListPostsFiltersField<
     case "type": {
       const _value = value as ListPostsFilters["type"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (
         (typeof _value !== "string" && typeof _value !== "number") ||
         (typeof _value === "string" &&
@@ -106,7 +105,7 @@ export default function validateListPostsFiltersField<
     case "typeOffered": {
       const _value = value as ListPostsFilters["typeOffered"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (typeof _value !== "string" || !/^[0-1][0-2][0-2]$/g.test(_value))
         throw new Error('invalid parameter "filters.typeOffered"')
 
@@ -115,7 +114,7 @@ export default function validateListPostsFiltersField<
     case "typeWanted": {
       const _value = value as ListPostsFilters["typeWanted"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (typeof _value !== "string" || !/^[0-2]{3}$/g.test(_value))
         throw new Error('invalid parameter "filters.typeWanted"')
 
@@ -124,7 +123,7 @@ export default function validateListPostsFiltersField<
     case "verified": {
       const _value = value as ListPostsFilters["verified"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (typeof _value !== "boolean")
         throw new Error('invalid parameter "filters.verified"')
 
@@ -132,22 +131,11 @@ export default function validateListPostsFiltersField<
     }
     case "networks": {
       const _value = value as ListPostsFilters["networks"]
-      const { royaltyRegistriesEngines } = contracts
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (
-        (typeof _value !== "number" && !Array.isArray(_value)) ||
-        (typeof _value === "number" &&
-          (!_value ||
-            !Object.keys(royaltyRegistriesEngines).includes(`${_value}`))) ||
-        (Array.isArray(_value) &&
-          (!_value.length ||
-            _value.some(
-              (_v) =>
-                typeof _v !== "number" ||
-                !_v ||
-                !Object.keys(royaltyRegistriesEngines).includes(`${_v}`)
-            )))
+        (typeof _value !== "string" && !Array.isArray(_value)) ||
+        (Array.isArray(_value) && _value.some((v) => typeof v !== "string"))
       )
         throw new Error('invalid parameter "filters.networks"')
 
@@ -156,7 +144,7 @@ export default function validateListPostsFiltersField<
     case "offers": {
       const _value = value as ListPostsFilters["offers"]
 
-      if (_value === null || _value === undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (typeof _value !== "number" || _value < 0)
         throw new Error('invalid parameter "filters.offers"')
 
@@ -165,7 +153,7 @@ export default function validateListPostsFiltersField<
     case "expirationDate": {
       const _value = value as ListPostsFilters["expirationDate"]
 
-      if (_value === null || _value == undefined) return
+      if (_value === null || typeof _value === "undefined") return
       else if (typeof _value !== "number" || _value <= Date.now())
         throw new Error('invalid parameter "filters.expirationDate"')
 
