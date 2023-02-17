@@ -131,32 +131,8 @@ export default class PostClient extends GlobalFetch {
       delete filtersInput.type
       delete filtersInput.offers
 
-      const collectionsWanted = collections
-        ? typeof collections === "string"
-          ? [collections]
-          : Array.isArray(collections)
-          ? [...collections]
-          : collections.wanted
-          ? typeof collections.wanted === "string"
-            ? [collections.wanted]
-            : [...collections.wanted]
-          : undefined
-        : undefined
-      const collectionsOffered = collections
-        ? typeof collections === "string"
-          ? [collections]
-          : Array.isArray(collections)
-          ? [...collections]
-          : collections.offered
-          ? typeof collections.offered === "string"
-            ? [collections.offered]
-            : [...collections.offered]
-          : undefined
-        : undefined
+      if (collections) filters = { ...(filters ?? {}), collections }
 
-      if (collectionsWanted) filters = { ...(filters ?? {}), collectionsWanted }
-      if (collectionsOffered)
-        filters = { ...(filters ?? {}), collectionsOffered }
       if (status)
         filters = {
           ...(filters ?? {}),
