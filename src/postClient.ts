@@ -133,7 +133,8 @@ export default class PostClient extends GlobalFetch {
 
       if (collections) filters = { ...(filters ?? {}), collections }
 
-      if (status)
+      if (status || typeof status === "number")
+        // status can be a number equal to zero (active), so it's better to check typeof
         filters = {
           ...(filters ?? {}),
           status:
@@ -141,7 +142,8 @@ export default class PostClient extends GlobalFetch {
               ? PostClient.POST_STATUS[status]
               : status,
         }
-      if (type)
+      if (type || typeof type === "number")
+        // type can be a number equal to zero (A1), so it's better to check typeof
         filters = {
           ...(filters ?? {}),
           type: typeof type === "string" ? PostClient.POST_TYPE[type] : type,
