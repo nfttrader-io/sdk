@@ -141,7 +141,7 @@ export default function validateListPostsFiltersField<
       const _value = value as ListPostsFilters["expirationDate"]
 
       if (_value === null || typeof _value === "undefined") return
-      else if (typeof _value !== "number" || _value <= Date.now())
+      else if (typeof _value !== "number")
         throw new Error('invalid parameter "filters.expirationDate"')
 
       return
