@@ -1,6 +1,6 @@
 import Post from "./post"
 
-type CreatePostReply = Pick<Post, "messages" | "assets"> & {
+type CreatePostReply = Pick<Post, "messages" | "assets" | "networkId"> & {
   creatorAddress: string
 }
 

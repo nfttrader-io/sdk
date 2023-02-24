@@ -226,7 +226,8 @@ export default class PostClient extends GlobalFetch {
     parentId: string,
     signedMessage?: string
   ) {
-    return this._createPost({ ...reply, parentId }, signedMessage)
+    const type: number = POST_TYPE.R1
+    return this._createPost({ ...reply, type, parentId }, signedMessage)
   }
 
   /**
