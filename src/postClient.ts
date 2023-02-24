@@ -131,33 +131,10 @@ export default class PostClient extends GlobalFetch {
       delete filtersInput.type
       delete filtersInput.offers
 
-      const collectionsWanted = collections
-        ? typeof collections === "string"
-          ? [collections]
-          : Array.isArray(collections)
-          ? [...collections]
-          : collections.wanted
-          ? typeof collections.wanted === "string"
-            ? [collections.wanted]
-            : [...collections.wanted]
-          : undefined
-        : undefined
-      const collectionsOffered = collections
-        ? typeof collections === "string"
-          ? [collections]
-          : Array.isArray(collections)
-          ? [...collections]
-          : collections.offered
-          ? typeof collections.offered === "string"
-            ? [collections.offered]
-            : [...collections.offered]
-          : undefined
-        : undefined
+      if (collections) filters = { ...(filters ?? {}), collections }
 
-      if (collectionsWanted) filters = { ...(filters ?? {}), collectionsWanted }
-      if (collectionsOffered)
-        filters = { ...(filters ?? {}), collectionsOffered }
-      if (status)
+      if (status || typeof status === "number")
+        // status can be a number equal to zero (active), so it's better to check typeof
         filters = {
           ...(filters ?? {}),
           status:
@@ -165,7 +142,8 @@ export default class PostClient extends GlobalFetch {
               ? PostClient.POST_STATUS[status]
               : status,
         }
-      if (type)
+      if (type || typeof type === "number")
+        // type can be a number equal to zero (A1), so it's better to check typeof
         filters = {
           ...(filters ?? {}),
           type: typeof type === "string" ? PostClient.POST_TYPE[type] : type,

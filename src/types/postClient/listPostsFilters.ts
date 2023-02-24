@@ -20,11 +20,15 @@ export default interface ListPostsFilters {
    * - An object that specify if the specified addresses are wanted to be searched in `wanted` or `offered` `Post.assets`
    */
   collections?:
-    | string
-    | Array<string>
+    | { address: string; network: Network }
+    | Array<{ address: string; network: Network }>
     | Partial<{
-        wanted?: string | Array<string>
-        offered?: string | Array<string>
+        wanted?:
+          | { address: string; network: Network }
+          | Array<{ address: string; network: Network }>
+        offered?:
+          | { address: string; network: Network }
+          | Array<{ address: string; network: Network }>
       }>
   /**
    * Filter posts based on status, to see possible statuses visit [this link](https://www.google.com)
