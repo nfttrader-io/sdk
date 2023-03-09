@@ -126,7 +126,7 @@ export default class TradeClient extends GlobalFetch {
         ? new ethers.providers.Web3Provider(config.web3Provider)
         : config.web3Provider
     }
-    this._seaport = new Seaport(this._provider)
+    this._seaport = new Seaport(this._provider, { seaportVersion: "1.1" })
 
     const { network, blocksNumberConfirmationRequired } = config
     if (!network) throw new Error("network must be passed")
@@ -328,35 +328,38 @@ export default class TradeClient extends GlobalFetch {
     // Check if the user doesn't own any TradeSquad
     if (response.data?.data?.[0].total === 0) flagNfttraderFee = true
 
-    const orderInit = await this._addNFTTraderFee(flagNfttraderFee, {
-      offer: [...(maker.assets ?? [])].map(
-        a =>
-          ({
-            ...a,
-            itemType:
-              typeof a.itemType === "string"
-                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
-                : a.itemType,
-          } as { itemType: ItemType } & typeof a)
-      ),
-      consideration: [...(taker.assets ?? [])].map(
-        a =>
-          ({
-            ...a,
-            itemType:
-              typeof a.itemType === "string"
-                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
-                : a.itemType,
-            recipient: a.recipient ? a.recipient : addressMaker,
-          } as { itemType: ItemType } & typeof a)
-      ),
-      zone: taker.address,
-      endTime: Math.floor(
-        new Date().setDate(new Date().getDate() + end) / 1000
-      ).toString(), // days in seconds (UNIX timestamp)
-      fees,
-      restrictedByZone: true,
-    })
+    const orderInit = await this._addNFTTraderFee(
+      {
+        offer: [...(maker.assets ?? [])].map(
+          a =>
+            ({
+              ...a,
+              itemType:
+                typeof a.itemType === "string"
+                  ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
+                  : a.itemType,
+            } as { itemType: ItemType } & typeof a)
+        ),
+        consideration: [...(taker.assets ?? [])].map(
+          a =>
+            ({
+              ...a,
+              itemType:
+                typeof a.itemType === "string"
+                  ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
+                  : a.itemType,
+              recipient: a.recipient ? a.recipient : addressMaker,
+            } as { itemType: ItemType } & typeof a)
+        ),
+        zone: taker.address,
+        endTime: Math.floor(
+          new Date().setDate(new Date().getDate() + end) / 1000
+        ).toString(), // days in seconds (UNIX timestamp)
+        fees,
+        restrictedByZone: true,
+      },
+      flagNfttraderFee
+    )
 
     const { executeAllActions } = await this._seaport.createOrder(
       orderInit,
@@ -759,8 +762,8 @@ export default class TradeClient extends GlobalFetch {
   }
 
   private async _addNFTTraderFee(
-    flagNfttraderFee: boolean,
-    orderInit: CreateOrderInput
+    orderInit: CreateOrderInput,
+    flagNfttraderFee = false
   ): Promise<CreateOrderInput> {
     const orderTypes = this._analyzeOrder(orderInit)
     const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
