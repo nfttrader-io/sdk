@@ -28,6 +28,7 @@ import GetFullListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
 import GetGlobalSwapsListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
 import GetUserSwapsListResponse from "./types/tradeClient/getUserSwapsListResponse"
 import TradeClientConfig from "./types/tradeClient/tradeClientConfig"
+import NFTList from "./types/tradeClient/nftList"
 
 const {
   royaltyRegistriesEngines,
@@ -35,8 +36,6 @@ const {
   royaltyRegistryEngineAbi,
 } = contracts
 
-// TODO rename in tradeClient.ts, this will be the only tradeClient
-// TODO change import in index.ts
 export default class TradeClient extends GlobalFetch {
   private _isJsonRpcProvider = false
   private _isWeb3Provider = false
@@ -59,7 +58,9 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL: string = "https://api.nfttrader.io"
+  private _BACKEND_URL: string = "https://develop.api.nfttrader.io"
+  private _TRADESQUAD_ADDRESS: string =
+    "0xdbd4264248e2f814838702e0cb3015ac3a7157a1"
   private _MIN_BLOCKS_REQUIRED: number = 3
 
   /**
@@ -125,7 +126,7 @@ export default class TradeClient extends GlobalFetch {
         ? new ethers.providers.Web3Provider(config.web3Provider)
         : config.web3Provider
     }
-    this._seaport = new Seaport(this._provider)
+    this._seaport = new Seaport(this._provider, { seaportVersion: "1.1" })
 
     const { network, blocksNumberConfirmationRequired } = config
     if (!network) throw new Error("network must be passed")
@@ -190,7 +191,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this._eventsCollectorCallbacks.find((eventItem) => {
+    const event = this._eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -209,7 +210,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this._eventsCollectorCallbacks.find((eventItem) => {
+    const event = this._eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -223,7 +224,7 @@ export default class TradeClient extends GlobalFetch {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex((func) => {
+      const index = event.callbacks.findIndex(func => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -242,7 +243,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this._eventsCollectorCallbacks.find((eventItem) => {
+    const event = this._eventsCollectorCallbacks.find(eventItem => {
       return eventItem.name === eventName
     })
 
@@ -304,11 +305,12 @@ export default class TradeClient extends GlobalFetch {
     end = 0,
     fees?: Array<Fee>
   ): Promise<Swap> {
+    let flagNfttraderFee: boolean = false
     if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
-    if (`assets` in maker && maker.assets && maker.assets.length > 0) {
+    if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
       //so we throw an error if someone try to place tokens in the offer
-      const token = maker.assets.find((asset) => {
+      const token = maker.assets.find(asset => {
         return asset.itemType === AssetsArray.TOKEN_CONSTANTS["ERC20"]
       })
 
@@ -316,37 +318,48 @@ export default class TradeClient extends GlobalFetch {
         throw new Error("You cannot add an ERC20 token in the maker assets.")
     }
 
+    // Retrieve the maker address
     const [addressMaker] = await this._provider.listAccounts()
+    // Retrieve if the maker address own TradeSquad NFTs for remove the fee
+    const response = await this._fetch<{ data: Array<NFTList> }>(
+      `${this._BACKEND_URL}/metadata/getNftCollectionAssetsByOwner/1/${this._TRADESQUAD_ADDRESS}/${addressMaker}/50/null`
+    )
 
-    const orderInit = await this._addNFTTraderFee({
-      offer: [...(maker.assets ?? [])].map(
-        (a) =>
-          ({
-            ...a,
-            itemType:
-              typeof a.itemType === "string"
-                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
-                : a.itemType,
-          } as { itemType: ItemType } & typeof a)
-      ),
-      consideration: [...(taker.assets ?? [])].map(
-        (a) =>
-          ({
-            ...a,
-            itemType:
-              typeof a.itemType === "string"
-                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
-                : a.itemType,
-            recipient: a.recipient ? a.recipient : addressMaker,
-          } as { itemType: ItemType } & typeof a)
-      ),
-      zone: taker.address,
-      endTime: Math.floor(
-        new Date().setDate(new Date().getDate() + end) / 1000
-      ).toString(), // days in seconds (UNIX timestamp)
-      fees,
-      restrictedByZone: true,
-    })
+    // Check if the user doesn't own any TradeSquad
+    if (response.data?.data?.[0].total === 0) flagNfttraderFee = true
+
+    const orderInit = await this._addNFTTraderFee(
+      {
+        offer: [...(maker.assets ?? [])].map(
+          a =>
+            ({
+              ...a,
+              itemType:
+                typeof a.itemType === "string"
+                  ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
+                  : a.itemType,
+            } as { itemType: ItemType } & typeof a)
+        ),
+        consideration: [...(taker.assets ?? [])].map(
+          a =>
+            ({
+              ...a,
+              itemType:
+                typeof a.itemType === "string"
+                  ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
+                  : a.itemType,
+              recipient: a.recipient ? a.recipient : addressMaker,
+            } as { itemType: ItemType } & typeof a)
+        ),
+        zone: taker.address,
+        endTime: Math.floor(
+          new Date().setDate(new Date().getDate() + end) / 1000
+        ).toString(), // days in seconds (UNIX timestamp)
+        fees,
+        restrictedByZone: true,
+      },
+      flagNfttraderFee
+    )
 
     const { executeAllActions } = await this._seaport.createOrder(
       orderInit,
@@ -690,7 +703,7 @@ export default class TradeClient extends GlobalFetch {
       orderInit.offer.length
     )
       for (const o of orderInit.offer.filter(
-        (rawOffer) =>
+        rawOffer =>
           rawOffer?.itemType !== undefined && rawOffer.itemType !== null
       ))
         switch (o.itemType) {
@@ -749,7 +762,8 @@ export default class TradeClient extends GlobalFetch {
   }
 
   private async _addNFTTraderFee(
-    orderInit: CreateOrderInput
+    orderInit: CreateOrderInput,
+    flagNfttraderFee = false
   ): Promise<CreateOrderInput> {
     const orderTypes = this._analyzeOrder(orderInit)
     const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
@@ -760,12 +774,19 @@ export default class TradeClient extends GlobalFetch {
     let basisPoints: number | undefined
     let gnosisRecipient = ""
 
-    if (nftTraderFees) {
-      flatFee = nftTraderFees.flatFee[0].fee
-      basisPoints = nftTraderFees.percentageFee[0].basisPoints
+    // If TradeSquad is not in the wallet, fee applied
+    if (flagNfttraderFee) {
+      if (nftTraderFees) {
+        flatFee = nftTraderFees.flatFee[0].fee
+        basisPoints = nftTraderFees.percentageFee[0].basisPoints
+      } else {
+        flatFee = "0"
+        basisPoints = 50
+      }
     } else {
+      // If TradeSquad is in the wallet, fee resetted
       flatFee = "0"
-      basisPoints = 50
+      basisPoints = 0
     }
 
     if (nftTraderGnosis)
@@ -801,7 +822,7 @@ export default class TradeClient extends GlobalFetch {
       orderTypes.offer.NFTcollections.length > 0
     ) {
       if (
-        !(`fees` in orderInit) ||
+        !("fees" in orderInit) ||
         typeof orderInit === "undefined" ||
         (Array.isArray(orderInit.fees) && orderInit.fees.length === 0)
       )
