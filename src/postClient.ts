@@ -103,7 +103,7 @@ export default class PostClient extends GlobalFetch {
         }
       )
 
-      return data ?? { posts: [], next: null }
+      return data ?? { posts: [], total: 0 }
     } catch (e) {
       throw e
     }
@@ -185,7 +185,7 @@ export default class PostClient extends GlobalFetch {
         }
       )
 
-      return data ?? { posts: [], next: null }
+      return data ?? { posts: [], total: 0 }
     } catch (e) {
       throw e
     }
