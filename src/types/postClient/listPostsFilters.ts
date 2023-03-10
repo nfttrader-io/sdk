@@ -50,8 +50,4 @@ export default interface ListPostsFilters {
    * Filter posts that are going to expire before or at `expirationDate` timestamp
    */
   expirationDate?: number
-  /**
-   * Filter posts including also the parent of each post
-   */
-  includeParent?: boolean
 }
