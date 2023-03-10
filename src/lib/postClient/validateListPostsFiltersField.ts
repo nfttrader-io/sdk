@@ -117,14 +117,11 @@ export default function validateListPostsFiltersField<
       return
     }
     case "networks": {
-      const _value = value as ListPostsFilters["networks"]
+      const _value = value as ListPostsFilters["network"]
 
       if (_value === null || typeof _value === "undefined") return
-      else if (
-        (typeof _value !== "string" && !Array.isArray(_value)) ||
-        (Array.isArray(_value) && _value.some((v) => typeof v !== "string"))
-      )
-        throw new Error('invalid parameter "filters.networks"')
+      else if (typeof _value !== "string")
+        throw new Error('invalid parameter "filters.network"')
 
       return
     }
