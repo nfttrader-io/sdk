@@ -4,7 +4,6 @@ import HTTPRequestInit from "./types/general/httpRequestInit"
 import ListPostsFilters from "./types/postClient/listPostsFilters"
 import ListPostsOrder from "./types/postClient/listPostsOrder"
 import ListPostsResponse from "./types/postClient/listPostsResponse"
-import PostResponse from "./types/postClient/postResponse"
 import CreatePost from "./types/postClient/createPost"
 import CreatePostReply from "./types/postClient/createPostReply"
 import PostStatus from "./types/postClient/postStatus"
@@ -17,6 +16,7 @@ import GlobalFetch from "./lib/globalFetch"
 import JWTAuthorized from "./types/postClient/jwtAuthorized"
 import ApiKeyAuthorized from "./types/postClient/apiKeyAuthorized"
 import PostClientConfig from "./types/postClient/postClientConfig"
+import ListPostsRepliesOrder from "./types/postClient/listPostsRepliesOrder"
 
 export default class PostClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
@@ -49,7 +49,7 @@ export default class PostClient extends GlobalFetch {
   public async getPost(
     id: string,
     creatorAddress?: string
-  ): Promise<Maybe<PostResponse>> {
+  ): Promise<Maybe<Post>> {
     if (!id) throw new Error('Invalid parameter "id"')
     if (this._apiKey && !creatorAddress)
       console.warn(
@@ -57,7 +57,7 @@ export default class PostClient extends GlobalFetch {
       )
 
     try {
-      const { data } = await this._fetchWithAuth<PostResponse>(
+      const { data } = await this._fetchWithAuth<Post>(
         `${this._BACKEND_URL}/post/${id}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`
       )
@@ -75,7 +75,9 @@ export default class PostClient extends GlobalFetch {
    */
   public async getPostReplies(
     id: string,
-    next?: string,
+    orderOptions?: ListPostsRepliesOrder,
+    skip?: number,
+    take?: number,
     creatorAddress?: string
   ): Promise<ListPostsResponse> {
     if (!id) throw new Error('Invalid parameter "id"')
@@ -85,12 +87,15 @@ export default class PostClient extends GlobalFetch {
       )
 
     const body = {
-      next,
+      orderOptions,
     }
+
+    const skipUrl = skip && skip >= 0 ? skip : 0
+    const takeUrl = take && take > 0 ? take : 10
 
     try {
       const { data } = await this._fetchWithAuth<ListPostsResponse>(
-        `${this._BACKEND_URL}/replies/${id}` +
+        `${this._BACKEND_URL}/replies/${id}/${skipUrl}/${takeUrl}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`,
         {
           method: "POST",
@@ -114,7 +119,9 @@ export default class PostClient extends GlobalFetch {
   public async listPosts(
     filtersOptions?: ListPostsFilters,
     orderOptions?: ListPostsOrder,
-    nextToken?: string
+    skip?: number,
+    take?: number,
+    creatorAddress?: string
   ): Promise<ListPostsResponse> {
     const filtersInput = filtersOptions ? { ...filtersOptions } : null
 
@@ -159,17 +166,19 @@ export default class PostClient extends GlobalFetch {
     }
 
     const order = orderOptions ? { ...orderOptions } : null
-    const next = nextToken ? nextToken : null
+    const skipUrl = skip && skip >= 0 ? skip : 0
+    const takeUrl = take && take > 0 ? take : 10
 
     const body = {
       filters: filters ? (Object.keys(filters).length ? filters : null) : null,
       order,
-      next,
     }
 
     try {
       const { data } = await this._fetchWithAuth<ListPostsResponse>(
-        `${this._BACKEND_URL}/posts`,
+        `${this._BACKEND_URL}/posts/${skipUrl}/${takeUrl}${
+          creatorAddress ? `/${creatorAddress}` : ``
+        }`,
         {
           method: "POST",
           body,
@@ -239,7 +248,7 @@ export default class PostClient extends GlobalFetch {
    * @param config
    */
   public config(config: PostClientConfig) {
-    this._BACKEND_URL = config.backendURL
+    if (config.backendURL) this._BACKEND_URL = config.backendURL
   }
 
   private _fetchWithAuth<ReturnType = any>(

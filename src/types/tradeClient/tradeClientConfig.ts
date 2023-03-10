@@ -2,12 +2,12 @@ type TradeClientConfig = {
   /**
    * the backend endpoint
    */
-  backendURL: string
+  backendURL?: string
 
   /**
    * min blocks number required to consider a valid transaction
    */
-  minBlocksRequired: number
+  minBlocksRequired?: number
 }
 
 export default TradeClientConfig

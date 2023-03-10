@@ -2,7 +2,7 @@ type PostClientConfig = {
   /**
    * the backend endpoint
    */
-  backendURL: string
+  backendURL?: string
 }
 
 export default PostClientConfig

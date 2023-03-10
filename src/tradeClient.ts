@@ -58,7 +58,7 @@ export default class TradeClient extends GlobalFetch {
   private _blocksNumberConfirmationRequired: number
   private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
-  private _BACKEND_URL: string = "https://develop.api.nfttrader.io"
+  private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
   private _TRADESQUAD_ADDRESS: string =
     "0xdbd4264248e2f814838702e0cb3015ac3a7157a1"
   private _MIN_BLOCKS_REQUIRED: number = 3
@@ -191,7 +191,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback: TradeClientEventsMap[EventName]
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -210,7 +210,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     callback?: TradeClientEventsMap[EventName] | null
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -224,7 +224,7 @@ export default class TradeClient extends GlobalFetch {
       throw new Error("callback must be a Function.")
 
     if (callback) {
-      const index = event.callbacks.findIndex(func => {
+      const index = event.callbacks.findIndex((func) => {
         return func.toString() === callback.toString()
       })
       event.callbacks.splice(index, 1)
@@ -243,7 +243,7 @@ export default class TradeClient extends GlobalFetch {
     eventName: EventName,
     params?: CallbackParams<TradeClientEventsMap[EventName]>
   ) {
-    const event = this._eventsCollectorCallbacks.find(eventItem => {
+    const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
     })
 
@@ -305,12 +305,12 @@ export default class TradeClient extends GlobalFetch {
     end = 0,
     fees?: Array<Fee>
   ): Promise<Swap> {
-    let flagNfttraderFee: boolean = false
+    let ownTradeSquad: boolean = false
     if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
     if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
       //so we throw an error if someone try to place tokens in the offer
-      const token = maker.assets.find(asset => {
+      const token = maker.assets.find((asset) => {
         return asset.itemType === AssetsArray.TOKEN_CONSTANTS["ERC20"]
       })
 
@@ -326,12 +326,23 @@ export default class TradeClient extends GlobalFetch {
     )
 
     // Check if the user doesn't own any TradeSquad
-    if (response.data?.data?.[0].total === 0) flagNfttraderFee = true
+    if (
+      response &&
+      response.data &&
+      response.data.data &&
+      Array.isArray(response.data.data) &&
+      response.data.data[0] &&
+      `total` in response.data.data[0]
+    ) {
+      let total = response.data.data[0].total
+      if (total > 0) ownTradeSquad = true
+      else ownTradeSquad = false
+    }
 
     const orderInit = await this._addNFTTraderFee(
       {
         offer: [...(maker.assets ?? [])].map(
-          a =>
+          (a) =>
             ({
               ...a,
               itemType:
@@ -341,7 +352,7 @@ export default class TradeClient extends GlobalFetch {
             } as { itemType: ItemType } & typeof a)
         ),
         consideration: [...(taker.assets ?? [])].map(
-          a =>
+          (a) =>
             ({
               ...a,
               itemType:
@@ -358,7 +369,7 @@ export default class TradeClient extends GlobalFetch {
         fees,
         restrictedByZone: true,
       },
-      flagNfttraderFee
+      ownTradeSquad
     )
 
     const { executeAllActions } = await this._seaport.createOrder(
@@ -648,8 +659,9 @@ export default class TradeClient extends GlobalFetch {
    * @param config
    */
   public config(config: TradeClientConfig) {
-    this._BACKEND_URL = config.backendURL
-    this._MIN_BLOCKS_REQUIRED = config.minBlocksRequired
+    if (config.backendURL) this._BACKEND_URL = config.backendURL
+    if (config.minBlocksRequired)
+      this._MIN_BLOCKS_REQUIRED = config.minBlocksRequired
   }
 
   private async _getNFTTraderGnosis(): Promise<Maybe<MultiSigWallet>> {
@@ -703,7 +715,7 @@ export default class TradeClient extends GlobalFetch {
       orderInit.offer.length
     )
       for (const o of orderInit.offer.filter(
-        rawOffer =>
+        (rawOffer) =>
           rawOffer?.itemType !== undefined && rawOffer.itemType !== null
       ))
         switch (o.itemType) {
@@ -763,7 +775,7 @@ export default class TradeClient extends GlobalFetch {
 
   private async _addNFTTraderFee(
     orderInit: CreateOrderInput,
-    flagNfttraderFee = false
+    ownTradeSquad = false
   ): Promise<CreateOrderInput> {
     const orderTypes = this._analyzeOrder(orderInit)
     const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
@@ -775,7 +787,7 @@ export default class TradeClient extends GlobalFetch {
     let gnosisRecipient = ""
 
     // If TradeSquad is not in the wallet, fee applied
-    if (flagNfttraderFee) {
+    if (!ownTradeSquad) {
       if (nftTraderFees) {
         flatFee = nftTraderFees.flatFee[0].fee
         basisPoints = nftTraderFees.percentageFee[0].basisPoints
