@@ -12,30 +12,18 @@ export default interface ListPostsFilters {
    */
   owner?: string
   /**
-   * Filter posts that contains at least one `collections` address.
+   * Filter posts that contains at least one `collection` address in the relative network.
    *
    * Can be:
-   * - A single address (string)
-   * - An array of addresses (Array<string>)
-   * - An object that specify if the specified addresses are wanted to be searched in `wanted` or `offered` `Post.assets`
+   * - An array of addresses and networks
    */
-  collections?:
-    | { address: string; network: Network }
-    | Array<{ address: string; network: Network }>
-    | Partial<{
-        wanted?:
-          | { address: string; network: Network }
-          | Array<{ address: string; network: Network }>
-        offered?:
-          | { address: string; network: Network }
-          | Array<{ address: string; network: Network }>
-      }>
+  collections?: Array<{ address: string; network: Network }>
   /**
-   * Filter posts based on status, to see possible statuses visit [this link](https://www.google.com)
+   * Filter posts based on status, to see possible statuses visit [this link](https://docs.nfttrader.io)
    */
   status?: PostStatusName | PostStatus[PostStatusName]
   /**
-   * Filter posts based on type, to see possible types visit [this link](https://www.google.com)
+   * Filter posts based on type, to see possible types visit [this link](https://docs.nfttrader.io)
    */
   type?: PostTypeName | PostType[PostTypeName]
   /**
@@ -51,9 +39,9 @@ export default interface ListPostsFilters {
    */
   verified?: boolean
   /**
-   * Filter posts based on their network, to see possible networks visit [this link](https://www.google.com)
+   * Filter posts based on their network, to see possible networks visit [this link](https://docs.nfttrader.io)
    */
-  networks?: Network | Array<Network>
+  network?: Network
   /**
    * Filter posts that have at least `offers` number of answers
    */

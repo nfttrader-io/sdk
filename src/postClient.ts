@@ -112,8 +112,8 @@ export default class PostClient extends GlobalFetch {
   /**
    * List posts that match the filter and order object
    *
-   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://www.google.com)
-   * @param order - An object that contains order options, to see available order options visit [this link](https://www.google.com)
+   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://docs.nfttrader.io)
+   * @param order - An object that contains order options, to see available order options visit [this link](https://docs.nfttrader.io)
    * @param next - A string to include to fetch the next page of posts list
    */
   public async listPosts(
