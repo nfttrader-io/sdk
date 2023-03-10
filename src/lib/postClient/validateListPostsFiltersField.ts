@@ -116,7 +116,7 @@ export default function validateListPostsFiltersField<
 
       return
     }
-    case "networks": {
+    case "network": {
       const _value = value as ListPostsFilters["network"]
 
       if (_value === null || typeof _value === "undefined") return
