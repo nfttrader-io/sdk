@@ -143,6 +143,15 @@ export default function validateListPostsFiltersField<
 
       return
     }
+    case "includeParent": {
+      const _value = value as ListPostsFilters["includeParent"]
+
+      if (_value === null || typeof _value === "undefined") return
+      else if (typeof _value !== "boolean")
+        throw new Error('invalid parameter "filters.includeParent"')
+
+      return
+    }
     default:
       throw new Error(`invalid parameter "filters.${field}"`)
   }
