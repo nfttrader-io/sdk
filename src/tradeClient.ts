@@ -303,7 +303,8 @@ export default class TradeClient extends GlobalFetch {
     maker: CreateSwapPeer,
     taker: CreateSwapPeer<WithAddress>,
     end = 0,
-    fees?: Array<Fee>
+    fees?: Array<Fee>,
+    postId?: string
   ): Promise<Swap> {
     let ownTradeSquad: boolean = false
     if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
@@ -391,6 +392,7 @@ export default class TradeClient extends GlobalFetch {
             orderType: order.parameters.orderType,
             ...order,
           },
+          postId: postId ? postId : undefined,
         },
       })
     } catch (e) {
