@@ -393,6 +393,7 @@ export default class TradeClient extends GlobalFetch {
             ...order,
           },
           postId: postId ? postId : undefined,
+          address: addressMaker,
         },
       })
     } catch (e) {
