@@ -392,7 +392,7 @@ export default class TradeClient extends GlobalFetch {
             orderType: order.parameters.orderType,
             ...order,
           },
-          postId: postId ? postId : undefined,
+          postId: postId ? postId.toString() : undefined,
         },
       })
     } catch (e) {
