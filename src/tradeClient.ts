@@ -298,7 +298,9 @@ export default class TradeClient extends GlobalFetch {
    * @param taker - The taker (counterparty) of the swap
    * @param end - The number of the days representing the validity of the swap
    * @param fees - The array of fees to apply on the swap
-   * @param postId - The post id linked to this swap
+   * @param post - The post object containing the information related to the post and the reply accepted
+   * @param post.postId - The post id related to this trade
+   * @param post.replyId - The reply id related to the offer accepted to initialize the trade
    */
   public async createSwap(
     maker: CreateSwapPeer,
