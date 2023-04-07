@@ -298,13 +298,17 @@ export default class TradeClient extends GlobalFetch {
    * @param taker - The taker (counterparty) of the swap
    * @param end - The number of the days representing the validity of the swap
    * @param fees - The array of fees to apply on the swap
+   * @param postId - The post id linked to this swap
    */
   public async createSwap(
     maker: CreateSwapPeer,
     taker: CreateSwapPeer<WithAddress>,
     end = 0,
     fees?: Array<Fee>,
-    postId?: string
+    post?: {
+      postId: string
+      replyId: string
+    }
   ): Promise<Swap> {
     let ownTradeSquad: boolean = false
     if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
@@ -392,7 +396,8 @@ export default class TradeClient extends GlobalFetch {
             orderType: order.parameters.orderType,
             ...order,
           },
-          postId: postId ? postId.toString() : undefined,
+          postId: post && post.postId ? post.postId.toString() : undefined,
+          replyId: post && post.replyId ? post.replyId.toString() : undefined,
         },
       })
     } catch (e) {
@@ -525,7 +530,7 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Get the order specified by the swapId provided as a paramater
+   * Get the order specified by the swapId provided as a parameter
    *
    * @param swapId
    * @returns promiseOrder
