@@ -3,7 +3,6 @@ import Maybe from "../general/maybe"
 export default interface Collection {
   name: string
   statusVerification: 0 | 1 | 2
-  notification: boolean
   address: string
   imageUrl: string
   networkId: string
@@ -12,4 +11,5 @@ export default interface Collection {
   symbol: string
   createdAt: Maybe<string>
   isFavourite?: 0 | 1
+  notification?: boolean
 }
