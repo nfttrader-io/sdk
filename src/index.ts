@@ -1,7 +1,6 @@
 import TradeClient from "./tradeClient"
 import PostClient from "./postClient"
 import AssetsArray from "./assetsArray"
-import WebSocketProvider from "./webSocketProvider"
 import _Network from "./types/general/network"
 
 // TYPES export
@@ -28,5 +27,5 @@ export * as TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcI
 export * as TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 export * as TradeClientConfig from "./types/tradeClient/tradeClientConfig"
 
-export { TradeClient, PostClient, AssetsArray, WebSocketProvider }
-export default { TradeClient, PostClient, AssetsArray, WebSocketProvider }
+export { TradeClient, PostClient, AssetsArray }
+export default { TradeClient, PostClient, AssetsArray }
