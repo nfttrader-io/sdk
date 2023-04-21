@@ -317,12 +317,19 @@ export default class TradeClient extends GlobalFetch {
     if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
       //so we throw an error if someone try to place tokens in the offer
-      const token = maker.assets.find((asset) => {
+      const erc20 = maker.assets.find((asset) => {
         return asset.itemType === AssetsArray.TOKEN_CONSTANTS["ERC20"]
       })
 
-      if (token)
+      if (erc20)
         throw new Error("You cannot add an ERC20 token in the maker assets.")
+
+      const token = maker.assets.find((asset) => {
+        return asset.itemType === AssetsArray.TOKEN_CONSTANTS["NATIVE"]
+      })
+
+      if (token)
+        throw new Error("You cannot add NATIVE token in the maker assets.")
     }
 
     // Retrieve the maker address
