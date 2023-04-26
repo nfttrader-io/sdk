@@ -12,23 +12,23 @@ import Maybe from "./types/general/maybe"
 import Network from "./types/general/network"
 import ApiKeyAuthorized from "./types/tradeClient/apiKeyAuthorized"
 import CallbackParams from "./types/tradeClient/callbackParams"
-import CreateSwapPeer from "./types/tradeClient/createSwapPeer"
+import CreateTradePeer from "./types/tradeClient/createTradePeer"
 import TradeClientEventsMap from "./types/tradeClient/eventsMap"
 import Fee from "./types/tradeClient/fee"
 import JWTAuthorized from "./types/tradeClient/jwtAuthorized"
 import MultiSigWallet from "./types/tradeClient/multisigWallet"
 import NFTTraderFees from "./types/tradeClient/nfttraderFees"
-import PartialSwap from "./types/tradeClient/partialSwap"
-import Swap from "./types/tradeClient/swap"
-import { SwapDetail } from "./types/tradeClient/swapDetail"
+import Trade from "./types/tradeClient/trade"
+import { TradeDetail } from "./types/tradeClient/tradeDetail"
 import TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcInit"
 import TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 import WithAddress from "./types/tradeClient/withAddress"
-import GetFullListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
-import GetGlobalSwapsListResponse from "./types/tradeClient/getGlobalSwapsListResponse"
-import GetUserSwapsListResponse from "./types/tradeClient/getUserSwapsListResponse"
+import GetFullListResponse from "./types/tradeClient/getGlobalTradesListResponse"
+import GetGlobalTradesListResponse from "./types/tradeClient/getGlobalTradesListResponse"
+import GetUserTradesListResponse from "./types/tradeClient/getUserTradesListResponse"
 import TradeClientConfig from "./types/tradeClient/tradeClientConfig"
 import NFTList from "./types/tradeClient/nftList"
+import PartialTrade from "./types/tradeClient/partialTrade"
 
 const {
   royaltyRegistriesEngines,
@@ -255,7 +255,7 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Set the block numbers to wait in which consider a transaction mined by the createSwap, cancelSwap, closeSwap and editTaker methods.
+   * Set the block numbers to wait in which consider a transaction mined by the createTrade, cancelTrade and execTrade methods.
    *
    * @param blocksNumberConfirmationRequired - The number of the mined blocks to wait for considering a transaction valid.
    */
@@ -292,28 +292,28 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Create the swap
+   * Create the trade
    *
-   * @param maker - The maker of the swap
-   * @param taker - The taker (counterparty) of the swap
-   * @param end - The number of the days representing the validity of the swap
-   * @param fees - The array of fees to apply on the swap
+   * @param maker - The maker of the trade
+   * @param taker - The taker (counterparty) of the trade
+   * @param end - The number of the days representing the validity of the trade
+   * @param fees - The array of fees to apply on the trade
    * @param post - The post object containing the information related to the post and the reply accepted
    * @param post.postId - The post id related to this trade
    * @param post.replyId - The reply id related to the offer accepted to initialize the trade
    */
-  public async createSwap(
-    maker: CreateSwapPeer,
-    taker: CreateSwapPeer<WithAddress>,
+  public async createTrade(
+    maker: CreateTradePeer,
+    taker: CreateTradePeer<WithAddress>,
     end = 0,
     fees?: Array<Fee>,
     post?: {
       postId: string
       replyId: string
     }
-  ): Promise<Swap> {
+  ): Promise<Trade> {
     let ownTradeSquad: boolean = false
-    if (end < 0) throw new Error("swapEnd cannot be lower than zero.")
+    if (end < 0) throw new Error("end cannot be lower than zero.")
     if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
       //so we throw an error if someone try to place tokens in the offer
@@ -417,27 +417,27 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Execute the swap and finalize the order
+   * Execute the trade and finalize the order
    *
-   * @param swapId - The id of the swap
+   * @param tradeId - The id of the trade
    */
-  public async execSwap(swapId: string) {
+  public async execTrade(tradeId: string) {
     try {
-      const response = await this._fetchWithAuth<{ data: Array<SwapDetail> }>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
+      const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
       )
 
       if (!response.data)
-        return this.__emit("execSwapError", {
+        return this.__emit("execTradeError", {
           error: "response data is empty",
           typeError: "ApiError",
         })
 
-      const data: SwapDetail = response.data.data[0]
+      const data: TradeDetail = response.data.data[0]
 
       const parameters = data.parameters.order.parameters
       const taker = data.parameters.addressTaker
-      const swap: PartialSwap = {
+      const trade: PartialTrade = {
         hash: data.parameters.order.orderHash,
         parameters: parameters,
         signature: data.parameters.order.signature,
@@ -445,31 +445,31 @@ export default class TradeClient extends GlobalFetch {
 
       try {
         const { executeAllActions } = await this._seaport.fulfillOrder({
-          order: swap,
+          order: trade,
           accountAddress: taker,
         })
-        this.__emit("execSwapTransactionCreated")
+        this.__emit("execTradeTransactionCreated")
 
         const transact = await executeAllActions()
         try {
           const receipt = await transact.wait(
             this._blocksNumberConfirmationRequired
           )
-          this.__emit("execSwapTransactionMined", { receipt })
+          this.__emit("execTradeTransactionMined", { receipt })
         } catch (error) {
-          return this.__emit("execSwapTransactionError", {
+          return this.__emit("execTradeTransactionError", {
             error,
             typeError: "waitError",
           })
         }
       } catch (error) {
-        this.__emit("execSwapTransactionError", {
+        this.__emit("execTradeTransactionError", {
           error,
-          typeError: "execSwapTransactionError",
+          typeError: "execTradeTransactionError",
         })
       }
     } catch (error) {
-      this.__emit("execSwapError", {
+      this.__emit("execTradeError", {
         error,
         typeError: "ApiError",
       })
@@ -477,29 +477,29 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Cancel the swap specified
+   * Cancel the trade specified
    *
-   * @param swapId - The id of the swap
+   * @param tradeId - The id of the trade
    * @param gasLimit - the gas limit of the transaction
    * @param gasPrice - the gas price of the transaction
    */
-  public async cancelSwap(
-    swapId: string,
+  public async cancelTrade(
+    tradeId: string,
     gasLimit: number = 2000000,
     gasPrice: Maybe<string> = null
   ) {
     try {
-      const response = await this._fetchWithAuth<{ data: Array<SwapDetail> }>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
+      const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
       )
 
       if (!response.data)
-        return this.__emit("cancelSwapError", {
+        return this.__emit("cancelTradeError", {
           error: "response data is empty",
           typeError: "ApiError",
         })
 
-      const data: SwapDetail = response.data.data[0]
+      const data: TradeDetail = response.data.data[0]
       const parameters = data.parameters.order.parameters
       const maker = data.parameters.addressMaker
       const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
@@ -509,7 +509,7 @@ export default class TradeClient extends GlobalFetch {
 
       try {
         const tx = this._seaport.cancelOrders([parameters], maker)
-        this.__emit("cancelSwapTransactionCreated", { tx })
+        this.__emit("cancelTradeTransactionCreated", { tx })
         const transact = await tx.transact({ ...txOverrides })
 
         try {
@@ -517,21 +517,21 @@ export default class TradeClient extends GlobalFetch {
             this._blocksNumberConfirmationRequired
           )
 
-          this.__emit("cancelSwapTransactionMined", { receipt })
+          this.__emit("cancelTradeTransactionMined", { receipt })
         } catch (error) {
-          return this.__emit("cancelSwapTransactionError", {
+          return this.__emit("cancelTradeTransactionError", {
             error,
             typeError: "waitError",
           })
         }
       } catch (error) {
-        return this.__emit("cancelSwapTransactionError", {
+        return this.__emit("cancelTradeTransactionError", {
           error,
-          typeError: "cancelSwapTransactionError",
+          typeError: "cancelTradeTransactionError",
         })
       }
     } catch (error) {
-      this.__emit("cancelSwapError", {
+      this.__emit("cancelTradeError", {
         error,
         typeError: "ApiError",
       })
@@ -539,15 +539,15 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Get the order specified by the swapId provided as a parameter
+   * Get the order specified by the tradeId provided as a parameter
    *
-   * @param swapId
+   * @param tradeId
    * @returns promiseOrder
    */
-  public async getSwapOrder(swapId: string): Promise<Maybe<SwapDetail>> {
+  public async getTradeOrder(tradeId: string): Promise<Maybe<TradeDetail>> {
     try {
-      const response = await this._fetchWithAuth<{ data: Array<SwapDetail> }>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${swapId}`
+      const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
       )
       if (response.data) return response.data.data[0]
     } catch (error) {
@@ -558,7 +558,7 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Get the global swaps list
+   * Get the global trades list
    *
    * @param networkId
    * @param status
@@ -569,7 +569,7 @@ export default class TradeClient extends GlobalFetch {
    * @param searchAddress
    * @returns
    */
-  public async getGlobalSwapsList(
+  public async getGlobalTradesList(
     networkId: string,
     status: number,
     skip: number,
@@ -577,7 +577,7 @@ export default class TradeClient extends GlobalFetch {
     from?: number | "null",
     to?: number | "null",
     searchAddress?: string
-  ): Promise<GetGlobalSwapsListResponse> {
+  ): Promise<GetGlobalTradesListResponse> {
     try {
       const tradeList = (
         await this._fetchWithAuth<{ data: Array<GetFullListResponse> }>(
@@ -613,7 +613,7 @@ export default class TradeClient extends GlobalFetch {
   }
 
   /**
-   * Get the user swaps list
+   * Get the user trades list
    *
    * @param networkId
    * @param address
@@ -625,7 +625,7 @@ export default class TradeClient extends GlobalFetch {
    * @param searchAddress
    * @returns
    */
-  public async getUserSwapsList(
+  public async getUserTradesList(
     networkId: string,
     address: string,
     status: number,
@@ -634,10 +634,10 @@ export default class TradeClient extends GlobalFetch {
     from?: number | "null",
     to?: number | "null",
     searchAddress?: string
-  ): Promise<GetUserSwapsListResponse> {
+  ): Promise<GetUserTradesListResponse> {
     try {
-      const swapList = (
-        await this._fetchWithAuth<{ data: Array<GetUserSwapsListResponse> }>(
+      const tradesList = (
+        await this._fetchWithAuth<{ data: Array<GetUserTradesListResponse> }>(
           `${
             this._BACKEND_URL
           }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
@@ -660,9 +660,9 @@ export default class TradeClient extends GlobalFetch {
         )
       ).data?.data?.[0]
 
-      if (!swapList) throw new Error("Internal server error")
+      if (!tradesList) throw new Error("Internal server error")
 
-      return swapList
+      return tradesList
     } catch (e) {
       console.warn(e)
       throw e

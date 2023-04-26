@@ -1,4 +1,4 @@
-import SwapParameters from "./swapParameters"
+import TradeParameters from "./tradeParameters"
 
 export type DealDetail = {
   blc: string | null
@@ -37,7 +37,7 @@ export type DealMaster = {
   swapStatus: number
 }
 
-export type SwapDetail = {
+export type TradeDetail = {
   master: Array<DealMaster>
   detail: Array<DealDetail>
   parameters: {
@@ -45,7 +45,7 @@ export type SwapDetail = {
     addressTaker: string
     order: {
       orderHash: string
-      parameters: SwapParameters
+      parameters: TradeParameters
       signature: string
     }
   }

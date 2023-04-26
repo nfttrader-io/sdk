@@ -3,22 +3,22 @@ import * as ethers from "ethers"
 import TradeClientEventError from "./eventError"
 
 export default interface TradeClientEventsMap {
-  cancelSwapTransactionCreated: (p: { tx: TransactionMethods<boolean> }) => any
-  cancelSwapTransactionMined: (p: {
+  cancelTradeTransactionCreated: (p: { tx: TransactionMethods<boolean> }) => any
+  cancelTradeTransactionMined: (p: {
     receipt: ethers.providers.TransactionReceipt
   }) => any
-  cancelSwapTransactionError: (
-    p: TradeClientEventError<"cancelSwapTransactionError">
+  cancelTradeTransactionError: (
+    p: TradeClientEventError<"cancelTradeTransactionError">
   ) => any
-  cancelSwapError: (p: TradeClientEventError<"cancelSwapError">) => any
-  execSwapTransactionCreated: (p: {
+  cancelTradeError: (p: TradeClientEventError<"cancelTradeError">) => any
+  execTradeTransactionCreated: (p: {
     tx: ethers.providers.TransactionResponse
   }) => any
-  execSwapTransactionMined: (p: {
+  execTradeTransactionMined: (p: {
     receipt: ethers.providers.TransactionReceipt
   }) => any
-  execSwapTransactionError: (
-    p: TradeClientEventError<"execSwapTransactionError">
+  execTradeTransactionError: (
+    p: TradeClientEventError<"execTradeTransactionError">
   ) => any
-  execSwapError: (p: TradeClientEventError<"execSwapError">) => any
+  execTradeError: (p: TradeClientEventError<"execTradeError">) => any
 }
