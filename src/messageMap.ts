@@ -1,4 +1,4 @@
-export default class MessageBuilder {
+export default class MessageMap {
   public static get MESSAGE_MATRIX() {
     return {
       "0": "Hey everyone! 🙂",
