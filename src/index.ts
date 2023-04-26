@@ -2,6 +2,7 @@ import TradeClient from "./tradeClient"
 import PostClient from "./postClient"
 import AssetsArray from "./assetsArray"
 import _Network from "./types/general/network"
+import PostBuilder from "./postBuilder"
 
 // TYPES export
 // GENERAL
@@ -27,5 +28,5 @@ export * as TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcI
 export * as TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 export * as TradeClientConfig from "./types/tradeClient/tradeClientConfig"
 
-export { TradeClient, PostClient, AssetsArray }
-export default { TradeClient, PostClient, AssetsArray }
+export { TradeClient, PostClient, AssetsArray, PostBuilder }
+export default { TradeClient, PostClient, AssetsArray, PostBuilder }
