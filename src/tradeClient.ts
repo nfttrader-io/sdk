@@ -574,8 +574,8 @@ export default class TradeClient extends GlobalFetch {
     status: number,
     skip: number,
     take: number,
-    from?: number | "null",
-    to?: number | "null",
+    from?: string | "null",
+    to?: string | "null",
     searchAddress?: string
   ): Promise<GetGlobalTradesListResponse> {
     try {
@@ -631,8 +631,8 @@ export default class TradeClient extends GlobalFetch {
     status: number,
     skip: number,
     take: number,
-    from?: number | "null",
-    to?: number | "null",
+    from?: string | "null",
+    to?: string | "null",
     searchAddress?: string
   ): Promise<GetUserTradesListResponse> {
     try {

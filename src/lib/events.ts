@@ -1,9 +1,6 @@
 import TradeClientEventsMap from "../types/tradeClient/eventsMap"
 
 export default [
-  "createTradeTransactionCreated",
-  "createTradeTransactionMined",
-  "createTradeTransactionError",
   "cancelTradeTransactionCreated",
   "cancelTradeTransactionMined",
   "cancelTradeTransactionError",

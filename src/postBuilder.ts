@@ -35,6 +35,11 @@ export default class PostBuilder {
   private typeWanted: Array<string> = ["0", "0", "0"]
   private typeOffered: Array<string> = ["0", "0", "0"]
 
+  /**
+   *
+   * @param networkId - the network id of the Post object
+   * @param creator - the creator of the Post object
+   */
   constructor(networkId?: string, creator?: Collector) {
     if (networkId) this.networkId = networkId
     if (creator) this.creator = creator
@@ -328,7 +333,7 @@ export default class PostBuilder {
    * @param lookingFor - The lookingFor code for this post
    * @param offer - The offer code for this post
    */
-  setPostType(lookingFor: "-1" | "0" | "1" | "2", offer: "-1" | "0" | "1") {
+  setPostTypeBy(lookingFor: "-1" | "0" | "1" | "2", offer: "-1" | "0" | "1") {
     if (lookingFor === LookingFor.RESTRICTED && offer === Offer.RESTRICTED) {
       this.type = POST_TYPE.A1
       this.typeWanted[0] = "0"
@@ -353,6 +358,36 @@ export default class PostBuilder {
       this.typeWanted[0] = "2"
       this.typeOffered[0] = "0"
     } else if (lookingFor === "-1" && offer === "-1") this.type = POST_TYPE.R1
+    else throw new Error("Post type combination not available.")
+  }
+
+  /**
+   * Set the post type for this post
+   *
+   * @param postTypeValue - The post type value code for this post
+   */
+  setPostType(postTypeValue: PostTypeValue) {
+    if (postTypeValue === POST_TYPE.A1) {
+      this.type = POST_TYPE.A1
+      this.typeWanted[0] = "0"
+      this.typeOffered[0] = "0"
+    } else if (postTypeValue === POST_TYPE.A2) {
+      this.type = POST_TYPE.A2
+      this.typeWanted[0] = "0"
+      this.typeOffered[0] = "1"
+    } else if (postTypeValue === POST_TYPE.B1) {
+      this.type = POST_TYPE.B1
+      this.typeWanted[0] = "1"
+      this.typeOffered[0] = "0"
+    } else if (postTypeValue === POST_TYPE.B2) {
+      this.type = POST_TYPE.B2
+      this.typeWanted[0] = "1"
+      this.typeOffered[0] = "1"
+    } else if (postTypeValue === POST_TYPE.C1) {
+      this.type = POST_TYPE.C1
+      this.typeWanted[0] = "2"
+      this.typeOffered[0] = "0"
+    } else if (postTypeValue === POST_TYPE.R1) this.type = POST_TYPE.R1
     else throw new Error("Post type combination not available.")
   }
 

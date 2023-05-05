@@ -45,6 +45,7 @@ export default class PostClient extends GlobalFetch {
    * Get a post by its id
    *
    * @param id - The id of the post
+   * @param creatorAddress - The creator of the post
    */
   public async getPost(
     id: string,
@@ -69,9 +70,13 @@ export default class PostClient extends GlobalFetch {
   }
 
   /**
-   * Get a post by its id
+   * Get a post replies by the parent post id
    *
-   * @param id - The id of the post
+   * @param id - The id of the parent post
+   * @param orderOptions - An object that contains order options, to see available order options visit [this link](https://docs.nfttrader.io)
+   * @param skip - A number representing the number of posts to skip (used for the pagination)
+   * @param take - A number representing the number of posts to take (used for the pagination)
+   * @param creatorAddress - A string representing the address of the wallet owner. Used to set the isCreator value to true in the case a post is created by this address
    */
   public async getPostReplies(
     id: string,
@@ -112,9 +117,11 @@ export default class PostClient extends GlobalFetch {
   /**
    * List posts that match the filter and order object
    *
-   * @param filters - An object that contains filter options, to see available filter options visit [this link](https://docs.nfttrader.io)
-   * @param order - An object that contains order options, to see available order options visit [this link](https://docs.nfttrader.io)
-   * @param next - A string to include to fetch the next page of posts list
+   * @param filtersOptions - An object that contains filter options, to see available filter options visit [this link](https://docs.nfttrader.io)
+   * @param orderOptions - An object that contains order options, to see available order options visit [this link](https://docs.nfttrader.io)
+   * @param skip - A number representing the number of posts to skip (used for the pagination)
+   * @param take - A number representing the number of posts to take (used for the pagination)
+   * @param creatorAddress - A string representing the address of the wallet owner. Used to set the isCreator value to true in the case a post is created by this address
    */
   public async listPosts(
     filtersOptions?: ListPostsFilters,
@@ -221,6 +228,7 @@ export default class PostClient extends GlobalFetch {
    * Delete a post by its id
    *
    * @param id - The id of the post to delete
+   * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
   public async deletePost(id: string, signedMessage?: string): Promise<void> {
     try {
