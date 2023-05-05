@@ -56,7 +56,7 @@ export default class AssetClient extends GlobalFetch {
 
     try {
       const { data } = await this._fetchWithAuth<string>(
-        `${this._BACKEND_URL}/collections/isSupported/${address}`,
+        `${this._BACKEND_URL}/collections/isSupported/${address}/${networkId}`,
         {
           method: "GET",
         }
