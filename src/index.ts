@@ -37,6 +37,7 @@ export * as ListPostsResponse from "./types/postClient/listPostsResponse"
 // POSTBUILDER
 export * as LookingFor from "./types/postBuilder/lookingFor"
 export * as Offer from "./types/postBuilder/offer"
+export * as AssetItem from "./types/postBuilder/assetItem"
 // ASSETCLIENT
 export * as AssetClientConfig from "./types/assetClient/assetClientConfig"
 export * as CollectionSupported from "./types/assetClient/collectionSupported"

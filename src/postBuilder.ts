@@ -1,6 +1,7 @@
 import POST_STATUS from "./lib/postClient/postStatus"
 import POST_TYPE from "./lib/postClient/postType"
 import MessageMap from "./messageMap"
+import AssetItem from "./types/postBuilder/assetItem"
 import LookingFor from "./types/postBuilder/lookingFor"
 import Offer from "./types/postBuilder/offer"
 import Collector from "./types/postClient/collector"
@@ -95,7 +96,7 @@ export default class PostBuilder {
    *
    * @param asset - The asset wanted for this post
    */
-  addWantedAsset(asset: PostAsset) {
+  addWantedAsset(asset: AssetItem) {
     if (this.type !== POST_TYPE.R1) {
       //in collection format
       let exists: boolean = false
@@ -112,9 +113,24 @@ export default class PostBuilder {
       }
 
       if (exists)
-        throw new Error("This asset already exists in the wanted queue.")
+        throw new Error(
+          asset.type !== "ERC20"
+            ? "This asset already exists in the wanted queue."
+            : "You can not put more than one ERC20 token in the queue"
+        )
 
-      this.wanted.push(asset)
+      this.wanted.push({
+        ...asset,
+        statusVerification: 0,
+        name: "",
+        abi: [],
+        isNft: asset.type === "ERC1155" || asset.type === "ERC721",
+        symbol: "",
+        createdAt: "",
+        amountHumanReadable: "",
+        checked: false,
+        isDifferent: false,
+      })
     } else {
       if (asset.type === "NATIVE" || asset.type === "ERC20")
         throw new Error("This asset cannot be a NATIVE token or ERC20 token.")
@@ -134,7 +150,18 @@ export default class PostBuilder {
             "This asset cannot be added since it's already in the wanted queue."
           )
 
-        this.wanted.push(asset)
+        this.wanted.push({
+          ...asset,
+          statusVerification: 0,
+          name: "",
+          abi: [],
+          isNft: true,
+          symbol: "",
+          createdAt: "",
+          amountHumanReadable: "",
+          checked: false,
+          isDifferent: false,
+        })
       } else {
         let element = this.wanted.find((w) => {
           return (
@@ -150,7 +177,18 @@ export default class PostBuilder {
           const amountString = amount.toString()
           element.amount = amountString
         } else {
-          this.wanted.push(asset)
+          this.wanted.push({
+            ...asset,
+            statusVerification: 0,
+            name: "",
+            abi: [],
+            isNft: true,
+            symbol: "",
+            createdAt: "",
+            amountHumanReadable: "",
+            checked: false,
+            isDifferent: false,
+          })
         }
       }
     }
@@ -166,7 +204,7 @@ export default class PostBuilder {
    *
    * @param asset - The asset offered for this post
    */
-  addOfferedAsset(asset: PostAsset) {
+  addOfferedAsset(asset: AssetItem) {
     if (this.type !== POST_TYPE.R1) {
       if (asset.type === "ERC20" || asset.type === "NATIVE")
         throw new Error("This asset cannot be an ERC20 or NATIVE token.")
@@ -180,7 +218,18 @@ export default class PostBuilder {
         if (exists)
           throw new Error("This asset already exists in the offered queue.")
 
-        this.offered.push(asset)
+        this.offered.push({
+          ...asset,
+          statusVerification: 0,
+          name: "",
+          abi: [],
+          isNft: true,
+          symbol: "",
+          createdAt: "",
+          amountHumanReadable: "",
+          checked: false,
+          isDifferent: false,
+        })
       } else {
         let element = this.offered.find((o) => {
           return (
@@ -196,7 +245,18 @@ export default class PostBuilder {
           const amountString = amount.toString()
           element.amount = amountString
         } else {
-          this.offered.push(asset)
+          this.offered.push({
+            ...asset,
+            statusVerification: 0,
+            name: "",
+            abi: [],
+            isNft: true,
+            symbol: "",
+            createdAt: "",
+            amountHumanReadable: "",
+            checked: false,
+            isDifferent: false,
+          })
         }
       }
     } else {
@@ -212,7 +272,18 @@ export default class PostBuilder {
             "You cannot put more than one token in the same time."
           )
 
-        this.offered.push(asset)
+        this.offered.push({
+          ...asset,
+          statusVerification: 0,
+          name: "",
+          abi: [],
+          isNft: false,
+          symbol: "",
+          createdAt: "",
+          amountHumanReadable: "",
+          checked: false,
+          isDifferent: false,
+        })
       } else {
         exists =
           this.offered.find((o) => {
@@ -230,7 +301,18 @@ export default class PostBuilder {
           (asset.type === "ERC721" || asset.type === "ERC1155") &&
           !exists
         )
-          this.offered.push(asset)
+          this.offered.push({
+            ...asset,
+            statusVerification: 0,
+            name: "",
+            abi: [],
+            isNft: true,
+            symbol: "",
+            createdAt: "",
+            amountHumanReadable: "",
+            checked: false,
+            isDifferent: false,
+          })
         else if (asset.type === "ERC1155" && exists) {
           let element = this.offered.find((o) => {
             return (
@@ -259,7 +341,7 @@ export default class PostBuilder {
    *
    * @param asset - The asset wanted for this post to remove
    */
-  removeWantedAsset(asset: PostAsset) {
+  removeWantedAsset(asset: AssetItem) {
     if (this.type !== POST_TYPE.R1) {
       if (asset.type !== "NATIVE") {
         this.wanted = this.wanted.filter((w) => {
@@ -292,7 +374,7 @@ export default class PostBuilder {
    *
    * @param asset - The asset offered for this post
    */
-  removeOfferedAsset(asset: PostAsset) {
+  removeOfferedAsset(asset: AssetItem) {
     if (this.type !== POST_TYPE.R1) {
       if (asset.type === "ERC20" || asset.type === "NATIVE")
         throw new Error("Cannot remove a token from the wanted queue.")
