@@ -1,6 +1,8 @@
 import GlobalFetch from "./lib/globalFetch"
 import ApiKeyAuthorized from "./types/assetClient/apiKeyAuthorized"
 import AssetClientConfig from "./types/assetClient/assetClientConfig"
+import CollectionSupported from "./types/assetClient/collectionSupported"
+import CollectionsAdded from "./types/assetClient/collectionsAdded"
 import JWTAuthorized from "./types/assetClient/jwtAuthorized"
 import HTTPRequestInit from "./types/general/httpRequestInit"
 import HTTPResponse from "./types/general/httpResponse"
@@ -18,12 +20,13 @@ export default class AssetClient extends GlobalFetch {
   }
 
   /**
+   * Store the collections set inside the system. If some collections are already stored they will be ignored.
    *
-   * @param collections
+   * @param collections - The collections set to store inside the system
    */
   async addCollections(
     collections: Array<{ address: string; networkId: string }>
-  ) {
+  ): Promise<Maybe<Array<CollectionsAdded>>> {
     this._validate(
       collections.map((c) => {
         return c.address
@@ -31,7 +34,7 @@ export default class AssetClient extends GlobalFetch {
     )
 
     try {
-      const { data } = await this._fetchWithAuth<string>(
+      const { data } = await this._fetchWithAuth<Array<CollectionsAdded>>(
         `${this._BACKEND_URL}/collections/insertCollectionBulk`,
         {
           method: "POST",
@@ -41,40 +44,45 @@ export default class AssetClient extends GlobalFetch {
         }
       )
 
-      return data
+      return data ?? null
     } catch (e) {
       throw e
     }
   }
 
   /**
+   * Check if collection is supported by the platform given its address and network id
    *
-   * @param address
+   * @param address - The address of the collection to check
+   * @param networkId - The network id of the collection to check
    */
-  async isCollectionSupported(address: string, networkId: string) {
+  async isCollectionSupported(
+    address: string,
+    networkId: string
+  ): Promise<Maybe<Array<CollectionSupported>>> {
     this._validate([address])
 
     try {
-      const { data } = await this._fetchWithAuth<string>(
-        `${this._BACKEND_URL}/collections/isSupported/${address}/${networkId}`,
+      const { data } = await this._fetchWithAuth<Array<CollectionSupported>>(
+        `${this._BACKEND_URL}/collections/isCollectionSupported/${address}/${networkId}`,
         {
           method: "GET",
         }
       )
-
-      return data
+      return data ?? null
     } catch (e) {
       throw e
     }
   }
 
   /**
+   * Check if a set of collections is supported by the platform
    *
-   * @param collections
+   * @param collections - The collections set to check
    */
   async collectionsSupported(
     collections: Array<{ address: string; networkId: string }>
-  ) {
+  ): Promise<Maybe<Array<CollectionSupported>>> {
     this._validate(
       collections.map((c) => {
         return c.address
@@ -82,8 +90,8 @@ export default class AssetClient extends GlobalFetch {
     )
 
     try {
-      const { data } = await this._fetchWithAuth<string>(
-        `${this._BACKEND_URL}/collections/isSupportedBulk`,
+      const { data } = await this._fetchWithAuth<Array<CollectionSupported>>(
+        `${this._BACKEND_URL}/collections/isCollectionSupportedBulk`,
         {
           method: "POST",
           body: {
@@ -92,7 +100,7 @@ export default class AssetClient extends GlobalFetch {
         }
       )
 
-      return data
+      return data ?? null
     } catch (e) {
       throw e
     }
