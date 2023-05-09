@@ -312,7 +312,6 @@ export default class TradeClient extends GlobalFetch {
       replyId: string
     }
   ): Promise<Trade> {
-    let ownTradeSquad: boolean = false
     if (end < 0) throw new Error("end cannot be lower than zero.")
     if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
@@ -334,57 +333,36 @@ export default class TradeClient extends GlobalFetch {
 
     // Retrieve the maker address
     const [addressMaker] = await this._provider.listAccounts()
-    // Retrieve if the maker address own TradeSquad NFTs for remove the fee
-    const response = await this._fetch<{ data: Array<NFTList> }>(
-      `${this._BACKEND_URL}/metadata/getNftCollectionAssetsByOwner/1/${this._TRADESQUAD_ADDRESS}/${addressMaker}/50/null`
-    )
 
-    // Check if the user doesn't own any TradeSquad
-    if (
-      response &&
-      response.data &&
-      response.data.data &&
-      Array.isArray(response.data.data) &&
-      response.data.data[0] &&
-      `total` in response.data.data[0]
-    ) {
-      let total = response.data.data[0].total
-      if (total > 0) ownTradeSquad = true
-      else ownTradeSquad = false
-    }
-
-    const orderInit = await this._addNFTTraderFee(
-      {
-        offer: [...(maker.assets ?? [])].map(
-          (a) =>
-            ({
-              ...a,
-              itemType:
-                typeof a.itemType === "string"
-                  ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
-                  : a.itemType,
-            } as { itemType: ItemType } & typeof a)
-        ),
-        consideration: [...(taker.assets ?? [])].map(
-          (a) =>
-            ({
-              ...a,
-              itemType:
-                typeof a.itemType === "string"
-                  ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
-                  : a.itemType,
-              recipient: a.recipient ? a.recipient : addressMaker,
-            } as { itemType: ItemType } & typeof a)
-        ),
-        zone: taker.address,
-        endTime: Math.floor(
-          new Date().setDate(new Date().getDate() + end) / 1000
-        ).toString(), // days in seconds (UNIX timestamp)
-        fees,
-        restrictedByZone: true,
-      },
-      ownTradeSquad
-    )
+    const orderInit = await this._addNFTTraderFee({
+      offer: [...(maker.assets ?? [])].map(
+        (a) =>
+          ({
+            ...a,
+            itemType:
+              typeof a.itemType === "string"
+                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
+                : a.itemType,
+          } as { itemType: ItemType } & typeof a)
+      ),
+      consideration: [...(taker.assets ?? [])].map(
+        (a) =>
+          ({
+            ...a,
+            itemType:
+              typeof a.itemType === "string"
+                ? AssetsArray.TOKEN_CONSTANTS[a.itemType]
+                : a.itemType,
+            recipient: a.recipient ? a.recipient : addressMaker,
+          } as { itemType: ItemType } & typeof a)
+      ),
+      zone: taker.address,
+      endTime: Math.floor(
+        new Date().setDate(new Date().getDate() + end) / 1000
+      ).toString(), // days in seconds (UNIX timestamp)
+      fees,
+      restrictedByZone: true,
+    })
 
     const { executeAllActions } = await this._seaport.createOrder(
       orderInit,
@@ -790,8 +768,7 @@ export default class TradeClient extends GlobalFetch {
   }
 
   private async _addNFTTraderFee(
-    orderInit: CreateOrderInput,
-    ownTradeSquad = false
+    orderInit: CreateOrderInput
   ): Promise<CreateOrderInput> {
     const orderTypes = this._analyzeOrder(orderInit)
     const nftTraderFees: Maybe<NFTTraderFees> = await this._getNFTTraderFees()
@@ -802,19 +779,12 @@ export default class TradeClient extends GlobalFetch {
     let basisPoints: number | undefined
     let gnosisRecipient = ""
 
-    // If TradeSquad is not in the wallet, fee applied
-    if (!ownTradeSquad) {
-      if (nftTraderFees) {
-        flatFee = nftTraderFees.flatFee[0].fee
-        basisPoints = nftTraderFees.percentageFee[0].basisPoints
-      } else {
-        flatFee = "0"
-        basisPoints = 50
-      }
+    if (nftTraderFees) {
+      flatFee = nftTraderFees.flatFee[0].fee
+      basisPoints = nftTraderFees.percentageFee[0].basisPoints
     } else {
-      // If TradeSquad is in the wallet, fee resetted
       flatFee = "0"
-      basisPoints = 0
+      basisPoints = 50
     }
 
     if (nftTraderGnosis)
