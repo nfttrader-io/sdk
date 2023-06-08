@@ -126,7 +126,7 @@ export default class TradeClient extends GlobalFetch {
         ? new ethers.providers.Web3Provider(config.web3Provider)
         : config.web3Provider
     }
-    this._seaport = new Seaport(this._provider, { seaportVersion: "1.1" })
+    this._seaport = new Seaport(this._provider, { seaportVersion: "1.5" })
 
     const { network, blocksNumberConfirmationRequired } = config
     if (!network) throw new Error("network must be passed")
