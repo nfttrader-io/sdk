@@ -228,16 +228,12 @@ export default class PostClient extends GlobalFetch {
       if (this._apiKey && !signedMessage)
         throw new Error("signedMessage must be provided.")
 
-      !this._apiKey
-        ? await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
-            method: "DELETE",
-          })
-        : await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
-            method: "DELETE",
-            headers: {
-              "nfttrader-signed-message": signedMessage!,
-            },
-          })
+      await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
+        method: "DELETE",
+        headers: {
+          "nfttrader-signed-message": signedMessage!,
+        },
+      })
     } catch (e) {
       throw e
     }
@@ -277,24 +273,16 @@ export default class PostClient extends GlobalFetch {
       throw new Error("signedMessage must be provided.")
 
     try {
-      const res = !this._apiKey
-        ? await this._fetchWithAuth<string>(
-            `${this._BACKEND_URL}/post/insert`,
-            {
-              method: "POST",
-              body: post,
-            }
-          )
-        : await this._fetchWithAuth<string>(
-            `${this._BACKEND_URL}/post/insert`,
-            {
-              method: "POST",
-              body: post,
-              headers: {
-                "nfttrader-signed-message": signedMessage!,
-              },
-            }
-          )
+      const res = await this._fetchWithAuth<string>(
+        `${this._BACKEND_URL}/post/insert`,
+        {
+          method: "POST",
+          body: post,
+          headers: {
+            "nfttrader-signed-message": signedMessage!,
+          },
+        }
+      )
 
       return res.data ?? null
     } catch (e) {
