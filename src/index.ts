@@ -4,6 +4,7 @@ import AssetClient from "./assetClient"
 import AssetsArray from "./assetsArray"
 import _Network from "./types/general/network"
 import PostBuilder from "./postBuilder"
+import POST_TYPE from "./lib/postClient/postType"
 
 // TYPES export
 // GENERAL
@@ -29,6 +30,8 @@ export * as TradeClientJsonRpcInit from "./types/tradeClient/tradeClientJsonRpcI
 export * as TradeClientWeb3Init from "./types/tradeClient/tradeClientWeb3Init"
 export * as TradeClientConfig from "./types/tradeClient/tradeClientConfig"
 // POSTCLIENT
+export * as POST_TYPE from "./types/postClient/postType"
+export * as POST_STATUS from "./types/postClient/postStatus"
 export * as PostClientConfig from "./types/postClient/postClientConfig"
 export * as ListPostsFilters from "./types/postClient/listPostsFilters"
 export * as ListPostsOrder from "./types/postClient/listPostsOrder"
