@@ -212,13 +212,9 @@ export default class PostClient extends GlobalFetch {
    * @param parentId - The parent post id to whom this reply belongs to
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPostReply(
-    reply: CreatePostReply,
-    parentId: string,
-    signedMessage?: string
-  ) {
+  public async createPostReply(reply: CreatePostReply, signedMessage?: string) {
     const type: number = POST_TYPE.R1
-    return this._createPost({ ...reply, type, parentId }, signedMessage)
+    return this._createPost({ ...reply, type }, signedMessage)
   }
 
   /**
