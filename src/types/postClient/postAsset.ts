@@ -15,8 +15,6 @@ export default interface PostAsset {
   tokenId: Maybe<string>
   amount: Maybe<string>
   amountHumanReadable: Maybe<string>
-  checked: boolean
   isDifferent: boolean
   collection?: Collection
-  amountUSD?: string
 }

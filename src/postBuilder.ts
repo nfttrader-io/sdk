@@ -1,38 +1,30 @@
 import POST_STATUS from "./lib/postClient/postStatus"
 import POST_TYPE from "./lib/postClient/postType"
 import MessageMap from "./messageMap"
+import Maybe from "./types/general/maybe"
 import AssetItem from "./types/postBuilder/assetItem"
 import LookingFor from "./types/postBuilder/lookingFor"
 import Offer from "./types/postBuilder/offer"
 import Collector from "./types/postClient/collector"
 import CreatePost from "./types/postClient/createPost"
+import CreatePostAssets from "./types/postClient/createPostAssets"
 import CreatePostReply from "./types/postClient/createPostReply"
-import Post from "./types/postClient/post"
-import PostAsset from "./types/postClient/postAsset"
+import PostLike from "./types/postClient/postLike"
 import PostTypeValue from "./types/postClient/postTypeValue"
 import { ethers } from "ethers"
 
 export default class PostBuilder {
   private postId: string = ""
   private parentId: string = ""
-  private score: number = 0
-  private like: number = 0
-  private assetsChecked: boolean = false
-  private type: PostTypeValue | null = null
+  private type: Maybe<PostTypeValue> = null
   private creationDate: Date = new Date()
   private networkId: string = ""
-  private expirationDate: Date | null = null
-  private numberOffers: number = 0
-  private accepted: boolean = false
-  private creator: Collector | null = null
-  private messages: Array<{ type: string }> | null = null
-  private assets: {
-    wanted?: PostAsset[]
-    offered?: PostAsset[]
-  } | null = {}
-  private wanted: PostAsset[] = []
-  private offered: PostAsset[] = []
-  private isCreator: boolean = false
+  private expirationDate: Maybe<Date> = null
+  private creator: Maybe<Collector> = null
+  private messages: Maybe<Array<{ type: string }>> = null
+  private assets: Maybe<CreatePostAssets> = {}
+  private wanted: AssetItem[] = []
+  private offered: AssetItem[] = []
   private typeWanted: Array<string> = ["0", "0", "0"]
   private typeOffered: Array<string> = ["0", "0", "0"]
 
@@ -101,9 +93,13 @@ export default class PostBuilder {
       //in collection format
       let exists: boolean = false
       if (asset.type === "ERC20" || asset.type === "NATIVE") {
+        //no more than one ERC20 can be put in the queue and no ERC20 and NATIVE can exist in the same queue
         exists =
           this.wanted.find((w) => {
             return w.type === asset.type
+          }) !== null ||
+          this.wanted.find((w) => {
+            return w.type === "ERC20" || w.type === "NATIVE"
           }) !== null
       } else {
         exists =
@@ -114,26 +110,13 @@ export default class PostBuilder {
 
       if (exists)
         throw new Error(
-          asset.type !== "ERC20"
-            ? "This asset already exists in the wanted queue."
-            : "You can not put more than one ERC20 token in the queue"
+          "Only one ERC20 token or NATIVE token can be put in the queue."
         )
 
-      this.wanted.push({
-        ...asset,
-        statusVerification: 0,
-        name: "",
-        abi: [],
-        isNft: asset.type === "ERC1155" || asset.type === "ERC721",
-        symbol: "",
-        createdAt: "",
-        amountHumanReadable: "",
-        checked: false,
-        isDifferent: false,
-      })
+      this.wanted.push(asset)
     } else {
       if (asset.type === "NATIVE" || asset.type === "ERC20")
-        throw new Error("This asset cannot be a NATIVE token or ERC20 token.")
+        throw new Error("This asset can not be a NATIVE token or ERC20 token.")
 
       let exists: boolean = false
       if (asset.type === "ERC721") {
@@ -141,7 +124,7 @@ export default class PostBuilder {
           this.wanted.find((w) => {
             return (
               w.address.toLowerCase() === asset.address.toLowerCase() &&
-              asset.tokenId === w.tokenId
+              asset.tokenId?.toLowerCase() === w.tokenId?.toLowerCase()
             )
           }) !== null
 
@@ -150,23 +133,12 @@ export default class PostBuilder {
             "This asset cannot be added since it's already in the wanted queue."
           )
 
-        this.wanted.push({
-          ...asset,
-          statusVerification: 0,
-          name: "",
-          abi: [],
-          isNft: true,
-          symbol: "",
-          createdAt: "",
-          amountHumanReadable: "",
-          checked: false,
-          isDifferent: false,
-        })
+        this.wanted.push(asset)
       } else {
         let element = this.wanted.find((w) => {
           return (
             w.address.toLowerCase() === asset.address.toLowerCase() &&
-            asset.tokenId === w.tokenId
+            asset.tokenId?.toLowerCase() === w.tokenId?.toLowerCase()
           )
         })
 
@@ -175,20 +147,10 @@ export default class PostBuilder {
             ethers.BigNumber.from(asset.amount)
           )
           const amountString = amount.toString()
+          //just an update on the amount since it's already in the queue
           element.amount = amountString
         } else {
-          this.wanted.push({
-            ...asset,
-            statusVerification: 0,
-            name: "",
-            abi: [],
-            isNft: true,
-            symbol: "",
-            createdAt: "",
-            amountHumanReadable: "",
-            checked: false,
-            isDifferent: false,
-          })
+          this.wanted.push(asset)
         }
       }
     }
@@ -207,34 +169,26 @@ export default class PostBuilder {
   addOfferedAsset(asset: AssetItem) {
     if (this.type !== POST_TYPE.R1) {
       if (asset.type === "ERC20" || asset.type === "NATIVE")
-        throw new Error("This asset cannot be an ERC20 or NATIVE token.")
+        throw new Error("This asset can not be an ERC20 or NATIVE token.")
 
       if (asset.type === "ERC721") {
         let exists: boolean =
           this.offered.find((o) => {
-            return o.address.toLowerCase() === asset.address.toLowerCase()
+            return (
+              o.address.toLowerCase() === asset.address.toLowerCase() &&
+              o.tokenId?.toLowerCase() === asset.tokenId?.toLowerCase()
+            )
           }) !== null
 
         if (exists)
           throw new Error("This asset already exists in the offered queue.")
 
-        this.offered.push({
-          ...asset,
-          statusVerification: 0,
-          name: "",
-          abi: [],
-          isNft: true,
-          symbol: "",
-          createdAt: "",
-          amountHumanReadable: "",
-          checked: false,
-          isDifferent: false,
-        })
+        this.offered.push(asset)
       } else {
         let element = this.offered.find((o) => {
           return (
             o.address.toLowerCase() === asset.address.toLowerCase() &&
-            asset.tokenId === o.tokenId
+            asset.tokenId?.toLowerCase() === o.tokenId?.toLowerCase()
           )
         })
 
@@ -243,20 +197,10 @@ export default class PostBuilder {
             ethers.BigNumber.from(asset.amount)
           )
           const amountString = amount.toString()
+          //just an update on the amount since it's already in the queue
           element.amount = amountString
         } else {
-          this.offered.push({
-            ...asset,
-            statusVerification: 0,
-            name: "",
-            abi: [],
-            isNft: true,
-            symbol: "",
-            createdAt: "",
-            amountHumanReadable: "",
-            checked: false,
-            isDifferent: false,
-          })
+          this.offered.push(asset)
         }
       }
     } else {
@@ -265,31 +209,23 @@ export default class PostBuilder {
         exists =
           this.offered.find((o) => {
             return o.type === asset.type
+          }) !== null ||
+          this.offered.find((o) => {
+            return o.type === "NATIVE" || o.type === "ERC20"
           }) !== null
 
         if (exists)
           throw new Error(
-            "You cannot put more than one token in the same time."
+            "Only one ERC20 token or NATIVE token can be put in the queue."
           )
 
-        this.offered.push({
-          ...asset,
-          statusVerification: 0,
-          name: "",
-          abi: [],
-          isNft: false,
-          symbol: "",
-          createdAt: "",
-          amountHumanReadable: "",
-          checked: false,
-          isDifferent: false,
-        })
+        this.offered.push(asset)
       } else {
         exists =
           this.offered.find((o) => {
             return (
               o.address.toLowerCase() === asset.address.toLowerCase() &&
-              o.tokenId === asset.tokenId
+              o.tokenId?.toLowerCase() === asset.tokenId?.toLowerCase()
             )
           }) !== null
 
@@ -301,23 +237,12 @@ export default class PostBuilder {
           (asset.type === "ERC721" || asset.type === "ERC1155") &&
           !exists
         )
-          this.offered.push({
-            ...asset,
-            statusVerification: 0,
-            name: "",
-            abi: [],
-            isNft: true,
-            symbol: "",
-            createdAt: "",
-            amountHumanReadable: "",
-            checked: false,
-            isDifferent: false,
-          })
+          this.offered.push(asset)
         else if (asset.type === "ERC1155" && exists) {
           let element = this.offered.find((o) => {
             return (
               o.address.toLowerCase() === asset.address.toLowerCase() &&
-              asset.tokenId === o.tokenId
+              asset.tokenId?.toLowerCase() === o.tokenId?.toLowerCase()
             )
           })
 
@@ -325,6 +250,7 @@ export default class PostBuilder {
             ethers.BigNumber.from(asset.amount)
           )
           const amountString = amount.toString()
+          //just an update on the amount since it's already in the queue
           element!.amount = amountString
         }
       }
@@ -354,12 +280,12 @@ export default class PostBuilder {
       }
     } else {
       if (asset.type === "ERC20" || asset.type === "NATIVE")
-        throw new Error("Cannot remove a token from the wanted queue.")
+        throw new Error("Can not remove a token from the wanted queue.")
 
       this.wanted = this.wanted.filter((w) => {
         return (
           w.address.toLowerCase() !== asset.address.toLowerCase() &&
-          w.tokenId !== asset.tokenId
+          w.tokenId?.toLowerCase() !== asset.tokenId?.toLowerCase()
         )
       })
     }
@@ -377,7 +303,7 @@ export default class PostBuilder {
   removeOfferedAsset(asset: AssetItem) {
     if (this.type !== POST_TYPE.R1) {
       if (asset.type === "ERC20" || asset.type === "NATIVE")
-        throw new Error("Cannot remove a token from the wanted queue.")
+        throw new Error("Can not remove a token from the wanted queue.")
 
       this.offered = this.offered.filter((o) => {
         return (
@@ -398,7 +324,7 @@ export default class PostBuilder {
         this.offered = this.offered.filter((o) => {
           return (
             o.address.toLowerCase() !== asset.address.toLowerCase() &&
-            o.tokenId !== asset.tokenId
+            o.tokenId?.toLowerCase() !== asset.tokenId?.toLowerCase()
           )
         })
       }
@@ -487,27 +413,23 @@ export default class PostBuilder {
    * Build the post object
    *
    */
-  factory(): Post {
+  factory(): PostLike {
     this._validation()
     this.messages!.push({ type: this._getMessage() })
 
     const post = {
       id: this.postId,
       parentId: this.parentId,
-      score: this.score,
-      like: this.like,
-      assetsChecked: this.assetsChecked,
       status: POST_STATUS.ACTIVE,
       type: this.type!,
       creationDate: Math.floor(this.creationDate.getTime() / 1000),
       networkId: this.networkId,
       expirationDate: Math.floor(this.expirationDate!.getTime() / 1000),
-      numberOffers: this.numberOffers,
-      accepted: this.accepted,
       creator: this.creator!,
       messages: this.messages!,
       assets: this.assets!,
-      isCreator: this.isCreator,
+      typeWanted: this.typeWanted.join(""),
+      typeOffered: this.typeOffered.join(""),
     }
 
     this._reset()
@@ -520,7 +442,7 @@ export default class PostBuilder {
    *
    * @param post - The post object
    */
-  getCreatePost(post: Post): CreatePost {
+  getCreatePost(post: PostLike): CreatePost {
     return {
       assets: post.assets,
       creatorAddress: post.creator.address,
@@ -536,21 +458,13 @@ export default class PostBuilder {
    *
    * @param post - The post object
    */
-  getCreatePostReply(
-    creatorAddress: string,
-    wanted: PostAsset[],
-    offered: PostAsset[],
-    messages: Array<{ type: string }>,
-    networkId: string
-  ): CreatePostReply {
+  getCreatePostReply(post: PostLike): CreatePostReply {
     return {
-      creatorAddress,
-      assets: {
-        wanted,
-        offered,
-      },
-      messages,
-      networkId,
+      creatorAddress: post.creator.address,
+      assets: post.assets,
+      messages: post.messages,
+      networkId: post.networkId,
+      parentId: post.parentId!,
     }
   }
 
@@ -575,46 +489,46 @@ export default class PostBuilder {
     if (this.type === POST_TYPE.A1 || this.type === POST_TYPE.B1) {
       if (!this.assets!.wanted || this.assets!.wanted.length === 0)
         throw new Error(
-          `wanted assets cannot be empty if the post type is [${
+          `wanted assets can not be empty if the post type is [${
             this.type === POST_TYPE.A1 ? `A1` : `B1`
           }]`
         )
       else if (!this.assets!.offered || this.assets!.offered.length === 0)
         throw new Error(
-          `offered assets cannot be empty if the post type is [${
+          `offered assets can not be empty if the post type is [${
             this.type === POST_TYPE.A1 ? `A1` : `B1`
           }]`
         )
     } else if (this.type === POST_TYPE.A2 || this.type === POST_TYPE.B2) {
       if (!this.assets!.wanted || this.assets!.wanted.length === 0)
         throw new Error(
-          `wanted assets cannot be empty if the post type is [${
+          `wanted assets can not be empty if the post type is [${
             this.type === POST_TYPE.A2 ? `A2` : `B2`
           }]`
         )
       else if (this.assets!.offered && this.assets!.offered.length > 0)
         throw new Error(
-          `offered assets cannot be filled if the post type is [${
+          `offered assets can not be filled if the post type is [${
             this.type === POST_TYPE.A2 ? `A2` : `B2`
           }]`
         )
     } else if (this.type === POST_TYPE.C1) {
       if (this.assets!.wanted && this.assets!.wanted.length > 0)
         throw new Error(
-          `wanted assets cannot be filled if the post type is [C1]`
+          `wanted assets can not be filled if the post type is [C1]`
         )
       else if (!this.assets!.offered || this.assets!.offered.length === 0)
         throw new Error(
-          `offered assets cannot be empty if the post type is [C1]`
+          `offered assets can not be empty if the post type is [C1]`
         )
     } else if (this.type === POST_TYPE.R1) {
       if (!this.assets!.wanted || this.assets!.wanted.length === 0)
         throw new Error(
-          `wanted assets cannot be empty if the post type is [R1]`
+          `wanted assets can not be empty if the post type is [R1]`
         )
       else if (!this.assets!.offered || this.assets!.offered.length === 0)
         throw new Error(
-          `offered assets cannot be empty if the post type is [R1]`
+          `offered assets can not be empty if the post type is [R1]`
         )
     }
 
@@ -632,8 +546,8 @@ export default class PostBuilder {
     let countToken = 0
 
     for (let w of this.wanted) {
-      w.type === "ERC1155" || (w.type === "ERC721" && countNFT++)
-      w.type === "ERC20" || (w.type === "NATIVE" && countToken++)
+      ;(w.type === "ERC1155" || w.type === "ERC721") && countNFT++
+      ;(w.type === "ERC20" || w.type === "NATIVE") && countToken++
     }
 
     this.typeWanted[1] = countToken === 0 ? "0" : countToken === 1 ? "1" : "2"
@@ -648,8 +562,8 @@ export default class PostBuilder {
     let countToken = 0
 
     for (let o of this.offered) {
-      o.type === "ERC1155" || (o.type === "ERC721" && countNFT++)
-      o.type === "ERC20" || (o.type === "NATIVE" && countToken++)
+      ;(o.type === "ERC1155" || o.type === "ERC721") && countNFT++
+      ;(o.type === "ERC20" || o.type === "NATIVE") && countToken++
     }
 
     this.typeOffered[1] = countToken === 0 ? "0" : countToken === 1 ? "1" : "2"
@@ -673,15 +587,10 @@ export default class PostBuilder {
   private _reset() {
     this.postId = ""
     this.parentId = ""
-    this.score = 0
-    this.like = 0
-    this.assetsChecked = false
     this.type = null
     this.creationDate = new Date()
     this.networkId = ""
     this.expirationDate = null
-    this.numberOffers = 0
-    this.accepted = false
     this.creator = null
     this.messages = null
     this.assets = null

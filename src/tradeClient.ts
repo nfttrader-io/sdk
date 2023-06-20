@@ -15,7 +15,6 @@ import CallbackParams from "./types/tradeClient/callbackParams"
 import CreateTradePeer from "./types/tradeClient/createTradePeer"
 import TradeClientEventsMap from "./types/tradeClient/eventsMap"
 import Fee from "./types/tradeClient/fee"
-import JWTAuthorized from "./types/tradeClient/jwtAuthorized"
 import MultiSigWallet from "./types/tradeClient/multisigWallet"
 import NFTTraderFees from "./types/tradeClient/nfttraderFees"
 import Trade from "./types/tradeClient/trade"
@@ -56,25 +55,9 @@ export default class TradeClient extends GlobalFetch {
   )
   private _network: Network
   private _blocksNumberConfirmationRequired: number
-  private _jwt: Maybe<string> = null
   private _apiKey: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
-  private _TRADESQUAD_ADDRESS: string =
-    "0xdbd4264248e2f814838702e0cb3015ac3a7157a1"
   private _MIN_BLOCKS_REQUIRED: number = 3
-
-  /**
-   * Create an instance of the NFTTrader TradeClient object.
-   *
-   * @param config - Configuration object for the sdk.
-   */
-  constructor(config: JWTAuthorized<TradeClientJsonRpcInit>)
-  /**
-   * Create an instance of the NFTTrader TradeClient object.
-   *
-   * @param config - Configuration object for the sdk.
-   */
-  constructor(config: JWTAuthorized<TradeClientWeb3Init>)
   /**
    * Create an instance of the NFTTrader TradeClient object.
    *
@@ -88,16 +71,14 @@ export default class TradeClient extends GlobalFetch {
    */
   constructor(config: ApiKeyAuthorized<TradeClientWeb3Init>)
   constructor(
-    config:
-      | JWTAuthorized<TradeClientJsonRpcInit | TradeClientWeb3Init>
-      | ApiKeyAuthorized<TradeClientJsonRpcInit | TradeClientWeb3Init>
+    config: ApiKeyAuthorized<TradeClientJsonRpcInit | TradeClientWeb3Init>
   ) {
     super()
     if (
       ("web3Provider" in config && "jsonRpcProvider" in config) ||
       (!("web3Provider" in config) && !("jsonRpcProvider" in config))
     )
-      throw new Error("You must provide only one provider at a time")
+      throw new Error("You must provide only one provider at a time.")
 
     if ("jsonRpcProvider" in config) {
       if (
@@ -129,7 +110,7 @@ export default class TradeClient extends GlobalFetch {
     this._seaport = new Seaport(this._provider, { seaportVersion: "1.5" })
 
     const { network, blocksNumberConfirmationRequired } = config
-    if (!network) throw new Error("network must be passed")
+    if (!network) throw new Error("network must be provided.")
     if (!Object.keys(royaltyRegistriesEngines).includes(`${network}`))
       throw new Error("Invalid network")
     if (
@@ -148,16 +129,13 @@ export default class TradeClient extends GlobalFetch {
       : this._MIN_BLOCKS_REQUIRED
 
     if (
-      (!("jwt" in config) && !("apiKey" in config)) ||
-      ("jwt" in config &&
-        (typeof config.jwt !== "string" || !config.jwt.length)) ||
+      !("apiKey" in config) ||
       ("apiKey" in config &&
         (typeof config.apiKey !== "string" || !config.apiKey.length))
     )
-      throw new Error("At least apiKey or jwt must be provided")
+      throw new Error("an API key must be provided.")
 
-    if ("jwt" in config) this._jwt = config.jwt
-    else this._apiKey = config.apiKey
+    this._apiKey = config.apiKey
   }
 
   private _fetchWithAuth<ReturnType = any>(
@@ -170,13 +148,10 @@ export default class TradeClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      authorization: `${this._jwt ? "Bearer" : "x-api-key"} ${
-        this._jwt ?? this._apiKey
-      }`,
+      authorization: `x-api-key ${this._apiKey}`,
     }
 
-    if (this._jwt) options.headers["authorizer-type"] = "token"
-    else if (this._apiKey) options.headers["authorizer-type"] = "request"
+    options.headers["authorizer-type"] = "request"
 
     return this._fetch(url, options)
   }

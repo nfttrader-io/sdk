@@ -13,14 +13,12 @@ import Post from "./types/postClient/post"
 import POST_STATUS from "./lib/postClient/postStatus"
 import POST_TYPE from "./lib/postClient/postType"
 import GlobalFetch from "./lib/globalFetch"
-import JWTAuthorized from "./types/postClient/jwtAuthorized"
 import ApiKeyAuthorized from "./types/postClient/apiKeyAuthorized"
 import PostClientConfig from "./types/postClient/postClientConfig"
 import ListPostsRepliesOrder from "./types/postClient/listPostsRepliesOrder"
 
 export default class PostClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
-  private _jwt: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io"
 
   public static get POST_STATUS(): PostStatus {
@@ -35,10 +33,9 @@ export default class PostClient extends GlobalFetch {
     return `This is the message to sign powered by nfttrader.io`
   }
 
-  constructor(config: JWTAuthorized | ApiKeyAuthorized) {
+  constructor(config: ApiKeyAuthorized) {
     super()
-    if (`jwt` in config) this._jwt = config.jwt
-    else if (`apiKey` in config) this._apiKey = config.apiKey
+    this._apiKey = config.apiKey
   }
 
   /**
@@ -269,13 +266,10 @@ export default class PostClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      authorization: `${this._jwt ? "Bearer" : "x-api-key"} ${
-        this._jwt ?? this._apiKey
-      }`,
+      authorization: `x-api-key ${this._apiKey}`,
     }
 
-    if (this._jwt) options.headers["authorizer-type"] = "token"
-    else if (this._apiKey) options.headers["authorizer-type"] = "request"
+    options.headers["authorizer-type"] = "request"
 
     return this._fetch(url, options)
   }

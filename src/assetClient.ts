@@ -3,20 +3,17 @@ import ApiKeyAuthorized from "./types/assetClient/apiKeyAuthorized"
 import AssetClientConfig from "./types/assetClient/assetClientConfig"
 import CollectionSupported from "./types/assetClient/collectionSupported"
 import CollectionsAdded from "./types/assetClient/collectionsAdded"
-import JWTAuthorized from "./types/assetClient/jwtAuthorized"
 import HTTPRequestInit from "./types/general/httpRequestInit"
 import HTTPResponse from "./types/general/httpResponse"
 import Maybe from "./types/general/maybe"
 
 export default class AssetClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
-  private _jwt: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io"
 
-  constructor(config: JWTAuthorized | ApiKeyAuthorized) {
+  constructor(config: ApiKeyAuthorized) {
     super()
-    if (`jwt` in config) this._jwt = config.jwt
-    else if (`apiKey` in config) this._apiKey = config.apiKey
+    this._apiKey = config.apiKey
   }
 
   /**
@@ -145,13 +142,10 @@ export default class AssetClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      authorization: `${this._jwt ? "Bearer" : "x-api-key"} ${
-        this._jwt ?? this._apiKey
-      }`,
+      authorization: `x-api-key ${this._apiKey}`,
     }
 
-    if (this._jwt) options.headers["authorizer-type"] = "token"
-    else if (this._apiKey) options.headers["authorizer-type"] = "request"
+    options.headers["authorizer-type"] = "request"
 
     return this._fetch(url, options)
   }
