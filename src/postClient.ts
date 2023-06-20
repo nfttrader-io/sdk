@@ -262,7 +262,7 @@ export default class PostClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      authorization: `x-api-key ${this._apiKey}`,
+      "x-api-key": `${this._apiKey}`,
     }
 
     options.headers["authorizer-type"] = "request"

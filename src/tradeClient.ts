@@ -26,7 +26,6 @@ import GetFullListResponse from "./types/tradeClient/getGlobalTradesListResponse
 import GetGlobalTradesListResponse from "./types/tradeClient/getGlobalTradesListResponse"
 import GetUserTradesListResponse from "./types/tradeClient/getUserTradesListResponse"
 import TradeClientConfig from "./types/tradeClient/tradeClientConfig"
-import NFTList from "./types/tradeClient/nftList"
 import PartialTrade from "./types/tradeClient/partialTrade"
 
 const {
@@ -148,7 +147,7 @@ export default class TradeClient extends GlobalFetch {
   ): Promise<HTTPResponse<ReturnType>> {
     options.headers = {
       ...options.headers,
-      authorization: `x-api-key ${this._apiKey}`,
+      "x-api-key": `${this._apiKey}`,
     }
 
     options.headers["authorizer-type"] = "request"
