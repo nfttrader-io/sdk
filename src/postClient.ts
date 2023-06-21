@@ -201,7 +201,7 @@ export default class PostClient extends GlobalFetch {
    * @param post - A post to be created
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPost(post: CreatePost, signedMessage?: string) {
+  public async createPost(post: CreatePost, signedMessage: string) {
     return this._createPost(post, signedMessage)
   }
 
@@ -212,7 +212,7 @@ export default class PostClient extends GlobalFetch {
    * @param parentId - The parent post id to whom this reply belongs to
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPostReply(reply: CreatePostReply, signedMessage?: string) {
+  public async createPostReply(reply: CreatePostReply, signedMessage: string) {
     const type: number = POST_TYPE.R1
     return this._createPost({ ...reply, type }, signedMessage)
   }
@@ -273,7 +273,7 @@ export default class PostClient extends GlobalFetch {
 
   private async _createPost<
     P extends (CreatePost | CreatePostReply) & Partial<Pick<Post, "parentId">>
-  >(post: P, signedMessage?: string): Promise<Maybe<string>> {
+  >(post: P, signedMessage: string): Promise<Maybe<string>> {
     if (this._apiKey && !signedMessage)
       throw new Error("signedMessage must be provided.")
 
@@ -284,7 +284,7 @@ export default class PostClient extends GlobalFetch {
           method: "POST",
           body: post,
           headers: {
-            "nfttrader-signed-message": signedMessage!,
+            "nfttrader-signed-message": signedMessage,
           },
         }
       )

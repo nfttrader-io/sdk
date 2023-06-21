@@ -269,6 +269,7 @@ export default class TradeClient extends GlobalFetch {
    * @param maker - The maker of the trade
    * @param taker - The taker (counterparty) of the trade
    * @param end - The number of the days representing the validity of the trade
+   * @param signature - The wallet signature of the creator
    * @param fees - The array of fees to apply on the trade
    * @param post - The post object containing the information related to the post and the reply accepted
    * @param post.postId - The post id related to this trade
@@ -278,6 +279,7 @@ export default class TradeClient extends GlobalFetch {
     maker: CreateTradePeer,
     taker: CreateTradePeer<WithAddress>,
     end = 0,
+    signature: string,
     fees?: Array<Fee>,
     post?: {
       postId: string
@@ -357,6 +359,9 @@ export default class TradeClient extends GlobalFetch {
           },
           postId: post && post.postId ? post.postId.toString() : undefined,
           replyId: post && post.replyId ? post.replyId.toString() : undefined,
+        },
+        headers: {
+          "nfttrader-signed-message": signature,
         },
       })
     } catch (e) {
