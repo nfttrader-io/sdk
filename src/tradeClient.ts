@@ -150,8 +150,6 @@ export default class TradeClient extends GlobalFetch {
       "x-api-key": `${this._apiKey}`,
     }
 
-    options.headers["authorizer-type"] = "request"
-
     return this._fetch(url, options)
   }
 
