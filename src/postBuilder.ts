@@ -424,7 +424,8 @@ export default class PostBuilder {
    */
   factory(): PostLike {
     this._validation()
-    this.messages!.push({ type: this._getMessage() })
+    this.type! !== POST_TYPE.R1 &&
+      this.messages!.push({ type: this._getMessage() })
 
     const post = {
       id: this.postId,
