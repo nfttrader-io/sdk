@@ -41,7 +41,7 @@ export default class PostBuilder {
   /**
    * Set the network id for this post
    *
-   * @param code - The code of the message post
+   * @param networkId - The network id of this post
    */
   setNetworkId(networkId: string) {
     this.networkId = networkId
