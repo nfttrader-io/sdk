@@ -1,3 +1,4 @@
+import Maybe from "../general/maybe"
 import Collector from "./collector"
 import CreatePostAssets from "./createPostAssets"
 import PostStatus from "./postStatus"
@@ -7,7 +8,7 @@ import PostTypeName from "./postTypeName"
 
 export default interface PostLike {
   id: string
-  parentId: string | null
+  parentId: Maybe<string>
   status: PostStatus[PostStatusName]
   type: PostType[PostTypeName]
   creationDate: number
@@ -17,5 +18,5 @@ export default interface PostLike {
   assets: CreatePostAssets
   typeWanted: string
   typeOffered: string
-  expirationDate: number
+  expirationDate: Maybe<number>
 }

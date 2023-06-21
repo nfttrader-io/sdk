@@ -410,6 +410,15 @@ export default class PostBuilder {
   }
 
   /**
+   * Set the parent id for this post reply
+   *
+   * @param parentId - The parent id of this reply post
+   */
+  setPostParentId(parentId: string) {
+    this.parentId = parentId
+  }
+
+  /**
    * Build the post like object
    *
    */
@@ -424,7 +433,10 @@ export default class PostBuilder {
       type: this.type!,
       creationDate: Math.floor(this.creationDate.getTime() / 1000),
       networkId: this.networkId,
-      expirationDate: Math.floor(this.expirationDate!.getTime() / 1000),
+      expirationDate:
+        this.type! !== POST_TYPE.R1
+          ? Math.floor(this.expirationDate!.getTime() / 1000)
+          : null,
       creator: this.creator!,
       messages: this.messages!,
       assets: this.assets!,
@@ -446,7 +458,7 @@ export default class PostBuilder {
     return {
       assets: post.assets,
       creatorAddress: post.creator.address,
-      expirationDate: post.expirationDate,
+      expirationDate: post.expirationDate!,
       messages: post.messages,
       networkId: post.networkId,
       type: post.type,
@@ -477,7 +489,7 @@ export default class PostBuilder {
       throw new Error(
         "Post type must be setted. Call setPostType() method before."
       )
-    if (!this.expirationDate)
+    if (!this.expirationDate && this.type !== POST_TYPE.R1)
       throw new Error(
         "Expiration date must be setted. Call setPostDuration() method before."
       )
