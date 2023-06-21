@@ -223,7 +223,11 @@ export default class PostClient extends GlobalFetch {
    * @param id - The id of the post to delete
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async deletePost(id: string, signedMessage?: string): Promise<void> {
+  public async deletePost(
+    id: string,
+    creatorAddress: string,
+    signedMessage?: string
+  ): Promise<void> {
     try {
       if (this._apiKey && !signedMessage)
         throw new Error("signedMessage must be provided.")
@@ -232,6 +236,9 @@ export default class PostClient extends GlobalFetch {
         method: "DELETE",
         headers: {
           "nfttrader-signed-message": signedMessage!,
+        },
+        body: {
+          creatorAddress,
         },
       })
     } catch (e) {
