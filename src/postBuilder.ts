@@ -95,17 +95,17 @@ export default class PostBuilder {
       if (asset.type === "ERC20" || asset.type === "NATIVE") {
         //no more than one ERC20 can be put in the queue and no ERC20 and NATIVE can exist in the same queue
         exists =
-          this.wanted.find((w) => {
+          typeof this.wanted.find((w) => {
             return w.type === asset.type
-          }) !== null ||
-          this.wanted.find((w) => {
+          }) !== "undefined" ||
+          typeof this.wanted.find((w) => {
             return w.type === "ERC20" || w.type === "NATIVE"
-          }) !== null
+          }) !== "undefined"
       } else {
         exists =
-          this.wanted.find((w) => {
+          typeof this.wanted.find((w) => {
             return w.address.toLowerCase() === asset.address.toLowerCase()
-          }) !== null
+          }) !== "undefined"
       }
 
       if (exists)
@@ -121,12 +121,12 @@ export default class PostBuilder {
       let exists: boolean = false
       if (asset.type === "ERC721") {
         exists =
-          this.wanted.find((w) => {
+          typeof this.wanted.find((w) => {
             return (
               w.address.toLowerCase() === asset.address.toLowerCase() &&
               asset.tokenId?.toLowerCase() === w.tokenId?.toLowerCase()
             )
-          }) !== null
+          }) !== "undefined"
 
         if (exists)
           throw new Error(
@@ -173,12 +173,12 @@ export default class PostBuilder {
 
       if (asset.type === "ERC721") {
         let exists: boolean =
-          this.offered.find((o) => {
+          typeof this.offered.find((o) => {
             return (
               o.address.toLowerCase() === asset.address.toLowerCase() &&
               o.tokenId?.toLowerCase() === asset.tokenId?.toLowerCase()
             )
-          }) !== null
+          }) !== "undefined"
 
         if (exists)
           throw new Error("This asset already exists in the offered queue.")
@@ -207,12 +207,12 @@ export default class PostBuilder {
       let exists: boolean = false
       if (asset.type === "ERC20" || asset.type === "NATIVE") {
         exists =
-          this.offered.find((o) => {
+          typeof this.offered.find((o) => {
             return o.type === asset.type
-          }) !== null ||
-          this.offered.find((o) => {
+          }) !== "undefined" ||
+          typeof this.offered.find((o) => {
             return o.type === "NATIVE" || o.type === "ERC20"
-          }) !== null
+          }) !== "undefined"
 
         if (exists)
           throw new Error(
@@ -222,12 +222,12 @@ export default class PostBuilder {
         this.offered.push(asset)
       } else {
         exists =
-          this.offered.find((o) => {
+          typeof this.offered.find((o) => {
             return (
               o.address.toLowerCase() === asset.address.toLowerCase() &&
               o.tokenId?.toLowerCase() === asset.tokenId?.toLowerCase()
             )
-          }) !== null
+          }) !== "undefined"
 
         if (asset.type === "ERC721" && exists)
           throw new Error(
