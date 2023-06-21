@@ -587,11 +587,7 @@ export default class PostBuilder {
    * Get the second item for the message object
    */
   private _getMessage() {
-    return MessageMap.MESSAGE_MATRIX[
-      `${this.typeWanted.join("")}_${this.typeOffered.join(
-        ""
-      )}` as keyof MessageMap
-    ]
+    return `${this.typeWanted.join("")}_${this.typeOffered.join("")}`
   }
 
   /**
