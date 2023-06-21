@@ -410,7 +410,7 @@ export default class PostBuilder {
   }
 
   /**
-   * Build the post object
+   * Build the post like object
    *
    */
   factory(): PostLike {
@@ -440,7 +440,7 @@ export default class PostBuilder {
   /**
    * Get a CreatePost instance of the post object given as parameter
    *
-   * @param post - The post object
+   * @param post - The post like object
    */
   getCreatePost(post: PostLike): CreatePost {
     return {
@@ -456,7 +456,7 @@ export default class PostBuilder {
   /**
    * Get a getCreatePostReply instance of the post object given as parameter
    *
-   * @param post - The post object
+   * @param post - The post like object
    */
   getCreatePostReply(post: PostLike): CreatePostReply {
     return {
