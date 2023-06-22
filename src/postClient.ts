@@ -49,10 +49,6 @@ export default class PostClient extends GlobalFetch {
     creatorAddress?: string
   ): Promise<Maybe<Post>> {
     if (!id) throw new Error('Invalid parameter "id"')
-    if (this._apiKey && !creatorAddress)
-      console.warn(
-        "If you are using an API key and you don't provide the 'creatorAddress' param, the response will contain a 'isCreator' field with a value equals to 'false'."
-      )
 
     try {
       const { data } = await this._fetchWithAuth<Post>(
@@ -83,10 +79,6 @@ export default class PostClient extends GlobalFetch {
     creatorAddress?: string
   ): Promise<ListPostsResponse> {
     if (!id) throw new Error('Invalid parameter "id"')
-    if (this._apiKey && !creatorAddress)
-      console.warn(
-        "If you are using an API key and you don't provide the 'creatorAddress' param, the response will contain a 'isCreator' field with a value equals to 'false'."
-      )
 
     const body = {
       orderOptions,
