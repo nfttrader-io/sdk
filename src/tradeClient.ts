@@ -276,7 +276,7 @@ export default class TradeClient extends GlobalFetch {
    * @param post.replyId - The reply id related to the offer accepted to initialize the trade
    */
   public async createTrade(
-    maker: CreateTradePeer,
+    maker: CreateTradePeer<WithAddress>,
     taker: CreateTradePeer<WithAddress>,
     end = 0,
     signature: string,
@@ -359,6 +359,7 @@ export default class TradeClient extends GlobalFetch {
           },
           postId: post && post.postId ? post.postId.toString() : undefined,
           replyId: post && post.replyId ? post.replyId.toString() : undefined,
+          creatorAddress: maker.address,
         },
         headers: {
           "nfttrader-signed-message": signature,
