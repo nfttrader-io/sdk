@@ -486,7 +486,7 @@ export default class PostBuilder {
    */
   private _validation() {
     if (!this.assets) throw new Error("Assets must be setted.")
-    if (!this.type)
+    if (typeof this.type != "number")
       throw new Error(
         "Post type must be setted. Call setPostType() method before."
       )
