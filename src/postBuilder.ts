@@ -1,11 +1,9 @@
 import POST_STATUS from "./lib/postClient/postStatus"
 import POST_TYPE from "./lib/postClient/postType"
-import MessageMap from "./messageMap"
 import Maybe from "./types/general/maybe"
 import AssetItem from "./types/postBuilder/assetItem"
 import LookingFor from "./types/postBuilder/lookingFor"
 import Offer from "./types/postBuilder/offer"
-import Collector from "./types/postClient/collector"
 import CreatePost from "./types/postClient/createPost"
 import CreatePostAssets from "./types/postClient/createPostAssets"
 import CreatePostReply from "./types/postClient/createPostReply"
@@ -20,7 +18,7 @@ export default class PostBuilder {
   private creationDate: Date = new Date()
   private networkId: string = ""
   private expirationDate: Maybe<Date> = null
-  private creator: Maybe<Collector> = null
+  private creatorAddress: Maybe<string> = null
   private messages: Maybe<Array<{ type: string }>> = null
   private assets: Maybe<CreatePostAssets> = {}
   private wanted: AssetItem[] = []
@@ -31,11 +29,11 @@ export default class PostBuilder {
   /**
    *
    * @param networkId - the network id of the Post object
-   * @param creator - the creator of the Post object
+   * @param creatorAddress - the creator address of the Post object
    */
-  constructor(networkId?: string, creator?: Collector) {
+  constructor(networkId?: string, creatorAddress?: string) {
     if (networkId) this.networkId = networkId
-    if (creator) this.creator = creator
+    if (creatorAddress) this.creatorAddress = creatorAddress
   }
 
   /**
@@ -75,12 +73,12 @@ export default class PostBuilder {
   }
 
   /**
-   * Set the creator of this post
+   * Set the creator address of this post
    *
-   * @param creator - The creator of this post
+   * @param address - The creator address of this post
    */
-  setPostCreator(creator: Collector) {
-    this.creator = creator
+  setPostCreator(address: string) {
+    this.creatorAddress = address
   }
 
   /**
@@ -438,7 +436,13 @@ export default class PostBuilder {
         this.type! !== POST_TYPE.R1
           ? Math.floor(this.expirationDate!.getTime() / 1000)
           : null,
-      creator: this.creator!,
+      creator: {
+        username: "",
+        address: this.creatorAddress ? this.creatorAddress : "",
+        imageUrl: "",
+        isNft: 0 as 0,
+        isVerified: 0 as 0,
+      },
       messages: this.messages!,
       assets: this.assets!,
       typeWanted: this.typeWanted.join(""),
@@ -494,9 +498,9 @@ export default class PostBuilder {
       throw new Error(
         "Expiration date must be setted. Call setPostDuration() method before."
       )
-    if (!this.creator)
+    if (!this.creatorAddress)
       throw new Error(
-        "Creator must be setted. Call setPostCreator() method before."
+        "Creator address must be setted. Call setPostCreator() method before."
       )
 
     if (this.type === POST_TYPE.A1 || this.type === POST_TYPE.B1) {
@@ -600,7 +604,7 @@ export default class PostBuilder {
     this.creationDate = new Date()
     this.networkId = ""
     this.expirationDate = null
-    this.creator = null
+    this.creatorAddress = null
     this.messages = null
     this.assets = null
   }
