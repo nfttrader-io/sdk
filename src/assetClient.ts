@@ -3,6 +3,8 @@ import ApiKeyAuthorized from "./types/assetClient/apiKeyAuthorized"
 import AssetClientConfig from "./types/assetClient/assetClientConfig"
 import CollectionSupported from "./types/assetClient/collectionSupported"
 import CollectionsAdded from "./types/assetClient/collectionsAdded"
+import GetAssetsResponse from "./types/assetClient/getAssetsReponse"
+import ParamsSearch from "./types/assetClient/paramsSearch"
 import HTTPRequestInit from "./types/general/httpRequestInit"
 import HTTPResponse from "./types/general/httpResponse"
 import Maybe from "./types/general/maybe"
@@ -14,6 +16,29 @@ export default class AssetClient extends GlobalFetch {
   constructor(config: ApiKeyAuthorized) {
     super()
     this._apiKey = config.apiKey
+  }
+
+  /**
+   * Get the collections info stored on the NFT Trader platform
+   *
+   * @param params - The search params to setup for querying the system.
+   */
+  async getAssets(params: ParamsSearch): Promise<Maybe<GetAssetsResponse>> {
+    const url: string = `${this._BACKEND_URL}/collections/getAssets/${
+      params.networkId ? params.networkId : `*`
+    }/${params.searchType}/${params.skip}/${params.take}${
+      params.queryString ? `/${params.queryString}` : ``
+    }`
+
+    try {
+      const response = (await this._fetchWithAuth<GetAssetsResponse>(
+        url
+      )) as unknown as GetAssetsResponse
+
+      return response ?? null
+    } catch (e) {
+      throw e
+    }
   }
 
   /**
