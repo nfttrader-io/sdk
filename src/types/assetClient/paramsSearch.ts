@@ -1,4 +1,5 @@
 type ParamsSearch = {
+  userAddress: string
   searchType: "NFT" | "TKN" | "ALL"
   skip: number
   take: number
