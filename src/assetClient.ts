@@ -26,7 +26,7 @@ export default class AssetClient extends GlobalFetch {
   async getAssets(params: ParamsSearch): Promise<Maybe<GetAssetsResponse>> {
     const url: string = `${this._BACKEND_URL}/collections/getAssets/${
       params.networkId ? params.networkId : `*`
-    }/${params.searchType}/${params.skip}/${params.take}${
+    }/${params.userAddress}/${params.searchType}/${params.skip}/${params.take}${
       params.queryString ? `/${params.queryString}` : ``
     }`
 
