@@ -1,10 +1,4 @@
-import Network from "../general/network"
-
 type TradeClientDefaultInit = {
-  /**
-   * The network of the chain.
-   */
-  network: Network
   /**
    * The number of the mined blocks to wait for considering a transaction valid.
    *
