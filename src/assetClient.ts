@@ -31,11 +31,9 @@ export default class AssetClient extends GlobalFetch {
     }`
 
     try {
-      const response = (await this._fetchWithAuth<GetAssetsResponse>(
-        url
-      )) as unknown as GetAssetsResponse
+      const { data } = await this._fetchWithAuth<GetAssetsResponse>(url)
 
-      return response ?? null
+      return data ?? null
     } catch (e) {
       throw e
     }
