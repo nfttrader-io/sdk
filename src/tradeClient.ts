@@ -52,7 +52,8 @@ export default class TradeClient extends GlobalFetch {
       callbacks: [],
     })
   )
-  private _network: Network
+
+  private _network: Maybe<Network> = null
   private _blocksNumberConfirmationRequired: number
   private _apiKey: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
@@ -106,12 +107,11 @@ export default class TradeClient extends GlobalFetch {
         ? new ethers.providers.Web3Provider(config.web3Provider)
         : config.web3Provider
     }
+
     this._seaport = new Seaport(this._provider, { seaportVersion: "1.5" })
 
-    const { network, blocksNumberConfirmationRequired } = config
-    if (!network) throw new Error("network must be provided.")
-    if (!Object.keys(royaltyRegistriesEngines).includes(`${network}`))
-      throw new Error("Invalid network")
+    const { blocksNumberConfirmationRequired } = config
+
     if (
       blocksNumberConfirmationRequired !== undefined &&
       blocksNumberConfirmationRequired !== null &&
@@ -120,8 +120,6 @@ export default class TradeClient extends GlobalFetch {
       throw new Error(
         "blocksNumberConfirmationRequired cannot be lower than one."
       )
-
-    this._network = network
 
     this._blocksNumberConfirmationRequired = blocksNumberConfirmationRequired
       ? blocksNumberConfirmationRequired
@@ -170,6 +168,19 @@ export default class TradeClient extends GlobalFetch {
     if (!event) throw new Error("event not supported.")
 
     event.callbacks.push(callback)
+  }
+
+  /**
+   * Set the network id the client will query on.
+   *
+   * @param networkId - The name of the event.
+   */
+  public setNetworkId(networkId: string) {
+    if (!networkId) throw new Error("network must be provided.")
+    if (!Object.keys(royaltyRegistriesEngines).includes(`${networkId}`))
+      throw new Error("Invalid network")
+
+    this._network = networkId as Network
   }
 
   /**
@@ -286,6 +297,7 @@ export default class TradeClient extends GlobalFetch {
       replyId: string
     }
   ): Promise<Trade> {
+    if (this._network) throw new Error("network must be defined.")
     if (end < 0) throw new Error("end cannot be lower than zero.")
     if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
@@ -378,6 +390,7 @@ export default class TradeClient extends GlobalFetch {
    * @param tradeId - The id of the trade
    */
   public async execTrade(tradeId: string) {
+    if (this._network) throw new Error("network must be defined.")
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
@@ -444,6 +457,7 @@ export default class TradeClient extends GlobalFetch {
     gasLimit: number = 2000000,
     gasPrice: Maybe<string> = null
   ) {
+    if (this._network) throw new Error("network must be defined.")
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
@@ -501,6 +515,7 @@ export default class TradeClient extends GlobalFetch {
    * @returns promiseOrder
    */
   public async getTradeOrder(tradeId: string): Promise<Maybe<TradeDetail>> {
+    if (this._network) throw new Error("network must be defined.")
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
