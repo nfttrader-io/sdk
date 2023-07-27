@@ -27,6 +27,7 @@ import GetGlobalTradesListResponse from "./types/tradeClient/getGlobalTradesList
 import GetUserTradesListResponse from "./types/tradeClient/getUserTradesListResponse"
 import TradeClientConfig from "./types/tradeClient/tradeClientConfig"
 import PartialTrade from "./types/tradeClient/partialTrade"
+import TradeClientDefaultInit from "./types/tradeClient/tradeClientDefaultInit"
 
 const {
   royaltyRegistriesEngines,
@@ -37,10 +38,10 @@ const {
 export default class TradeClient extends GlobalFetch {
   private _isJsonRpcProvider = false
   private _isWeb3Provider = false
-  private _provider:
-    | ethers.providers.Web3Provider
-    | ethers.providers.JsonRpcProvider
-  private _seaport: Seaport
+  private _provider: Maybe<
+    ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider
+  > = null
+  private _seaport: Maybe<Seaport> = null
   private _eventsCollectorCallbacks = events.map(
     <EventName extends keyof TradeClientEventsMap>(
       name: EventName
@@ -58,57 +59,9 @@ export default class TradeClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
   private _MIN_BLOCKS_REQUIRED: number = 3
-  /**
-   * Create an instance of the NFTTrader TradeClient object.
-   *
-   * @param config - Configuration object for the sdk.
-   */
-  constructor(config: ApiKeyAuthorized<TradeClientJsonRpcInit>)
-  /**
-   * Create an instance of the NFTTrader TradeClient object.
-   *
-   * @param config - Configuration object for the sdk.
-   */
-  constructor(config: ApiKeyAuthorized<TradeClientWeb3Init>)
-  constructor(
-    config: ApiKeyAuthorized<TradeClientJsonRpcInit | TradeClientWeb3Init>
-  ) {
+
+  constructor(config: ApiKeyAuthorized<TradeClientDefaultInit>) {
     super()
-    if (
-      ("web3Provider" in config && "jsonRpcProvider" in config) ||
-      (!("web3Provider" in config) && !("jsonRpcProvider" in config))
-    )
-      throw new Error("You must provide only one provider at a time.")
-
-    if ("jsonRpcProvider" in config) {
-      if (
-        typeof config.jsonRpcProvider !== "string" ||
-        !config.jsonRpcProvider.length
-      )
-        throw new Error(
-          "jsonRpcProvider must be a string -> Eg. https://goerli.infura.io/v3/..."
-        )
-
-      this._isJsonRpcProvider = true
-      this._provider = new ethers.providers.JsonRpcProvider(
-        config.jsonRpcProvider
-      )
-    } else {
-      if (
-        typeof config.web3Provider !== "object" ||
-        Array.isArray(config.web3Provider)
-      )
-        throw new Error("web3Provider must be an object -> Eg. window.ethereum")
-
-      this._isWeb3Provider = true
-      this._provider = !(
-        config.web3Provider instanceof ethers.providers.Web3Provider
-      )
-        ? new ethers.providers.Web3Provider(config.web3Provider)
-        : config.web3Provider
-    }
-
-    this._seaport = new Seaport(this._provider, { seaportVersion: "1.5" })
 
     const { blocksNumberConfirmationRequired } = config
 
@@ -149,6 +102,44 @@ export default class TradeClient extends GlobalFetch {
     }
 
     return this._fetch(url, options)
+  }
+
+  public initClient(config: TradeClientJsonRpcInit | TradeClientWeb3Init) {
+    if (
+      ("web3Provider" in config && "jsonRpcProvider" in config) ||
+      (!("web3Provider" in config) && !("jsonRpcProvider" in config))
+    )
+      throw new Error("You must provide only one provider at a time.")
+
+    if ("jsonRpcProvider" in config) {
+      if (
+        typeof config.jsonRpcProvider !== "string" ||
+        !config.jsonRpcProvider.length
+      )
+        throw new Error(
+          "jsonRpcProvider must be a string -> Eg. https://goerli.infura.io/v3/..."
+        )
+
+      this._isJsonRpcProvider = true
+      this._provider = new ethers.providers.JsonRpcProvider(
+        config.jsonRpcProvider
+      )
+    } else {
+      if (
+        typeof config.web3Provider !== "object" ||
+        Array.isArray(config.web3Provider)
+      )
+        throw new Error("web3Provider must be an object -> Eg. window.ethereum")
+
+      this._isWeb3Provider = true
+      this._provider = !(
+        config.web3Provider instanceof ethers.providers.Web3Provider
+      )
+        ? new ethers.providers.Web3Provider(config.web3Provider)
+        : config.web3Provider
+    }
+
+    this._seaport = new Seaport(this._provider, { seaportVersion: "1.5" })
   }
 
   /**
@@ -297,7 +288,9 @@ export default class TradeClient extends GlobalFetch {
       replyId: string
     }
   ): Promise<Trade> {
-    if (this._network) throw new Error("network must be defined.")
+    if (!this._provider || !this._seaport)
+      throw new Error("initClient() must be called to initialize the client.")
+    if (!this._network) throw new Error("network must be defined.")
     if (end < 0) throw new Error("end cannot be lower than zero.")
     if ("assets" in maker && maker.assets && maker.assets.length > 0) {
       //seaport supports erc20 tokens in the offer array object but NFT Trader not,
@@ -390,7 +383,9 @@ export default class TradeClient extends GlobalFetch {
    * @param tradeId - The id of the trade
    */
   public async execTrade(tradeId: string) {
-    if (this._network) throw new Error("network must be defined.")
+    if (!this._seaport)
+      throw new Error("initClient() must be called to initialize the client.")
+    if (!this._network) throw new Error("network must be defined.")
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
@@ -457,6 +452,8 @@ export default class TradeClient extends GlobalFetch {
     gasLimit: number = 2000000,
     gasPrice: Maybe<string> = null
   ) {
+    if (!this._seaport)
+      throw new Error("initClient() must be called to initialize the client.")
     if (this._network) throw new Error("network must be defined.")
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
