@@ -538,8 +538,8 @@ export default class TradeClient extends GlobalFetch {
    * @returns
    */
   public async getGlobalTradesList(
-    networkId: string,
-    status: number,
+    networkId: Network | "*",
+    status: string | "*",
     skip: number,
     take: number,
     from?: string | "null",
