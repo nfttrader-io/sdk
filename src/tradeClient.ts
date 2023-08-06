@@ -534,6 +534,7 @@ export default class TradeClient extends GlobalFetch {
    * @param take
    * @param from
    * @param to
+   * @param collections
    * @param searchAddress
    * @returns
    */
@@ -606,6 +607,7 @@ export default class TradeClient extends GlobalFetch {
    * @param take
    * @param from
    * @param to
+   * @param collections
    * @param searchAddress
    * @returns
    */
