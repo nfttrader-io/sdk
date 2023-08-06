@@ -558,7 +558,7 @@ export default class TradeClient extends GlobalFetch {
     searchAddress?: string
   }): Promise<GetGlobalTradesListResponse> {
     try {
-      const tradeList = (
+      const tradesList = (
         await this._fetchWithAuth<{ data: Array<GetFullListResponse> }>(
           `${
             this._BACKEND_URL
@@ -582,15 +582,15 @@ export default class TradeClient extends GlobalFetch {
           {
             method: "POST",
             body: {
-              collections,
+              collections: collections ? collections : [],
             },
           }
         )
       ).data?.data?.[0]
 
-      if (!tradeList) throw new Error("Internal server error")
+      if (!tradesList) throw new Error("Internal server error")
 
-      return tradeList
+      return tradesList
     } catch (e) {
       console.warn(e)
       throw e
@@ -657,7 +657,7 @@ export default class TradeClient extends GlobalFetch {
           {
             method: "POST",
             body: {
-              collections,
+              collections: collections ? collections : [],
             },
           }
         )
