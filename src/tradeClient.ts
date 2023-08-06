@@ -537,37 +537,53 @@ export default class TradeClient extends GlobalFetch {
    * @param searchAddress
    * @returns
    */
-  public async getGlobalTradesList(
-    networkId: Network | "*",
-    status: string | "*",
-    skip: number,
-    take: number,
-    from?: string | "null",
-    to?: string | "null",
+  public async getGlobalTradesList({
+    networkId,
+    status,
+    skip,
+    take,
+    from,
+    to,
+    collections,
+    searchAddress,
+  }: {
+    networkId: Network | "*"
+    status: string | "*"
+    skip: number
+    take: number
+    from?: string | "null"
+    to?: string | "null"
+    collections?: Array<{ address: string; networkId: Network }>
     searchAddress?: string
-  ): Promise<GetGlobalTradesListResponse> {
+  }): Promise<GetGlobalTradesListResponse> {
     try {
       const tradeList = (
         await this._fetchWithAuth<{ data: Array<GetFullListResponse> }>(
           `${
             this._BACKEND_URL
           }/tradelist/getFullList/${networkId}/${status}/${skip}/${take}${
-            from !== undefined &&
+            typeof from !== "undefined" &&
             from !== null &&
-            to !== undefined &&
+            typeof to !== "undefined" &&
             to !== null
               ? `/${from}/${to}`
               : ""
           }${
-            from !== undefined &&
+            typeof from !== "undefined" &&
             from !== null &&
-            to !== undefined &&
+            typeof to !== "undefined" &&
             to !== null &&
-            searchAddress !== undefined &&
+            typeof searchAddress !== "undefined" &&
             searchAddress !== null
               ? `/${searchAddress}`
               : ""
-          }`
+          }`,
+          {
+            method: "POST",
+            body: {
+              collections,
+            },
+          }
         )
       ).data?.data?.[0]
 
@@ -593,38 +609,55 @@ export default class TradeClient extends GlobalFetch {
    * @param searchAddress
    * @returns
    */
-  public async getUserTradesList(
-    networkId: string,
-    address: string,
-    status: number,
-    skip: number,
-    take: number,
-    from?: string | "null",
-    to?: string | "null",
+  public async getUserTradesList({
+    networkId,
+    address,
+    status,
+    skip,
+    take,
+    from,
+    to,
+    collections,
+    searchAddress,
+  }: {
+    networkId: Network | "*"
+    address: string
+    status: string | "*"
+    skip: number
+    take: number
+    from?: string | "null"
+    to?: string | "null"
+    collections?: Array<{ address: string; networkId: Network }>
     searchAddress?: string
-  ): Promise<GetUserTradesListResponse> {
+  }): Promise<GetUserTradesListResponse> {
     try {
       const tradesList = (
         await this._fetchWithAuth<{ data: Array<GetUserTradesListResponse> }>(
           `${
             this._BACKEND_URL
           }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
-            from !== undefined &&
+            typeof from !== "undefined" &&
             from !== null &&
-            to !== undefined &&
+            typeof to !== "undefined" &&
             to !== null
               ? `/${from}/${to}`
               : ""
           }${
-            from !== undefined &&
+            typeof from !== "undefined" &&
             from !== null &&
-            to !== undefined &&
+            typeof to !== "undefined" &&
             to !== null &&
-            searchAddress !== undefined &&
+            typeof searchAddress !== "undefined" &&
             searchAddress !== null
               ? `/${searchAddress}`
               : ""
-          }`
+          }`,
+          {
+            method: "POST",
+            body: {
+              collections,
+            },
+          }
         )
       ).data?.data?.[0]
 
