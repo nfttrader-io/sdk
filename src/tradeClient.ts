@@ -582,7 +582,8 @@ export default class TradeClient extends GlobalFetch {
           {
             method: "POST",
             body: {
-              collections: collections ? collections : [],
+              collections:
+                typeof collections !== "undefined" ? collections : [],
             },
           }
         )
@@ -657,7 +658,8 @@ export default class TradeClient extends GlobalFetch {
           {
             method: "POST",
             body: {
-              collections: collections ? collections : [],
+              collections:
+                typeof collections !== "undefined" ? collections : [],
             },
           }
         )
