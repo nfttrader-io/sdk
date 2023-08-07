@@ -535,7 +535,7 @@ export default class TradeClient extends GlobalFetch {
    * @param from
    * @param to
    * @param collections
-   * @param searchAddress
+   * @param search
    * @returns
    */
   public async getGlobalTradesList({
@@ -546,7 +546,7 @@ export default class TradeClient extends GlobalFetch {
     from,
     to,
     collections,
-    searchAddress,
+    search,
   }: {
     networkId: Network | "*"
     status: string | "*"
@@ -555,7 +555,7 @@ export default class TradeClient extends GlobalFetch {
     from?: string | "null"
     to?: string | "null"
     collections?: Array<{ address: string; networkId: Network }>
-    searchAddress?: string
+    search?: Array<string>
   }): Promise<GetGlobalTradesListResponse> {
     try {
       const tradesList = (
@@ -569,21 +569,13 @@ export default class TradeClient extends GlobalFetch {
             to !== null
               ? `/${from}/${to}`
               : ""
-          }${
-            typeof from !== "undefined" &&
-            from !== null &&
-            typeof to !== "undefined" &&
-            to !== null &&
-            typeof searchAddress !== "undefined" &&
-            searchAddress !== null
-              ? `/${searchAddress}`
-              : ""
           }`,
           {
             method: "POST",
             body: {
               collections:
                 typeof collections !== "undefined" ? collections : [],
+              search: typeof search !== "undefined" ? search : [],
             },
           }
         )
