@@ -536,6 +536,7 @@ export default class TradeClient extends GlobalFetch {
    * @param to
    * @param collections
    * @param search
+   * @param order
    * @returns
    */
   public async getGlobalTradesList({
@@ -547,6 +548,7 @@ export default class TradeClient extends GlobalFetch {
     to,
     collections,
     search,
+    order,
   }: {
     networkId: Network | "*"
     status: string | "*"
@@ -556,6 +558,10 @@ export default class TradeClient extends GlobalFetch {
     to?: string | "null"
     collections?: Array<{ address: string; networkId: Network }>
     search?: Array<string>
+    order?: {
+      direction: "ASC" | "DESC"
+      field: string
+    }
   }): Promise<GetGlobalTradesListResponse> {
     try {
       const tradesList = (
@@ -576,6 +582,7 @@ export default class TradeClient extends GlobalFetch {
               collections:
                 typeof collections !== "undefined" ? collections : [],
               search: typeof search !== "undefined" ? search : [],
+              order: typeof order !== "undefined" ? order : [],
             },
           }
         )
@@ -602,6 +609,7 @@ export default class TradeClient extends GlobalFetch {
    * @param to
    * @param collections
    * @param searchAddress
+   * @param order
    * @returns
    */
   public async getUserTradesList({
@@ -614,6 +622,7 @@ export default class TradeClient extends GlobalFetch {
     to,
     collections,
     searchAddress,
+    order,
   }: {
     networkId: Network | "*"
     address: string
@@ -624,6 +633,10 @@ export default class TradeClient extends GlobalFetch {
     to?: string | "null"
     collections?: Array<{ address: string; networkId: Network }>
     searchAddress?: string
+    order?: {
+      direction: "ASC" | "DESC"
+      field: string
+    }
   }): Promise<GetUserTradesListResponse> {
     try {
       const tradesList = (
@@ -652,6 +665,7 @@ export default class TradeClient extends GlobalFetch {
             body: {
               collections:
                 typeof collections !== "undefined" ? collections : [],
+              order: typeof order !== "undefined" ? order : [],
             },
           }
         )
