@@ -507,15 +507,16 @@ export default class TradeClient extends GlobalFetch {
 
   /**
    * Get the order specified by the tradeId provided as a parameter
-   *
-   * @param tradeId
-   * @returns promiseOrder
+   * @param networkId - the network id of the trade
+   * @param tradeId - the identifier of the trade
    */
-  public async getTradeOrder(tradeId: string): Promise<Maybe<TradeDetail>> {
-    if (this._network) throw new Error("network must be defined.")
+  public async getTradeOrder(
+    networkId: string,
+    tradeId: string
+  ): Promise<Maybe<TradeDetail>> {
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${networkId}/${tradeId}`
       )
       if (response.data) return response.data.data[0]
     } catch (error) {
