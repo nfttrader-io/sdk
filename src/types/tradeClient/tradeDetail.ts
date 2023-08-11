@@ -35,6 +35,7 @@ export type DealMaster = {
   percentageFeeTaker: string
   percentageFeeTakerNative: number
   swapStatus: number
+  swapEnd: number
 }
 
 export type TradeDetail = {
