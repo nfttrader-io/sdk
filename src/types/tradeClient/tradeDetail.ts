@@ -36,6 +36,7 @@ export type DealMaster = {
   percentageFeeTakerNative: number
   swapStatus: number
   swapEnd: number
+  txHash: string
 }
 
 export type TradeDetail = {
