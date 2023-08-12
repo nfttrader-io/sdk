@@ -36,7 +36,7 @@ export type DealMaster = {
   percentageFeeTaker: string
   percentageFeeTakerNative: number
   swapStatus: number
-  swapEnd: number
+  swapEnd: string
   txHash: string
   maker: Array<Collector>
   taker: Array<Collector>
