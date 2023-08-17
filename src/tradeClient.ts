@@ -567,16 +567,7 @@ export default class TradeClient extends GlobalFetch {
     try {
       const tradesList = (
         await this._fetchWithAuth<{ data: Array<GetFullListResponse> }>(
-          `${
-            this._BACKEND_URL
-          }/tradelist/getFullList/${networkId}/${status}/${skip}/${take}${
-            typeof from !== "undefined" &&
-            from !== null &&
-            typeof to !== "undefined" &&
-            to !== null
-              ? `/${from}/${to}`
-              : ""
-          }`,
+          `${this._BACKEND_URL}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
           {
             method: "POST",
             body: {
@@ -584,6 +575,8 @@ export default class TradeClient extends GlobalFetch {
                 typeof collections !== "undefined" ? collections : [],
               search: typeof search !== "undefined" ? search : [],
               order: typeof order !== "undefined" ? order : [],
+              from: typeof from !== "undefined" && from !== null ? from : null,
+              to: typeof to !== "undefined" && to !== null ? to : null,
             },
           }
         )
@@ -645,19 +638,7 @@ export default class TradeClient extends GlobalFetch {
           `${
             this._BACKEND_URL
           }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
-            typeof from !== "undefined" &&
-            from !== null &&
-            typeof to !== "undefined" &&
-            to !== null
-              ? `/${from}/${to}`
-              : ""
-          }${
-            typeof from !== "undefined" &&
-            from !== null &&
-            typeof to !== "undefined" &&
-            to !== null &&
-            typeof searchAddress !== "undefined" &&
-            searchAddress !== null
+            typeof searchAddress !== "undefined" && searchAddress !== null
               ? `/${searchAddress}`
               : ""
           }`,
@@ -667,6 +648,8 @@ export default class TradeClient extends GlobalFetch {
               collections:
                 typeof collections !== "undefined" ? collections : [],
               order: typeof order !== "undefined" ? order : [],
+              from: typeof from !== "undefined" && from !== null ? from : null,
+              to: typeof to !== "undefined" && to !== null ? to : null,
             },
           }
         )
