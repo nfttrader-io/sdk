@@ -574,7 +574,7 @@ export default class TradeClient extends GlobalFetch {
               collections:
                 typeof collections !== "undefined" ? collections : [],
               search: typeof search !== "undefined" ? search : [],
-              order: typeof order !== "undefined" ? order : [],
+              order: typeof order !== "undefined" ? order : null,
               from: typeof from !== "undefined" && from !== null ? from : null,
               to: typeof to !== "undefined" && to !== null ? to : null,
             },
@@ -647,7 +647,7 @@ export default class TradeClient extends GlobalFetch {
             body: {
               collections:
                 typeof collections !== "undefined" ? collections : [],
-              order: typeof order !== "undefined" ? order : [],
+              order: typeof order !== "undefined" ? order : null,
               from: typeof from !== "undefined" && from !== null ? from : null,
               to: typeof to !== "undefined" && to !== null ? to : null,
             },
