@@ -555,8 +555,8 @@ export default class TradeClient extends GlobalFetch {
     status: string | "*"
     skip: number
     take: number
-    from?: string | "null"
-    to?: string | "null"
+    from?: string
+    to?: string
     collections?: Array<{ address: string; networkId: Network }>
     search?: Array<string>
     order?: {
@@ -575,8 +575,8 @@ export default class TradeClient extends GlobalFetch {
                 typeof collections !== "undefined" ? collections : [],
               search: typeof search !== "undefined" ? search : [],
               order: typeof order !== "undefined" ? order : null,
-              from: typeof from !== "undefined" && from !== null ? from : null,
-              to: typeof to !== "undefined" && to !== null ? to : null,
+              from: typeof from !== "undefined" ? from : null,
+              to: typeof to !== "undefined" ? to : null,
             },
           }
         )
@@ -623,8 +623,8 @@ export default class TradeClient extends GlobalFetch {
     status: string | "*"
     skip: number
     take: number
-    from?: string | "null"
-    to?: string | "null"
+    from?: string
+    to?: string
     collections?: Array<{ address: string; networkId: Network }>
     searchAddress?: string
     order?: {
@@ -648,8 +648,8 @@ export default class TradeClient extends GlobalFetch {
               collections:
                 typeof collections !== "undefined" ? collections : [],
               order: typeof order !== "undefined" ? order : null,
-              from: typeof from !== "undefined" && from !== null ? from : null,
-              to: typeof to !== "undefined" && to !== null ? to : null,
+              from: typeof from !== "undefined" ? from : null,
+              to: typeof to !== "undefined" ? to : null,
             },
           }
         )
