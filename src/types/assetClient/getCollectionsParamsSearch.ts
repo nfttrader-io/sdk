@@ -1,4 +1,4 @@
-type ParamsSearch = {
+type GetCollectionsParamsSearch = {
   userAddress: string
   searchType: "NFT" | "TKN" | "ALL"
   skip: number
@@ -7,4 +7,4 @@ type ParamsSearch = {
   queryString?: string
 }
 
-export default ParamsSearch
+export default GetCollectionsParamsSearch

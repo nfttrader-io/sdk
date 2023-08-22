@@ -3,11 +3,13 @@ import ApiKeyAuthorized from "./types/assetClient/apiKeyAuthorized"
 import AssetClientConfig from "./types/assetClient/assetClientConfig"
 import CollectionSupported from "./types/assetClient/collectionSupported"
 import CollectionsAdded from "./types/assetClient/collectionsAdded"
-import GetAssetsResponse from "./types/assetClient/getAssetsResponse"
-import ParamsSearch from "./types/assetClient/paramsSearch"
+import GetCollectionsResponse from "./types/assetClient/getCollectionsResponse"
+import GetCollectionsParamsSearch from "./types/assetClient/getCollectionsParamsSearch"
 import HTTPRequestInit from "./types/general/httpRequestInit"
 import HTTPResponse from "./types/general/httpResponse"
 import Maybe from "./types/general/maybe"
+import GetNFTsParamsSearch from "./types/assetClient/getNFTsParamsSearch"
+import GetNFTsResponse from "./types/assetClient/getNFTsResponse"
 
 export default class AssetClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
@@ -23,15 +25,43 @@ export default class AssetClient extends GlobalFetch {
    *
    * @param params - The search params to setup for querying the system.
    */
-  async getAssets(params: ParamsSearch): Promise<Maybe<GetAssetsResponse>> {
-    const url: string = `${this._BACKEND_URL}/collections/getAssets/${
+  async getCollections(
+    params: GetCollectionsParamsSearch
+  ): Promise<Maybe<GetCollectionsResponse>> {
+    const url: string = `${this._BACKEND_URL}/collections/getCollections/${
       params.networkId ? params.networkId : `*`
     }/${params.userAddress}/${params.searchType}/${params.skip}/${params.take}${
       params.queryString ? `/${params.queryString}` : ``
     }`
 
     try {
-      const { data } = await this._fetchWithAuth<GetAssetsResponse>(url)
+      const { data } = await this._fetchWithAuth<GetCollectionsResponse>(url)
+
+      return data ?? null
+    } catch (e) {
+      throw e
+    }
+  }
+
+  /**
+   * Get the NFTs owned by a user
+   *
+   * @param params - The search params to setup for querying the system.
+   */
+  async getNFTs(params: GetNFTsParamsSearch): Promise<Maybe<GetNFTsResponse>> {
+    const url: string = `${this._BACKEND_URL}/metadata/getNFTsByOwner/${
+      params.networkId
+    }/${params.address}/${params.take}${
+      params.continuation ? `/${params.continuation}` : undefined
+    }`
+
+    try {
+      const { data } = await this._fetchWithAuth<GetNFTsResponse>(url, {
+        method: "POST",
+        body: {
+          collections: params.collections ? params.collections : null,
+        },
+      })
 
       return data ?? null
     } catch (e) {
