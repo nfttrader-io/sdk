@@ -52,7 +52,7 @@ export default class AssetClient extends GlobalFetch {
     const url: string = `${this._BACKEND_URL}/metadata/getNFTsByOwner/${
       params.networkId
     }/${params.address}/${params.take}${
-      params.continuation ? `/${params.continuation}` : undefined
+      params.continuation ? `/${params.continuation}` : ``
     }`
 
     try {
