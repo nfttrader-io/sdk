@@ -29,6 +29,6 @@ export default interface TradeOrder {
     symbol: string
     assetLogo: string
     type: "ERC721" | "ERC1155" | "ERC20" | "NATIVE"
-    statusVerification: 0 | 1 | 2
+    statusVerification: -1 | 0 | 1 | 2
   }>
 }

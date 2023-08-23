@@ -3,7 +3,7 @@ import Collection from "./collection"
 
 export default interface PostAsset {
   name: string
-  statusVerification: 0 | 1 | 2
+  statusVerification: -1 | 0 | 1 | 2
   address: string
   imageUrl: string
   networkId: string

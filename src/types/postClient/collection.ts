@@ -2,7 +2,7 @@ import Maybe from "../general/maybe"
 
 export default interface Collection {
   name: string
-  statusVerification: 0 | 1 | 2
+  statusVerification: -1 | 0 | 1 | 2
   address: string
   imageUrl: string
   networkId: string
