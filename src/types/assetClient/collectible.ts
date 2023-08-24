@@ -1,4 +1,5 @@
 import Maybe from "../general/maybe"
+import Collection from "../postClient/collection"
 
 export interface Collectible {
   contract: {
@@ -49,4 +50,5 @@ export interface Collectible {
     blockTimestamp: Maybe<string> | Maybe<number>
     blockNumber: Maybe<string> | Maybe<number>
   }
+  nfttraderCollection?: Collection
 }
