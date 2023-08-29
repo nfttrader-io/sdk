@@ -10,6 +10,8 @@ import HTTPResponse from "./types/general/httpResponse"
 import Maybe from "./types/general/maybe"
 import GetNFTsParamsSearch from "./types/assetClient/getNFTsParamsSearch"
 import GetNFTsResponse from "./types/assetClient/getNFTsResponse"
+import GetNFTParamsSearch from "./types/assetClient/getNFTParamSearch"
+import GetNFTResponse from "./types/assetClient/getNFTResponse"
 
 export default class AssetClient extends GlobalFetch {
   private _apiKey: Maybe<string> = null
@@ -61,6 +63,29 @@ export default class AssetClient extends GlobalFetch {
         body: {
           collections: params.collections ? params.collections : null,
         },
+      })
+
+      return data ?? null
+    } catch (e) {
+      throw e
+    }
+  }
+
+  /**
+   * Get the NFTs owned by a user
+   *
+   * @param params - The search params to setup for querying the system.
+   */
+  async getNFT(params: GetNFTParamsSearch): Promise<Maybe<GetNFTResponse>> {
+    const url: string = `${this._BACKEND_URL}/metadata/getNftMetadata/${
+      params.networkId
+    }/${params.collectionAddress}/${params.tokenId}${
+      params.address ? `/${params.address}` : ``
+    }`
+
+    try {
+      const { data } = await this._fetchWithAuth<GetNFTResponse>(url, {
+        method: "GET",
       })
 
       return data ?? null

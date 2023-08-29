@@ -36,12 +36,16 @@ export interface Collectible {
     thumbnailUrl: Maybe<string>
     pngUrl: Maybe<string>
     contentType: Maybe<string>
-    size: Maybe<string>
+    size: Maybe<number>
     originalUrl: Maybe<string>
   }
   raw: {
     tokenUri: Maybe<string>
-    metadata: any
+    metadata: Maybe<{
+      name: Maybe<string>
+      image: Maybe<string>
+      attributes: Array<any>
+    }>
     error: any
   }
   timeLastUpdated: Maybe<string>
@@ -50,5 +54,12 @@ export interface Collectible {
     blockTimestamp: Maybe<string> | Maybe<number>
     blockNumber: Maybe<string> | Maybe<number>
   }
+  collection?: {
+    name: Maybe<string>
+    openSeaSlug: Maybe<string>
+    externalUrl: Maybe<string>
+    bannerImageUrl: Maybe<string>
+  }
   nfttraderCollection?: Collection
+  isOwner?: boolean
 }
