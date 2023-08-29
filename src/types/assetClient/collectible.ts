@@ -62,4 +62,5 @@ export interface Collectible {
   }
   nfttraderCollection?: Collection
   isOwner?: boolean
+  owner?: Array<string> | string
 }
