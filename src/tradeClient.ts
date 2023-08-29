@@ -454,7 +454,7 @@ export default class TradeClient extends GlobalFetch {
   ) {
     if (!this._seaport)
       throw new Error("initClient() must be called to initialize the client.")
-    if (this._network) throw new Error("network must be defined.")
+    if (!this._network) throw new Error("network must be defined.")
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
