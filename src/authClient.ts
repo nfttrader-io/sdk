@@ -179,6 +179,14 @@ export default class AuthClient extends GlobalFetch {
           this._authMode === AuthMode.CREDENTIALS
             ? credentials.password
             : undefined,
+        serviceName:
+          this._authMode === AuthMode.WALLET ? this._serviceName : undefined,
+        serviceTOSURL:
+          this._authMode === AuthMode.WALLET ? this._serviceTOSURL : undefined,
+        servicePrivacyURL:
+          this._authMode === AuthMode.WALLET
+            ? this._servicePrivacyURL
+            : undefined,
       }
 
       const response = await this._fetch<SigninResponse>(
