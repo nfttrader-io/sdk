@@ -1,6 +1,7 @@
 import TradeClient from "./tradeClient"
 import PostClient from "./postClient"
 import AssetClient from "./assetClient"
+import AuthClient from "./authClient"
 import AssetsArray from "./assetsArray"
 import _Network from "./types/general/network"
 import PostBuilder from "./postBuilder"
@@ -44,6 +45,15 @@ export * as AssetItem from "./types/postBuilder/assetItem"
 export * as AssetClientConfig from "./types/assetClient/assetClientConfig"
 export * as CollectionSupported from "./types/assetClient/collectionSupported"
 export * as CollectionsAdded from "./types/assetClient/collectionsAdded"
+// AUTHCLIENT
+export * as IsUserRegisteredResponse from "./types/authClient/isUserRegisteredResponse"
+export * as SigninResponse from "./types/authClient/signinResponse"
+export * as SignupResponse from "./types/authClient/signupResponse"
+export * as Credentials from "./types/authClient/credentials"
+export * as AuthConfig from "./types/authClient/authConfig"
+export * as AuthClientConfig from "./types/authClient/authClientConfig"
+export * as User from "./types/authClient/user"
+export * as AuthMode from "./types/authClient/authMode"
 
 export {
   TradeClient,
@@ -53,6 +63,7 @@ export {
   AssetClient,
   POST_TYPE,
   POST_STATUS,
+  AuthClient,
 }
 export default {
   TradeClient,
@@ -62,4 +73,5 @@ export default {
   AssetClient,
   POST_TYPE,
   POST_STATUS,
+  AuthClient,
 }
