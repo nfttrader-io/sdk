@@ -36,8 +36,6 @@ const {
 } = contracts
 
 export default class TradeClient extends GlobalFetch {
-  private _isJsonRpcProvider = false
-  private _isWeb3Provider = false
   private _provider: Maybe<
     ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider
   > = null
@@ -120,7 +118,6 @@ export default class TradeClient extends GlobalFetch {
           "jsonRpcProvider must be a string -> Eg. https://goerli.infura.io/v3/..."
         )
 
-      this._isJsonRpcProvider = true
       this._provider = new ethers.providers.JsonRpcProvider(
         config.jsonRpcProvider
       )
@@ -131,7 +128,6 @@ export default class TradeClient extends GlobalFetch {
       )
         throw new Error("web3Provider must be an object -> Eg. window.ethereum")
 
-      this._isWeb3Provider = true
       this._provider = !(
         config.web3Provider instanceof ethers.providers.Web3Provider
       )
