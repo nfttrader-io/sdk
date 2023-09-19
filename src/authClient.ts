@@ -96,9 +96,7 @@ export default class AuthClient extends GlobalFetch {
     }
   }
 
-  public async signup(
-    credentials: Credentials
-  ): Promise<SignupResponse | boolean> {
+  public async signup(credentials: Credentials): Promise<boolean> {
     if (!this._authMode) throw new Error("An auth mode must be defined.")
 
     if (AuthMode.WALLET === this._authMode && !credentials.address)
