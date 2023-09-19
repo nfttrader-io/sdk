@@ -16,7 +16,7 @@ export default class AuthClient extends GlobalFetch {
   private _servicePrivacyURL: Maybe<string> = null
   private _nonce: Maybe<string> = null
   private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
-  private _messageToSign = `Welcome to {serviceName}!\n\nClick to sign in and accept the {serviceName} Terms of Service: {tosURL}\n\n and the Privacy Policy: {privacyURL}\n\nYour nonce is: {nonce}`
+  private _messageToSign = `Welcome to {serviceName}!\n\nClick to sign in and accept the {serviceName} Terms of Service: {tosURL}\n\nand the Privacy Policy: {privacyURL}\n\nYour nonce is: {nonce}`
 
   constructor(config: AuthConfig) {
     super()
