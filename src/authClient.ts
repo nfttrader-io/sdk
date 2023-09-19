@@ -85,8 +85,12 @@ export default class AuthClient extends GlobalFetch {
         return false
 
       const nonce = response.data.data[0].nonce
-      this._nonce = nonce
-      return true
+      if (nonce) {
+        this._nonce = nonce
+        return true
+      } else {
+        return false
+      }
     } catch (error) {
       return false
     }
