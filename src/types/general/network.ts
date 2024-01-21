@@ -13,6 +13,7 @@ type Network =
   | "43114"
   | "80001"
   | "421611"
+  | "1261120"
   | "11155111"
 
 export default Network

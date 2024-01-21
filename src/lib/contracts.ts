@@ -15,6 +15,7 @@ const royaltyRegistriesEngines: Record<Network, string> = {
   "43114": "",
   "80001": "0x0a01E11887f727D1b1Cd81251eeEE9BEE4262D07",
   "421611": "",
+  "1261120": "",
   "11155111": "",
 }
 
@@ -33,6 +34,7 @@ const seaportSmartContracts: Record<Network, string> = {
   "43114": "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC",
   "80001": "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC",
   "421611": "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC",
+  "1261120": "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC",
   "11155111": "0x00000000000000ADc04C56Bf30aC9d3c0aAF14dC",
 }
 
