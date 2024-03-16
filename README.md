@@ -19,18 +19,18 @@ Before to start any implementation on the SDK, you should request an API key [he
 
 The SDK is currently compatible with the following blockchains:
 
-| Blockchain           | Status                                   |
-| -------------------- | ---------------------------------------- |
-| `Ethereum Mainnet`   | $${\color{lightgreen}available}$$        |
-| `Goerli (Ethereum)`  | $${\color{red}deprecated}$$              |
-| `Sepolia (Ethereum)` | $${\color{lightblue}Light \space Blue}$$ |
-| `Polygon`            | $${\color{lightgreen}available}$$        |
-| `Mumbai (Polygon)`   | $${\color{lightgreen}available}$$        |
-| `Optimism`           | $${\color{lightgreen}available}$$        |
-| `Arbitrum`           | $${\color{lightgreen}available}$$        |
-| `Binance`            | $${\color{lightgreen}available}$$        |
-| `Astar ZKEVM`        | $${\color{lightgreen}available}$$        |
-| `Astar zKatana`      | $${\color{lightgreen}available}$$        |
+| Blockchain           | Status                                       |
+| -------------------- | -------------------------------------------- |
+| `Ethereum Mainnet`   | $${\color{lightgreen}available}$$            |
+| `Goerli (Ethereum)`  | $${\color{red}deprecated}$$                  |
+| `Sepolia (Ethereum)` | $${\color{lightblue}Available \space Soon}$$ |
+| `Polygon`            | $${\color{lightgreen}available}$$            |
+| `Mumbai (Polygon)`   | $${\color{lightgreen}available}$$            |
+| `Optimism`           | $${\color{lightgreen}available}$$            |
+| `Arbitrum`           | $${\color{lightgreen}available}$$            |
+| `Binance`            | $${\color{lightgreen}available}$$            |
+| `Astar ZKEVM`        | $${\color{lightgreen}available}$$            |
+| `Astar zKatana`      | $${\color{lightgreen}available}$$            |
 
 ## Installation
 
