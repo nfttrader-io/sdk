@@ -19,15 +19,18 @@ Before to start any implementation on the SDK, you should request an API key [he
 
 The SDK is currently compatible with the following blockchains:
 
-- Ethereum mainnet
-- Goerli testnet (deprecated)
-- Polygon
-- Mumbai Polygon testnet
-- Optimism
-- Arbitrum
-- Binance
-- Astar ZKEVM
-- Astar zKatana
+| Blockchain           | Status                    |
+| -------------------- | ------------------------- |
+| `Ethereum Mainnet`   | ![#63d55a] available      |
+| `Goerli (Ethereum)`  | ![#e91a1a] deprecated     |
+| `Sepolia (Ethereum)` | ![#1ac8e9] available soon |
+| `Polygon`            | ![#63d55a] available      |
+| `Mumbai (Polygon)`   | ![#63d55a] available      |
+| `Optimism`           | ![#63d55a] available      |
+| `Arbitrum`           | ![#63d55a] available      |
+| `Binance`            | ![#63d55a] available      |
+| `Astar ZKEVM`        | ![#63d55a] available      |
+| `Astar zKatana`      | ![#63d55a] available      |
 
 ## Installation
 
