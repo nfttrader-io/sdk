@@ -1,10 +1,10 @@
 import Trade from "./trade"
-import Post from "./post"
+import Post from "./post/index"
+import { Builder as PostBuilder } from "./post/index"
 import Oracle from "./oracle"
 import Auth from "./auth"
 import AssetsArray from "./assetsArray"
 import _Network from "./types/general/network"
-import PostBuilder from "./postBuilder"
 import POST_TYPE from "./lib/post/postType"
 import POST_STATUS from "./lib/post/postStatus"
 
