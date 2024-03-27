@@ -2,7 +2,7 @@ import { TransactionMethods } from "@opensea/seaport-js/lib/types"
 import * as ethers from "ethers"
 import TradeClientEventError from "./eventError"
 
-export default interface TradeClientEventsMap {
+export default interface TradeEvents {
   cancelTradeTransactionCreated: (p: { tx: TransactionMethods<boolean> }) => any
   cancelTradeTransactionMined: (p: {
     receipt: ethers.providers.TransactionReceipt

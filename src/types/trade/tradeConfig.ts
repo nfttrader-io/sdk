@@ -1,4 +1,4 @@
-type TradeClientConfig = {
+type TradeConfig = {
   /**
    * the backend endpoint
    */
@@ -10,4 +10,4 @@ type TradeClientConfig = {
   minBlocksRequired?: number
 }
 
-export default TradeClientConfig
+export default TradeConfig

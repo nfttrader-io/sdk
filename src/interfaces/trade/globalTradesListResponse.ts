@@ -1,6 +1,6 @@
 import TradeOrder from "./tradeOrder"
 
-export default interface GetUserTradesListResponse {
+export default interface GlobalTradesListResponse {
   tradeList: Array<TradeOrder>
   count: number
 }

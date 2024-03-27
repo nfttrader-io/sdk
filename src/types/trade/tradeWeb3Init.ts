@@ -1,11 +1,11 @@
 import { ethers } from "ethers"
-import TradeClientDefaultInit from "./tradeClientDefaultInit"
+import TradeDefaultInit from "./tradeDefaultInit"
 
-type TradeClientWeb3Init = {
+type TradeWeb3Init = {
   /**
    * The handler object for the interaction with the chain.
    */
   web3Provider: ethers.providers.ExternalProvider
-} & TradeClientDefaultInit
+} & TradeDefaultInit
 
-export default TradeClientWeb3Init
+export default TradeWeb3Init

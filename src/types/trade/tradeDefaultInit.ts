@@ -1,4 +1,4 @@
-type TradeClientDefaultInit = {
+type TradeDefaultInit = {
   /**
    * The number of the mined blocks to wait for considering a transaction valid.
    *
@@ -7,4 +7,4 @@ type TradeClientDefaultInit = {
   blocksNumberConfirmationRequired?: number
 }
 
-export default TradeClientDefaultInit
+export default TradeDefaultInit

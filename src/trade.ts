@@ -12,22 +12,21 @@ import Maybe from "./types/general/maybe"
 import Network from "./types/general/network"
 import ApiKeyAuthorized from "./types/trade/apiKeyAuthorized"
 import CallbackParams from "./types/trade/callbackParams"
-import CreateTradePeer from "./types/trade/createTradePeer"
-import TradeClientEventsMap from "./interfaces/trade/eventsMap"
+import TradeAsset from "./types/trade/tradeAsset"
+import TradeEvents from "./interfaces/trade/eventsMap"
 import Fee from "./types/trade/fee"
 import MultiSigWallet from "./types/trade/multisigWallet"
 import NFTTraderFees from "./types/trade/nfttraderFees"
 import TradeInstance from "./types/trade/tradeInstance"
 import { TradeDetail } from "./types/trade/tradeDetail"
-import TradeClientJsonRpcInit from "./types/trade/tradeClientJsonRpcInit"
-import TradeClientWeb3Init from "./types/trade/tradeClientWeb3Init"
+import TradeJsonRpcInit from "./types/trade/tradeJsonRpcInit"
+import TradeWeb3Init from "./types/trade/tradeWeb3Init"
 import WithAddress from "./types/trade/withAddress"
-import GetFullListResponse from "./interfaces/trade/getGlobalTradesListResponse"
-import GetGlobalTradesListResponse from "./interfaces/trade/getGlobalTradesListResponse"
-import GetUserTradesListResponse from "./interfaces/trade/getUserTradesListResponse"
-import TradeClientConfig from "./types/trade/tradeClientConfig"
+import GlobalTradesListResponse from "./interfaces/trade/globalTradesListResponse"
+import UserTradesListResponse from "./interfaces/trade/userTradesListResponse"
+import TradeConfig from "./types/trade/tradeConfig"
 import PartialTrade from "./types/trade/partialTrade"
-import TradeClientDefaultInit from "./types/trade/tradeClientDefaultInit"
+import TradeDefaultInit from "./types/trade/tradeDefaultInit"
 
 const {
   royaltyRegistriesEngines,
@@ -41,11 +40,11 @@ export default class Trade extends HTTPClient {
   > = null
   private _seaport: Maybe<Seaport> = null
   private _eventsCollectorCallbacks = events.map(
-    <EventName extends keyof TradeClientEventsMap>(
+    <EventName extends keyof TradeEvents>(
       name: EventName
     ): {
       name: EventName
-      callbacks: Array<TradeClientEventsMap[EventName]>
+      callbacks: Array<TradeEvents[EventName]>
     } => ({
       name,
       callbacks: [],
@@ -58,7 +57,7 @@ export default class Trade extends HTTPClient {
   private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
   private _MIN_BLOCKS_REQUIRED: number = 3
 
-  constructor(config: ApiKeyAuthorized<TradeClientDefaultInit>) {
+  constructor(config: ApiKeyAuthorized<TradeDefaultInit>) {
     super()
 
     const { blocksNumberConfirmationRequired } = config
@@ -102,7 +101,7 @@ export default class Trade extends HTTPClient {
     return this._fetch(url, options)
   }
 
-  public initClient(config: TradeClientJsonRpcInit | TradeClientWeb3Init) {
+  public initClient(config: TradeJsonRpcInit | TradeWeb3Init) {
     if (
       ("web3Provider" in config && "jsonRpcProvider" in config) ||
       (!("web3Provider" in config) && !("jsonRpcProvider" in config))
@@ -144,9 +143,9 @@ export default class Trade extends HTTPClient {
    * @param eventName - The name of the event.
    * @param callback - The callback function to execute once the event is fired.
    */
-  public on<EventName extends keyof TradeClientEventsMap>(
+  public on<EventName extends keyof TradeEvents>(
     eventName: EventName,
-    callback: TradeClientEventsMap[EventName]
+    callback: TradeEvents[EventName]
   ) {
     const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
@@ -176,9 +175,9 @@ export default class Trade extends HTTPClient {
    * @param eventName - The name of the event.
    * @param callback - The callback function to execute once the event is fired.
    */
-  public off<EventName extends keyof TradeClientEventsMap>(
+  public off<EventName extends keyof TradeEvents>(
     eventName: EventName,
-    callback?: TradeClientEventsMap[EventName] | null
+    callback?: TradeEvents[EventName] | null
   ) {
     const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
@@ -209,9 +208,9 @@ export default class Trade extends HTTPClient {
    * @param eventName - The name of the event.
    * @param params - The params to give to the callback function.
    */
-  private __emit<EventName extends keyof TradeClientEventsMap>(
+  private __emit<EventName extends keyof TradeEvents>(
     eventName: EventName,
-    params?: CallbackParams<TradeClientEventsMap[EventName]>
+    params?: CallbackParams<TradeEvents[EventName]>
   ) {
     const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
@@ -273,9 +272,9 @@ export default class Trade extends HTTPClient {
    * @param post.postId - The post id related to this trade
    * @param post.replyId - The reply id related to the offer accepted to initialize the trade
    */
-  public async createTrade(
-    maker: CreateTradePeer<WithAddress>,
-    taker: CreateTradePeer<WithAddress>,
+  public async create(
+    maker: TradeAsset<WithAddress>,
+    taker: TradeAsset<WithAddress>,
     end = 0,
     signature: string,
     fees?: Array<Fee>,
@@ -378,7 +377,7 @@ export default class Trade extends HTTPClient {
    *
    * @param tradeId - The id of the trade
    */
-  public async execTrade(tradeId: string) {
+  public async finalize(tradeId: string) {
     if (!this._seaport)
       throw new Error("initClient() must be called to initialize the client.")
     if (!this._network) throw new Error("network must be defined.")
@@ -443,7 +442,7 @@ export default class Trade extends HTTPClient {
    * @param gasLimit - the gas limit of the transaction
    * @param gasPrice - the gas price of the transaction
    */
-  public async cancelTrade(
+  public async cancel(
     tradeId: string,
     gasLimit: number = 2000000,
     gasPrice: Maybe<string> = null
@@ -506,7 +505,7 @@ export default class Trade extends HTTPClient {
    * @param networkId - the network id of the trade
    * @param tradeId - the identifier of the trade
    */
-  public async getTradeOrder(
+  public async getDetail(
     networkId: string,
     tradeId: string
   ): Promise<Maybe<TradeDetail>> {
@@ -559,10 +558,10 @@ export default class Trade extends HTTPClient {
       direction: "ASC" | "DESC"
       field: string
     }
-  }): Promise<GetGlobalTradesListResponse> {
+  }): Promise<GlobalTradesListResponse> {
     try {
       const tradesList = (
-        await this._fetchWithAuth<{ data: Array<GetFullListResponse> }>(
+        await this._fetchWithAuth<{ data: Array<GlobalTradesListResponse> }>(
           `${this._BACKEND_URL}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
           {
             method: "POST",
@@ -627,10 +626,10 @@ export default class Trade extends HTTPClient {
       direction: "ASC" | "DESC"
       field: string
     }
-  }): Promise<GetUserTradesListResponse> {
+  }): Promise<UserTradesListResponse> {
     try {
       const tradesList = (
-        await this._fetchWithAuth<{ data: Array<GetUserTradesListResponse> }>(
+        await this._fetchWithAuth<{ data: Array<UserTradesListResponse> }>(
           `${
             this._BACKEND_URL
           }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
@@ -665,7 +664,7 @@ export default class Trade extends HTTPClient {
    *
    * @param config
    */
-  public config(config: TradeClientConfig) {
+  public config(config: TradeConfig) {
     if (config.backendURL) this._BACKEND_URL = config.backendURL
     if (config.minBlocksRequired)
       this._MIN_BLOCKS_REQUIRED = config.minBlocksRequired
