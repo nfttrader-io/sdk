@@ -1,8 +1,8 @@
-import CreatePostAssets from "../../interfaces/post/createPostAssets"
+import CreatePostAssets from "../../interfaces/post/replyPostAssets"
 import PostType from "./postType"
 import PostTypeName from "./postTypeName"
 
-type CreatePost = {
+type PostObject = {
   assets: CreatePostAssets
   expirationDate: number
   messages: Array<{ type: string }>
@@ -11,4 +11,4 @@ type CreatePost = {
   creatorAddress: string
 }
 
-export default CreatePost
+export default PostObject

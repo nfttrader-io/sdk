@@ -4,8 +4,8 @@ import HTTPRequestInit from "./types/general/httpRequestInit"
 import ListPostsFilters from "./interfaces/post/listPostsFilters"
 import ListPostsOrder from "./interfaces/post/listPostsOrder"
 import ListPostsResponse from "./interfaces/post/listPostsResponse"
-import CreatePost from "./types/post/createPost"
-import CreatePostReply from "./types/post/createPostReply"
+import PostObject from "./types/post/postObject"
+import PostReplyObject from "./types/post/postReplyObject"
 import PostStatus from "./types/post/postStatus"
 import validateListPostsFilters from "./lib/post/validateListPostsFilters"
 import PostType from "./types/post/postType"
@@ -44,7 +44,7 @@ export default class Post extends HTTPClient {
    * @param id - The id of the post
    * @param creatorAddress - The creator of the post
    */
-  public async getPost(
+  public async get(
     id: string,
     creatorAddress?: string
   ): Promise<Maybe<PostInstance>> {
@@ -71,7 +71,7 @@ export default class Post extends HTTPClient {
    * @param take - A number representing the number of posts to take (used for the pagination)
    * @param creatorAddress - A string representing the address of the wallet owner. Used to set the isCreator value to true in the case a post is created by this address
    */
-  public async getPostReplies(
+  public async listReplies(
     id: string,
     orderOptions?: ListPostsRepliesOrder,
     skip?: number,
@@ -112,7 +112,7 @@ export default class Post extends HTTPClient {
    * @param take - A number representing the number of posts to take (used for the pagination)
    * @param creatorAddress - A string representing the address of the wallet owner. Used to set the isCreator value to true in the case a post is created by this address
    */
-  public async listPosts(
+  public async list(
     filtersOptions?: ListPostsFilters,
     orderOptions?: ListPostsOrder,
     skip?: number,
@@ -191,7 +191,7 @@ export default class Post extends HTTPClient {
    * @param post - A post to be created
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPost(post: CreatePost, signedMessage: string) {
+  public async create(post: PostObject, signedMessage: string) {
     return this._createPost(post, signedMessage)
   }
 
@@ -202,7 +202,7 @@ export default class Post extends HTTPClient {
    * @param parentId - The parent post id to whom this reply belongs to
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async createPostReply(reply: CreatePostReply, signedMessage: string) {
+  public async reply(reply: PostReplyObject, signedMessage: string) {
     const type: number = POST_TYPE.R1
     return this._createPost({ ...reply, type }, signedMessage)
   }
@@ -213,7 +213,7 @@ export default class Post extends HTTPClient {
    * @param id - The id of the post to delete
    * @param signedMessage - A signed message by the user wallet (provide it only if the PostClient is initialized with an API key)
    */
-  public async deletePost(
+  public async delete(
     id: string,
     creatorAddress: string,
     signedMessage?: string
@@ -262,7 +262,7 @@ export default class Post extends HTTPClient {
   }
 
   private async _createPost<
-    P extends (CreatePost | CreatePostReply) &
+    P extends (PostObject | PostReplyObject) &
       Partial<Pick<PostInstance, "parentId">>
   >(post: P, signedMessage: string): Promise<Maybe<string>> {
     if (this._apiKey && !signedMessage)

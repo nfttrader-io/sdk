@@ -1,6 +1,6 @@
 import AssetItem from "../../types/post/builder/assetItem"
 
-export default interface CreatePostAssets {
+export default interface ReplyPostAssets {
   wanted?: AssetItem[]
   offered?: AssetItem[]
 }

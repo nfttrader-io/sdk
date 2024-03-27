@@ -1,6 +1,6 @@
 import Maybe from "../../types/general/maybe"
 import Collector from "./collector"
-import CreatePostAssets from "./createPostAssets"
+import CreatePostAssets from "./replyPostAssets"
 import PostStatus from "../../types/post/postStatus"
 import PostStatusName from "../../types/post/postStatusName"
 import PostType from "../../types/post/postType"

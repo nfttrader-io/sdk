@@ -503,15 +503,12 @@ export default class Trade extends HTTPClient {
   /**
    * Get the order specified by the tradeId provided as a parameter
    * @param networkId - the network id of the trade
-   * @param tradeId - the identifier of the trade
+   * @param id - the identifier of the trade
    */
-  public async getDetail(
-    networkId: string,
-    tradeId: string
-  ): Promise<Maybe<TradeDetail>> {
+  public async get(networkId: string, id: string): Promise<Maybe<TradeDetail>> {
     try {
       const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${networkId}/${tradeId}`
+        `${this._BACKEND_URL}/tradelist/getSwapDetail/${networkId}/${id}`
       )
       if (response.data) return response.data.data[0]
     } catch (error) {

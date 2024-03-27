@@ -4,9 +4,9 @@ import Maybe from "./types/general/maybe"
 import AssetItem from "./types/post/builder/assetItem"
 import LookingFor from "./types/post/builder/lookingFor"
 import Offer from "./types/post/builder/offer"
-import CreatePost from "./types/post/createPost"
-import CreatePostAssets from "./interfaces/post/createPostAssets"
-import CreatePostReply from "./types/post/createPostReply"
+import PostObject from "./types/post/postObject"
+import ReplyPostAssets from "./interfaces/post/replyPostAssets"
+import PostReplyObject from "./types/post/postReplyObject"
 import PostLike from "./interfaces/post/postLike"
 import PostTypeValue from "./types/post/postTypeValue"
 import { ethers } from "ethers"
@@ -20,7 +20,7 @@ export default class PostBuilder {
   private expirationDate: Maybe<Date> = null
   private creatorAddress: Maybe<string> = null
   private messages: Maybe<Array<{ type: string }>> = null
-  private assets: Maybe<CreatePostAssets> = {}
+  private assets: Maybe<ReplyPostAssets> = {}
   private wanted: AssetItem[] = []
   private offered: AssetItem[] = []
   private typeWanted: Array<string> = ["0", "0", "0"]
@@ -459,7 +459,7 @@ export default class PostBuilder {
    *
    * @param post - The post like object
    */
-  getCreatePost(post: PostLike): CreatePost {
+  getCreatePost(post: PostLike): PostObject {
     return {
       assets: post.assets,
       creatorAddress: post.creator.address,
@@ -475,7 +475,7 @@ export default class PostBuilder {
    *
    * @param post - The post like object
    */
-  getCreatePostReply(post: PostLike): CreatePostReply {
+  getCreatePostReply(post: PostLike): PostReplyObject {
     return {
       creatorAddress: post.creator.address,
       assets: post.assets,
