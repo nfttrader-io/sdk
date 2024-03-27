@@ -1,5 +1,5 @@
 import Trade from "./trade"
-import Post from "./post/index"
+import { Post } from "./post/index"
 import { Builder as PostBuilder } from "./post/index"
 import Oracle from "./oracle"
 import Auth from "./auth"
