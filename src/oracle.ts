@@ -1,6 +1,6 @@
 import HTTPClient from "./lib/httpClient"
 import ApiKeyAuthorized from "./types/oracle/apiKeyAuthorized"
-import AssetClientConfig from "./types/oracle/assetClientConfig"
+import OracleConfig from "./types/oracle/oracleConfig"
 import CollectionSupported from "./interfaces/oracle/collectionSupported"
 import CollectionsAdded from "./interfaces/oracle/collectionsAdded"
 import GetCollectionsResponse from "./interfaces/oracle/getCollectionsResponse"
@@ -186,7 +186,7 @@ export default class Oracle extends HTTPClient {
    *
    * @param config
    */
-  public config(config: AssetClientConfig) {
+  public config(config: OracleConfig) {
     if (config.backendURL) this._BACKEND_URL = config.backendURL
   }
 

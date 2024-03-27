@@ -8,7 +8,6 @@ import _Network from "./types/general/network"
 import POST_TYPE from "./lib/post/postType"
 import POST_STATUS from "./lib/post/postStatus"
 
-// TYPES export
 // GENERAL
 export * as BitmapOffered from "./types/general/bitmapOffered"
 export * as BitmapWanted from "./types/general/bitmapWanted"
@@ -42,7 +41,7 @@ export * as LookingFor from "./types/post/builder/lookingFor"
 export * as Offer from "./types/post/builder/offer"
 export * as AssetItem from "./types/post/builder/assetItem"
 // ORACLE
-export * as AssetClientConfig from "./types/oracle/assetClientConfig"
+export * as AssetClientConfig from "./types/oracle/oracleConfig"
 export * as CollectionSupported from "./interfaces/oracle/collectionSupported"
 export * as CollectionsAdded from "./interfaces/oracle/collectionsAdded"
 // AUTH
