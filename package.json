@@ -44,6 +44,7 @@
     "@urql/core": "^4.3.0",
     "bufferutil": "^4.0.7",
     "ethers": "^5.7.2",
+    "jsrsasign": "^11.1.0",
     "utf-8-validate": "^5.0.10"
   }
 }
