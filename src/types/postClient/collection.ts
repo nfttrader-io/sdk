@@ -12,4 +12,8 @@ export default interface Collection {
   createdAt: Maybe<string>
   isFavourite?: 0 | 1
   notification?: boolean
+  description?: string
+  percentageRoyalties?: string
+  tokenType?: string
+  explorerURL?: string
 }
