@@ -1,12 +1,12 @@
 import Trade from "./trade"
-import { Post } from "./post/index"
-import { Builder as PostBuilder } from "./post/index"
+import { Post } from "./core/post/index"
+import { Builder as PostBuilder } from "./core/post/index"
 import Oracle from "./oracle"
 import Auth from "./auth"
-import AssetsArray from "./assetsArray"
+import AssetsArray from "./core/assetsArray"
 import _Network from "./types/general/network"
-import POST_TYPE from "./lib/post/postType"
-import POST_STATUS from "./lib/post/postStatus"
+import POST_TYPE from "./constants/post/postType"
+import POST_STATUS from "./constants/post/postStatus"
 
 // GENERAL
 export * as BitmapOffered from "./types/general/bitmapOffered"

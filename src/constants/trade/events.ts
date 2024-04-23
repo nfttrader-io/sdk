@@ -1,4 +1,4 @@
-import TradeClientEventsMap from "../interfaces/trade/eventsMap"
+import TradeClientEventsMap from "../../interfaces/trade/eventsMap"
 
 export default [
   "cancelTradeTransactionCreated",

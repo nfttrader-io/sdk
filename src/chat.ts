@@ -1,4 +1,4 @@
-import HTTPClient from "./lib/httpClient"
+import HTTPClient from "./core/httpClient"
 import { ChatConfig } from "./types/chat/chatConfig"
 import { Client, cacheExchange, fetchExchange } from "@urql/core"
 

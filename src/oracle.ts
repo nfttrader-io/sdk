@@ -1,4 +1,4 @@
-import HTTPClient from "./lib/httpClient"
+import HTTPClient from "./core/httpClient"
 import ApiKeyAuthorized from "./types/oracle/apiKeyAuthorized"
 import OracleConfig from "./types/oracle/oracleConfig"
 import CollectionSupported from "./interfaces/oracle/collectionSupported"

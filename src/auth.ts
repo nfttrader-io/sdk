@@ -1,4 +1,4 @@
-import HTTPClient from "./lib/httpClient"
+import HTTPClient from "./core/httpClient"
 import { AuthClientConfig } from "./types/auth/authClientConfig"
 import { AuthConfig } from "./types/auth/authConfig"
 import AuthMode from "./types/auth/authMode"

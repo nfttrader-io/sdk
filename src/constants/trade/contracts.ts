@@ -1,4 +1,4 @@
-import Network from "../types/general/network"
+import Network from "../../types/general/network"
 
 const royaltyRegistriesEngines: Record<Network, string> = {
   "1": "0x0385603ab55642cb4Dd5De3aE9e306809991804f",

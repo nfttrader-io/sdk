@@ -1,6 +1,6 @@
 import ListPostsFilters from "../../interfaces/post/listPostsFilters"
-import POST_STATUS from "./postStatus"
-import POST_TYPE from "./postType"
+import POST_STATUS from "../../constants/post/postStatus"
+import POST_TYPE from "../../constants/post/postType"
 
 const replaceAt = (str: string, index: number, replacement: string) => {
   if (index < 0 || index >= str.length) {

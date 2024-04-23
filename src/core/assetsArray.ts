@@ -1,6 +1,6 @@
 import { ethers } from "ethers"
-import TOKEN_CONSTANTS from "./lib/assetsArray/tokenConstants"
-import Asset from "./types/assetsArray/asset"
+import TOKEN_CONSTANTS from "../constants/assetsArray/tokenConstants"
+import Asset from "../types/assetsArray/asset"
 
 /**
  * This class represents an array of assets.
