@@ -1,6 +1,6 @@
 export type ChatConfig = {
   jwtToken: string
   apiKey: string
-  graphQLEndpoint: string
-  graphQLRealtimeEndpoint: string
+  apiUrl: string
+  realtimeApiUrl: string
 }
