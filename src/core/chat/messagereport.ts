@@ -1,15 +1,7 @@
-import { MessageReport as IMessageReport } from "../../interfaces/chat/schema/messagereport"
+import { MessageReportInitConfig } from "../../interfaces/chat/core/message/messageinitconfig"
+import { MessageReportSchema } from "../../interfaces/chat/schema"
 
-export interface MessageReportInitConfig {
-  id: string
-  description: string
-  messageReportsId: string
-  userId: string
-  createdAt: Date
-  updatedAt: Date | null
-}
-
-export class MessageReport implements IMessageReport {
+export class MessageReport implements MessageReportSchema {
   id: string
   description: string
   messageReportsId: string

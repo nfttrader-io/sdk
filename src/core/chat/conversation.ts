@@ -1,37 +1,38 @@
-import { Conversation as IConversation } from "../../interfaces/chat/schema/conversation"
+import { EngineInitConfig } from "../../interfaces/chat/core"
+import { ConversationQueryEngine } from "../../interfaces/chat/core/conversation"
+import { ConversationInitConfig } from "../../interfaces/chat/core/conversation/conversationinitconfig"
+import { ConversationSchema } from "../../interfaces/chat/schema"
+import Maybe from "../../types/general/maybe"
+import { Engine } from "./engine"
+import { QIError } from "./qierror"
+import { User } from "./user"
 
-export interface ConversationInitConfig {
+export class Conversation
+  extends Engine
+  implements ConversationSchema, ConversationQueryEngine
+{
   id: string
   name: string
-  description: string
-  imageURL: URL
-  bannerImageURL: URL
-  settings: JSON
-  membersIds: string[]
+  description: Maybe<string>
+  imageURL: Maybe<URL>
+  bannerImageURL: Maybe<URL>
+  settings: Maybe<JSON>
+  membersIds: Maybe<Array<Maybe<string>>>
   type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"
-  lastMessageSentAt: Date | null
-  ownerId: string
+  lastMessageSentAt: Maybe<Date>
+  ownerId: Maybe<string>
   createdAt: Date
-  updatedAt: Date | null
-  deletedAt: Date | null
-}
+  updatedAt: Maybe<Date>
+  deletedAt: Maybe<Date>
 
-export class Conversation implements IConversation {
-  id: string
-  name: string
-  description: string
-  imageURL: URL
-  bannerImageURL: URL
-  settings: JSON
-  membersIds: string[]
-  type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"
-  lastMessageSentAt: Date | null
-  ownerId: string
-  createdAt: Date
-  updatedAt: Date | null
-  deletedAt: Date | null
+  constructor(config: ConversationInitConfig & EngineInitConfig) {
+    super({
+      jwtToken: config.jwtToken,
+      apiKey: config.apiKey,
+      apiUrl: config.apiUrl,
+      realtimeApiUrl: config.realtimeApiUrl,
+    })
 
-  constructor(config: ConversationInitConfig) {
     this.id = config.id
     this.name = config.name
     this.description = config.description
@@ -45,5 +46,11 @@ export class Conversation implements IConversation {
     this.createdAt = config.createdAt
     this.updatedAt = config.updatedAt
     this.deletedAt = config.deletedAt
+
+    this._client = config.client
+  }
+
+  owner(): Promise<User | QIError> {
+    return new Promise(() => {})
   }
 }

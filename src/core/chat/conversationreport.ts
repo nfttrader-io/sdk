@@ -1,15 +1,7 @@
-import { ConversationReport as IConversationReport } from "../../interfaces/chat/schema/conversationreport"
+import { ConversationReportInitConfig } from "../../interfaces/chat/core/conversationreport/conversationreportinitconfig"
+import { ConversationReportSchema } from "../../interfaces/chat/schema"
 
-export interface ConversationReportInitConfig {
-  id: string
-  description: string
-  conversationReportsId: string
-  userId: string
-  createdAt: Date
-  updatedAt: Date | null
-}
-
-export class ConversationReport implements IConversationReport {
+export class ConversationReport implements ConversationReportSchema {
   id: string
   description: string
   conversationReportsId: string

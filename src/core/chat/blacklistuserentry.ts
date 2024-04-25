@@ -1,6 +1,5 @@
 import { Client } from "@urql/core"
-import { BlacklistUserEntry as IBlacklistUserEntry } from "../../interfaces/chat/schema/blacklistuserentry"
-import { User } from "./user"
+import { BlacklistUserEntrySchema } from "../../interfaces/chat/schema"
 
 export interface BlacklistUserEntryInitConfig {
   id: string
@@ -9,7 +8,7 @@ export interface BlacklistUserEntryInitConfig {
   client: Client
 }
 
-export class BlacklistUserEntry implements IBlacklistUserEntry {
+export class BlacklistUserEntry implements BlacklistUserEntrySchema {
   readonly id: string
   readonly createdAt: Date
   readonly updatedAt: Date | null

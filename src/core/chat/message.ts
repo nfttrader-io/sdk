@@ -1,4 +1,4 @@
-import { Message as IMessage } from "../../interfaces/chat/schema/message"
+import { MessageSchema } from "../../interfaces/chat/schema"
 
 export interface MessageInitConfig {
   id: string
@@ -12,7 +12,7 @@ export interface MessageInitConfig {
   deletedAt: Date | null
 }
 
-export class Message implements IMessage {
+export class Message implements MessageSchema {
   id: string
   content: string
   conversationId: string
