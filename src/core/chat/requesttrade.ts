@@ -1,4 +1,4 @@
-import { RequestTrade as IRequestTrade } from "../../interfaces/chat/requesttrade"
+import { RequestTrade as IRequestTrade } from "../../interfaces/chat/schema/requesttrade"
 
 export interface RequestTradeInitConfig {
   id: string

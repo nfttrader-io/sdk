@@ -1,12 +1,13 @@
 import { BlacklistUserEntry } from "./blacklistuserentry"
-import { User as IUser } from "../../interfaces/chat/user"
-import { UserEngine } from "../../interfaces/chat/core/userengine"
-import { UserInitConfig } from "../../interfaces/chat/userinitconfig"
-import { QIError } from "./qierror"
-import { QueryEngine } from "./queryengine"
-import { QueryEngineInitConfig } from "../../interfaces/chat/core/queryengineinitconfig"
+import { UserSchema } from "../../interfaces/chat/schema"
+import {
+  UserQueryEngine,
+  UserInitConfig,
+} from "../../interfaces/chat/core/user"
+import { Engine } from "./engine"
+import { EngineInitConfig } from "../../interfaces/chat/core/engineinitconfig"
 
-export class User extends QueryEngine implements IUser, UserEngine {
+export class User extends Engine implements UserSchema, UserQueryEngine {
   readonly id: string
   readonly address: string
   readonly username: string
@@ -29,7 +30,7 @@ export class User extends QueryEngine implements IUser, UserEngine {
   readonly createdAt: Date
   readonly updatedAt: Date | null
 
-  constructor(config: UserInitConfig & QueryEngineInitConfig) {
+  constructor(config: UserInitConfig & EngineInitConfig) {
     super({
       jwtToken: config.jwtToken,
       apiKey: config.apiKey,
@@ -60,10 +61,6 @@ export class User extends QueryEngine implements IUser, UserEngine {
     this.updatedAt = config.updatedAt
 
     this._client = config.client
-  }
-
-  async blockUser(): Promise<User | QIError> {
-    return new Promise(() => {})
   }
 
   async blacklist(): Promise<BlacklistUserEntry[]> {

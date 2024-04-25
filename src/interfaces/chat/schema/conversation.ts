@@ -1,4 +1,4 @@
-export interface Conversation {
+export interface ConversationSchema {
   id: string
   name: string
   description: string

@@ -1,4 +1,4 @@
-export interface RequestTrade {
+export interface RequestTradeSchema {
   id: string
   conversationId: string
   createdAt: Date

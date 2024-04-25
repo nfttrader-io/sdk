@@ -1,4 +1,4 @@
-import { Conversation as IConversation } from "../../interfaces/chat/conversation"
+import { Conversation as IConversation } from "../../interfaces/chat/schema/conversation"
 
 export interface ConversationInitConfig {
   id: string

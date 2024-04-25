@@ -1,5 +1,5 @@
 import { Client } from "@urql/core"
-import { BlacklistUserEntry as IBlacklistUserEntry } from "../../interfaces/chat/blacklistuserentry"
+import { BlacklistUserEntry as IBlacklistUserEntry } from "../../interfaces/chat/schema/blacklistuserentry"
 import { User } from "./user"
 
 export interface BlacklistUserEntryInitConfig {

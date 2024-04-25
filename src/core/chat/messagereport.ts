@@ -1,4 +1,4 @@
-import { MessageReport as IMessageReport } from "../../interfaces/chat/messagereport"
+import { MessageReport as IMessageReport } from "../../interfaces/chat/schema/messagereport"
 
 export interface MessageReportInitConfig {
   id: string

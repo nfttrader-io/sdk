@@ -1,4 +1,4 @@
-import { ConversationReport as IConversationReport } from "../../interfaces/chat/conversationreport"
+import { ConversationReport as IConversationReport } from "../../interfaces/chat/schema/conversationreport"
 
 export interface ConversationReportInitConfig {
   id: string

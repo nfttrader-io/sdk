@@ -1,5 +1,7 @@
 import { CombinedError, ErrorLike } from "@urql/core"
 
+//QIError stands for Query Interaction Error
+
 export class QIError extends CombinedError {
   reason: string | null = null
   standardError: boolean = true

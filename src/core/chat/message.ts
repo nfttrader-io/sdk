@@ -1,4 +1,4 @@
-import { Message as IMessage } from "../../interfaces/chat/message"
+import { Message as IMessage } from "../../interfaces/chat/schema/message"
 
 export interface MessageInitConfig {
   id: string

@@ -1,4 +1,4 @@
-export interface Message {
+export interface MessageSchema {
   id: string
   content: string
   //#conversation

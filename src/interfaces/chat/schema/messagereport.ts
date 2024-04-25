@@ -1,7 +1,7 @@
-export interface ConversationReport {
+export interface MessageReportSchema {
   id: string
   description: string
-  conversationReportsId: string
+  messageReportsId: string
   //#user
   userId: string
   createdAt: Date
