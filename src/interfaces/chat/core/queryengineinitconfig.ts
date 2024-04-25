@@ -1,4 +1,4 @@
-export type ChatConfig = {
+export interface QueryEngineInitConfig {
   jwtToken: string
   apiKey: string
   apiUrl: string

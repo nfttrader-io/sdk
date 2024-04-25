@@ -1,4 +1,6 @@
-export interface User {
+import { Client } from "@urql/core"
+
+export interface UserInitConfig {
   id: string
   address: string
   username: string
@@ -7,18 +9,18 @@ export interface User {
   avatarUrl: URL
   isVerified: boolean
   isNft: boolean
-  //blacklist -> the implementation of blacklist is defined in the interface UserEngine
-  blacklistIds: Array<string>
+  blacklistIds: string[]
   allowNotification: boolean
   allowNotificationSound: boolean
   visibility: boolean
   onlineStatus: "ONLINE" | "OFFLINE" | "BUSY"
   allowReadReceipt: boolean
   allowReceiveMessageFrom: "NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE"
-  allowAddToGroupsFrom: "EVERYONE" | "ONLY_FOLLOWED"
+  allowAddToGroupsFrom: "ONLY_FOLLOWED" | "EVERYONE"
   allowGroupsSuggestion: boolean
   encryptedPrivateKey: string
   publicKey: string
   createdAt: Date
   updatedAt: Date | null
+  client: Client
 }

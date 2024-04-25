@@ -1,33 +1,12 @@
-import { Client } from "@urql/core"
-import { BlacklistUserEntry } from "../../interfaces/chat/blacklistuserentry"
+import { BlacklistUserEntry } from "./blacklistuserentry"
 import { User as IUser } from "../../interfaces/chat/user"
+import { UserEngine } from "../../interfaces/chat/core/userengine"
+import { UserInitConfig } from "../../interfaces/chat/userinitconfig"
+import { QIError } from "./qierror"
+import { QueryEngine } from "./queryengine"
+import { QueryEngineInitConfig } from "../../interfaces/chat/core/queryengineinitconfig"
 
-export interface UserInitConfig {
-  id: string
-  address: string
-  username: string
-  email: string
-  bio: string
-  avatarUrl: URL
-  isVerified: boolean
-  isNft: boolean
-  blacklistIds: string[]
-  allowNotification: boolean
-  allowNotificationSound: boolean
-  visibility: boolean
-  onlineStatus: "ONLINE" | "OFFLINE" | "BUSY"
-  allowReadReceipt: boolean
-  allowReceiveMessageFrom: "NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE"
-  allowAddToGroupsFrom: "ONLY_FOLLOWED" | "EVERYONE"
-  allowGroupsSuggestion: boolean
-  encryptedPrivateKey: string
-  publicKey: string
-  createdAt: Date
-  updatedAt: Date | null
-  client: Client
-}
-
-export class User implements IUser {
+export class User extends QueryEngine implements IUser, UserEngine {
   readonly id: string
   readonly address: string
   readonly username: string
@@ -50,9 +29,14 @@ export class User implements IUser {
   readonly createdAt: Date
   readonly updatedAt: Date | null
 
-  private _client: Client | null = null
+  constructor(config: UserInitConfig & QueryEngineInitConfig) {
+    super({
+      jwtToken: config.jwtToken,
+      apiKey: config.apiKey,
+      apiUrl: config.apiUrl,
+      realtimeApiUrl: config.realtimeApiUrl,
+    })
 
-  constructor(config: UserInitConfig) {
     this.id = config.id
     this.address = config.address
     this.username = config.username
@@ -76,6 +60,10 @@ export class User implements IUser {
     this.updatedAt = config.updatedAt
 
     this._client = config.client
+  }
+
+  async blockUser(): Promise<User | QIError> {
+    return new Promise(() => {})
   }
 
   async blacklist(): Promise<BlacklistUserEntry[]> {
