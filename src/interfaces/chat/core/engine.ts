@@ -1,6 +1,8 @@
+import Maybe from "../../../types/general/maybe"
+
 export interface Engine {
-  getJWTToken: () => string | null
-  getApiKey: () => string | null
-  getApiURL: () => string | null
-  getRealtimeApiURL: () => string | null
+  getJWTToken(): Maybe<string>
+  getApiKey(): Maybe<string>
+  getApiURL(): Maybe<string>
+  getRealtimeApiURL(): Maybe<string>
 }

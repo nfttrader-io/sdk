@@ -1,4 +1,5 @@
 import { Client } from "@urql/core"
+import Maybe from "../../../../types/general/maybe"
 
 export interface ConversationReportInitConfig {
   id: string
@@ -6,6 +7,6 @@ export interface ConversationReportInitConfig {
   conversationReportsId: string
   userId: string
   createdAt: Date
-  updatedAt: Date | null
+  updatedAt: Maybe<Date>
   client: Client
 }

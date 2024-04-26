@@ -1,24 +1,26 @@
+import Maybe from "../../../types/general/maybe"
+
 export interface UserSchema {
   id: string
   address: string
-  username: string
-  email: string
-  bio: string
-  avatarUrl: URL
+  username: Maybe<string>
+  email: Maybe<string>
+  bio: Maybe<string>
+  avatarUrl: Maybe<URL>
   isVerified: boolean
   isNft: boolean
   //blacklist -> the implementation of blacklist is defined in the interface UserEngine
-  blacklistIds: Array<string>
+  blacklistIds: Maybe<Array<Maybe<string>>>
   allowNotification: boolean
   allowNotificationSound: boolean
   visibility: boolean
-  onlineStatus: "ONLINE" | "OFFLINE" | "BUSY"
+  onlineStatus: Maybe<"ONLINE" | "OFFLINE" | "BUSY">
   allowReadReceipt: boolean
-  allowReceiveMessageFrom: "NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE"
-  allowAddToGroupsFrom: "EVERYONE" | "ONLY_FOLLOWED"
+  allowReceiveMessageFrom: Maybe<"NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE">
+  allowAddToGroupsFrom: Maybe<"EVERYONE" | "ONLY_FOLLOWED">
   allowGroupsSuggestion: boolean
-  encryptedPrivateKey: string
-  publicKey: string
+  encryptedPrivateKey: Maybe<string>
+  publicKey: Maybe<string>
   createdAt: Date
-  updatedAt: Date | null
+  updatedAt: Maybe<Date>
 }

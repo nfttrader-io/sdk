@@ -7,7 +7,6 @@ import {
 } from "./core/chat"
 import {
   ConversationMutationEngine,
-  ConversationQueryEngine,
   ConversationSubscriptionEngine,
 } from "./interfaces/chat/core/conversation"
 import {
@@ -25,6 +24,40 @@ import {
   UserQueryEngine,
   UserSubscriptionEngine,
 } from "./interfaces/chat/core/user"
+import {
+  ArchiveConversationsBatchResult as ArchiveConversationsBatchResultGraphQL,
+  Conversation as ConversationGraphQL,
+  ConversationReport as ConversationReportGraphQL,
+  ListConversationMembers as ListConversationMembersGraphQL,
+  Message as MessageGraphQL,
+  MessageReport as MessageReportGraphQL,
+  MutationAddBlockedUserArgs,
+  MutationAddMembersToConversationArgs,
+  MutationAddPinToMessageArgs,
+  MutationAddReactionToMessageArgs,
+  MutationAddReportToConversationArgs,
+  MutationAddReportToMessageArgs,
+  MutationArchiveConversationArgs,
+  MutationArchiveConversationsArgs,
+  MutationCreateConversationGroupArgs,
+  MutationCreateConversationOneToOneArgs,
+  QueryGetConversationByIdArgs,
+  User as UserGraphQL,
+} from "./graphql/generated/graphql"
+
+import {
+  addBlockedUser,
+  addMembersToConversation,
+  addPinToMessage,
+  addReactionToMessage,
+  addReportToConversation,
+  addReportToMessage,
+  archiveConversation,
+  archiveConversations,
+  createConversationGroup,
+  createConversationOneToOne,
+} from "./constants/chat/mutations"
+import { getConversationById } from "./constants/chat/queries"
 
 export default class Chat
   extends Engine
@@ -32,7 +65,6 @@ export default class Chat
     UserQueryEngine,
     UserMutationEngine,
     UserSubscriptionEngine,
-    ConversationQueryEngine,
     ConversationMutationEngine,
     ConversationSubscriptionEngine,
     MessageQueryEngine,
@@ -42,19 +74,84 @@ export default class Chat
     RequestTradeMutationEngine,
     RequestTradeSubscriptionEngine
 {
-  owner: undefined
+  async blockUser(): Promise<User | QIError>
+  async blockUser(id: string): Promise<User | QIError>
+  async blockUser(id?: unknown): Promise<User | QIError> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use blockUser(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
 
-  async blockUser(): Promise<User | QIError> {
-    return new Promise(() => {})
+    const response = await this._mutation<
+      MutationAddBlockedUserArgs,
+      { addBlockedUser: UserGraphQL },
+      UserGraphQL
+    >("addBlockedUser", addBlockedUser, "_mutation() -> blockUser()", {
+      blockId: id,
+    })
+
+    if (response instanceof QIError) return response
+
+    return new User({
+      ...this._parentConfig!,
+      id: response.id,
+      username: response.username ? response.username : null,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      encryptedPrivateKey: response.encryptedPrivateKey
+        ? response.encryptedPrivateKey
+        : null,
+      publicKey: response.publicKey ? response.publicKey : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
+      client: this._client!,
+    })
   }
+
   async blacklist(): Promise<BlacklistUserEntry[]> {
     return new Promise(() => {})
   }
 
-  async test(): Promise<Conversation | QIError> {
-    const response = await this._getConversationById({
-      conversationId: "3dc4a129-fecc-4c02-852a-53cd3765e0d3",
-    })
+  async getConversationById(id: string): Promise<Conversation | QIError> {
+    const response = await this._query<
+      QueryGetConversationByIdArgs,
+      { getConversationById: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "getConversationById",
+      getConversationById,
+      "_query() -> getConversationById()",
+      {
+        conversationId: id,
+      }
+    )
+
     if (response instanceof QIError) return response
 
     return new Conversation({

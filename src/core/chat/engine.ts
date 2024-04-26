@@ -1,26 +1,14 @@
 import {
+  AnyVariables,
   Client,
   OperationResult,
+  TypedDocumentNode,
   cacheExchange,
   fetchExchange,
 } from "@urql/core"
 import { Engine as IEngine, EngineInitConfig } from "../../interfaces/chat/core"
 import HTTPClient from "../httpClient"
-import {
-  addBlockedUser,
-  addMembersToConversation,
-} from "../../constants/chat/mutations"
-import {
-  Conversation as ConversationGraphQL,
-  ListConversationMembers as ListConversationMembersGraphQL,
-  Maybe,
-  MutationAddBlockedUserArgs,
-  MutationAddMembersToConversationArgs,
-  QueryGetConversationByIdArgs,
-  User as UserGraphQL,
-} from "../../graphql/generated/graphql"
 import { QIError } from "./qierror"
-import { getConversationById } from "../../constants/chat/queries"
 
 export class Engine extends HTTPClient implements IEngine {
   protected _jwtToken: string | null = null
@@ -108,122 +96,72 @@ export class Engine extends HTTPClient implements IEngine {
     return this._client
   }
 
-  protected async _addBlockedUser(
-    args: MutationAddBlockedUserArgs
-  ): Promise<UserGraphQL | QIError> {
+  protected async _mutation<
+    TArgs,
+    TMutationResult extends { [x: string]: any },
+    TResult
+  >(
+    key: string,
+    node: TypedDocumentNode<any, AnyVariables>,
+    __functionName: string,
+    args: TArgs
+  ): Promise<TResult | QIError> {
     try {
       const client = this._makeClient()
 
       if (!client) return this._returnQIErrorInternalClientNotDefined()
 
       const response = await client
-        .mutation<
-          { addBlockedUser: UserGraphQL },
-          Required<MutationAddBlockedUserArgs> & { jwt: string }
-        >(addBlockedUser, {
+        .mutation<TMutationResult, TArgs & { jwt: string }>(node, {
           ...args,
           jwt: `${this._jwtToken}`,
         })
         .toPromise()
 
-      /*
-        
-        if (response.error) return new QIError(response.error, "", true)
-
-        if (
-          !("data" in response) ||
-          typeof response.data === "undefined" ||
-          response.data === null
-        )
-          return new QIError(
-            {
-              networkError: undefined,
-              graphQLErrors: undefined,
-              response: undefined,
-            },
-            "QIError: no data in the response is available.",
-            false
-          )
-
-        return response.data.addBlockedUser
-        
-      */
-
-      return this._handleResponse<
-        "addBlockedUser",
-        { addBlockedUser: UserGraphQL },
-        UserGraphQL | QIError
-      >("addBlockedUser", response)
+      return this._handleResponse<typeof key, TMutationResult, TResult>(
+        key,
+        response
+      )
     } catch (error) {
       console.error(error)
+      console.error("arguments:", args)
       throw new Error(
-        "Internal error: _addBlockedUser() thrown an exception. See the console to have more information."
+        `Internal error: ${__functionName} thrown an exception. See the console to have more information.`
       )
     }
   }
 
-  protected async _addMembersToConversation(
-    args: MutationAddMembersToConversationArgs
-  ): Promise<ListConversationMembersGraphQL | QIError> {
+  protected async _query<
+    TArgs,
+    TQueryResult extends { [x: string]: any },
+    TResult
+  >(
+    key: string,
+    node: TypedDocumentNode<any, AnyVariables>,
+    __functionName: string,
+    args: TArgs
+  ): Promise<TResult | QIError> {
     try {
       const client = this._makeClient()
 
       if (!client) return this._returnQIErrorInternalClientNotDefined()
 
       const response = await client
-        .mutation<
-          {
-            addMembersToConversation: ListConversationMembersGraphQL
-          },
-          Required<MutationAddMembersToConversationArgs> & { jwt: string }
-        >(addMembersToConversation, {
+        .query<TQueryResult, TArgs & { jwt: string }>(node, {
           ...args,
           jwt: `${this._jwtToken}`,
         })
         .toPromise()
 
-      return this._handleResponse<
-        "addMembersToConversation",
-        { addMembersToConversation: ListConversationMembersGraphQL },
-        ListConversationMembersGraphQL | QIError
-      >("addMembersToConversation", response)
-    } catch (error) {
-      console.error(error)
-      throw new Error(
-        "Internal error: _addMembersToConversation() thrown an exception. See the console to have more information."
+      return this._handleResponse<typeof key, TQueryResult, TResult>(
+        key,
+        response
       )
-    }
-  }
-
-  protected async _getConversationById(
-    args: QueryGetConversationByIdArgs
-  ): Promise<ConversationGraphQL | QIError> {
-    try {
-      const client = this._makeClient()
-
-      if (!client) return this._returnQIErrorInternalClientNotDefined()
-
-      const response = await client
-        .query<
-          {
-            getConversationById: ConversationGraphQL
-          },
-          Required<QueryGetConversationByIdArgs> & { jwt: string }
-        >(getConversationById, {
-          ...args,
-          jwt: `${this._jwtToken}`,
-        })
-        .toPromise()
-
-      return this._handleResponse<
-        "getConversationById",
-        { getConversationById: ConversationGraphQL },
-        ConversationGraphQL | QIError
-      >("getConversationById", response)
     } catch (error) {
       console.error(error)
+      console.error("arguments:", args)
       throw new Error(
-        "Internal error: _getConversationById() thrown an exception. See the console to have more information."
+        `Internal error: ${__functionName}() thrown an exception. See the console to have more information.`
       )
     }
   }
