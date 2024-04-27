@@ -1,10 +1,11 @@
+import Maybe from "../../../types/general/maybe"
+
 export interface RequestTradeSchema {
   id: string
   conversationId: string
-  createdAt: Date
+  userId: string
   creatorsIds: Array<string>
   initializatorsIds: Array<string>
-  deletedAt: Date | null
   operation: JSON
   status:
     | "TRADE_INITIALIZED"
@@ -12,6 +13,7 @@ export interface RequestTradeSchema {
     | "TRADE_PROGRESS"
     | "TRADE_COMPLETED"
   type: "TRADE" | "RENT"
-  updatedAt: Date | null
-  userId: string
+  createdAt: Date
+  updatedAt: Maybe<Date>
+  deletedAt: Maybe<Date>
 }

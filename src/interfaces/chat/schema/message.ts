@@ -1,3 +1,5 @@
+import Maybe from "../../../types/general/maybe"
+
 export interface MessageSchema {
   id: string
   content: string
@@ -6,12 +8,12 @@ export interface MessageSchema {
   //#user
   userId: string
   //#messageRoot
-  messageRootId: string | null
+  messageRootId: Maybe<string>
   //#pin
   //reactions
   //#reports
   type: "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT"
   createdAt: Date
-  updatedAt: Date | null
-  deletedAt: Date | null
+  updatedAt: Maybe<Date>
+  deletedAt: Maybe<Date>
 }

@@ -9,15 +9,16 @@ import {
 import { Engine as IEngine, EngineInitConfig } from "../../interfaces/chat/core"
 import HTTPClient from "../httpClient"
 import { QIError } from "./qierror"
+import Maybe from "../../types/general/maybe"
 
 export class Engine extends HTTPClient implements IEngine {
-  protected _jwtToken: string | null = null
-  protected _apiKey: string | null = null
-  protected _apiUrl: URL | null = null
-  protected _realtimeApiUrl: URL | null = null
-  protected _realtimeAuthorizationToken: string | null = null
-  protected _parentConfig: EngineInitConfig | null = null
-  protected _client: Client | null = null
+  protected _jwtToken: Maybe<string> = null
+  protected _apiKey: Maybe<string> = null
+  protected _apiUrl: Maybe<URL> = null
+  protected _realtimeApiUrl: Maybe<URL> = null
+  protected _realtimeAuthorizationToken: Maybe<string> = null
+  protected _parentConfig: Maybe<EngineInitConfig> = null
+  protected _client: Maybe<Client> = null
 
   constructor(config: EngineInitConfig) {
     super()
@@ -85,7 +86,7 @@ export class Engine extends HTTPClient implements IEngine {
               },
             }
           },
-          exchanges: [cacheExchange, fetchExchange],
+          exchanges: [fetchExchange],
         })
       } catch (error) {
         console.error(error)

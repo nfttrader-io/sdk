@@ -58,6 +58,8 @@ import {
   createConversationOneToOne,
 } from "./constants/chat/mutations"
 import { getConversationById } from "./constants/chat/queries"
+import { AddMembersToConversationArgs } from "./interfaces/chat/schema/args/addmemberstoconversation"
+import { ConversationMember } from "./core/chat/conversationmember"
 
 export default class Chat
   extends Engine
@@ -132,6 +134,75 @@ export default class Chat
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
+  }
+
+  async addMembersToConversation(
+    membersIds: [
+      {
+        memberId: string
+        encryptedConversationPrivateKey: string
+        encryptedConversationPublicKey: string
+      }
+    ]
+  ): Promise<
+    { conversationId: string; items: Array<ConversationMember> } | QIError
+  >
+  async addMembersToConversation(
+    args: AddMembersToConversationArgs
+  ): Promise<
+    { conversationId: string; items: Array<ConversationMember> } | QIError
+  >
+  async addMembersToConversation(
+    args: unknown
+  ): Promise<
+    { conversationId: string; items: Array<ConversationMember> } | QIError
+  > {
+    if (!args || !("id" in (args as AddMembersToConversationArgs))) {
+      throw new Error(
+        "args can not be null or undefined. Consider to use addMembersToConversation(args: AddMembersToConversationArgs) instead."
+      )
+    } else {
+      const response = await this._query<
+        MutationAddMembersToConversationArgs,
+        { addMembersToConversation: ListConversationMembersGraphQL },
+        ListConversationMembersGraphQL
+      >(
+        "addMembersToConversation",
+        addMembersToConversation,
+        "_mutation() -> addMembersToConversation()",
+        {
+          input: {
+            conversationId: (args as AddMembersToConversationArgs).id,
+            membersIds: (args as AddMembersToConversationArgs).membersIds,
+          },
+        }
+      )
+
+      if (response instanceof QIError) return response
+
+      const listConversations: {
+        conversationId: string
+        items: Array<ConversationMember>
+      } = {
+        conversationId: response.conversationId,
+        items: response.items.map((item) => {
+          return new ConversationMember({
+            ...this._parentConfig!,
+            id: item.id,
+            conversationId: item.conversationId ? item.conversationId : null,
+            userId: item.userId,
+            type: item.type,
+            encryptedConversationPublicKey: item.encryptedConversationPublicKey,
+            encryptedConversationPrivateKey:
+              item.encryptedConversationPrivateKey,
+            createdAt: item.createdAt ? item.createdAt : null,
+            client: this._client!,
+          })
+        }),
+      }
+
+      return listConversations
+    }
   }
 
   async blacklist(): Promise<BlacklistUserEntry[]> {

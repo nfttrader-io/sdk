@@ -1,5 +1,6 @@
 import { BlacklistUserEntry } from "./blacklistuserentry"
 import { Conversation } from "./conversation"
+import { ConversationMember } from "./conversationmember"
 import { ConversationReport } from "./conversationreport"
 import { Engine } from "./engine"
 import { Message } from "./message"
@@ -18,6 +19,7 @@ export {
   QIError,
   RequestTrade,
   User,
+  ConversationMember,
 }
 
 export default {
@@ -30,4 +32,5 @@ export default {
   QIError,
   RequestTrade,
   User,
+  ConversationMember,
 }

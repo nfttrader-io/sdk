@@ -1,3 +1,5 @@
+import Maybe from "../../../types/general/maybe"
+
 export interface ConversationReportSchema {
   id: string
   description: string
@@ -5,5 +7,5 @@ export interface ConversationReportSchema {
   //#user
   userId: string
   createdAt: Date
-  updatedAt: Date | null
+  updatedAt: Maybe<Date>
 }

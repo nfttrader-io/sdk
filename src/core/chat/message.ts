@@ -1,29 +1,28 @@
+import { EngineInitConfig } from "../../interfaces/chat/core"
+import { MessageInitConfig } from "../../interfaces/chat/core/message"
 import { MessageSchema } from "../../interfaces/chat/schema"
+import Maybe from "../../types/general/maybe"
+import { Engine } from "./engine"
 
-export interface MessageInitConfig {
-  id: string
-  content: string
-  conversationId: string
-  userId: string
-  messageRootId: string | null
-  type: "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT"
-  createdAt: Date
-  updatedAt: Date | null
-  deletedAt: Date | null
-}
+export class Message extends Engine implements MessageSchema {
+  readonly id: string
+  readonly content: string
+  readonly conversationId: string
+  readonly userId: string
+  readonly messageRootId: Maybe<string>
+  readonly type: "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT"
+  readonly createdAt: Date
+  readonly updatedAt: Maybe<Date>
+  readonly deletedAt: Maybe<Date>
 
-export class Message implements MessageSchema {
-  id: string
-  content: string
-  conversationId: string
-  userId: string
-  messageRootId: string | null
-  type: "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT"
-  createdAt: Date
-  updatedAt: Date | null
-  deletedAt: Date | null
+  constructor(config: MessageInitConfig & EngineInitConfig) {
+    super({
+      jwtToken: config.jwtToken,
+      apiKey: config.apiKey,
+      apiUrl: config.apiUrl,
+      realtimeApiUrl: config.realtimeApiUrl,
+    })
 
-  constructor(config: MessageInitConfig) {
     this.id = config.id
     this.content = config.content
     this.conversationId = config.conversationId
@@ -33,5 +32,6 @@ export class Message implements MessageSchema {
     this.createdAt = config.createdAt
     this.updatedAt = config.updatedAt
     this.deletedAt = config.deletedAt
+    this._client = config.client
   }
 }

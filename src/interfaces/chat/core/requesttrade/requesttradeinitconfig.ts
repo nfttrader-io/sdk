@@ -4,10 +4,9 @@ import Maybe from "../../../../types/general/maybe"
 export interface RequestTradeInitConfig {
   id: string
   conversationId: string
-  createdAt: Date
+  userId: string
   creatorsIds: string[]
   initializatorsIds: string[]
-  deletedAt: Maybe<Date>
   operation: JSON
   status:
     | "TRADE_INITIALIZED"
@@ -15,7 +14,8 @@ export interface RequestTradeInitConfig {
     | "TRADE_PROGRESS"
     | "TRADE_COMPLETED"
   type: "RENT" | "TRADE"
-  updatedAt: Maybe<null>
-  userId: string
+  createdAt: Date
+  updatedAt: Maybe<Date>
+  deletedAt: Maybe<Date>
   client: Client
 }

@@ -1,12 +1,13 @@
-import Maybe from "../../../types/general/maybe"
+import { Client } from "@urql/core"
+import Maybe from "../../../../types/general/maybe"
 
-export interface ConversationMemberSchema {
+export interface ConversationMemberInitConfig {
   id: string
   conversationId: Maybe<string>
   userId: string
-  //user -> method, define it in conversationmemberengine.ts?
   type: "USER" | "ADMINISTRATOR"
   encryptedConversationPublicKey: string
   encryptedConversationPrivateKey: string
   createdAt: Maybe<Date>
+  client: Client
 }

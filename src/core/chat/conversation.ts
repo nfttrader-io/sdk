@@ -11,19 +11,19 @@ export class Conversation
   extends Engine
   implements ConversationSchema, ConversationQueryEngine
 {
-  id: string
-  name: string
-  description: Maybe<string>
-  imageURL: Maybe<URL>
-  bannerImageURL: Maybe<URL>
-  settings: Maybe<JSON>
-  membersIds: Maybe<Array<Maybe<string>>>
-  type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"
-  lastMessageSentAt: Maybe<Date>
-  ownerId: Maybe<string>
-  createdAt: Date
-  updatedAt: Maybe<Date>
-  deletedAt: Maybe<Date>
+  readonly id: string
+  readonly name: string
+  readonly description: Maybe<string>
+  readonly imageURL: Maybe<URL>
+  readonly bannerImageURL: Maybe<URL>
+  readonly settings: Maybe<JSON>
+  readonly membersIds: Maybe<Array<Maybe<string>>>
+  readonly type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"
+  readonly lastMessageSentAt: Maybe<Date>
+  readonly ownerId: Maybe<string>
+  readonly createdAt: Date
+  readonly updatedAt: Maybe<Date>
+  readonly deletedAt: Maybe<Date>
 
   constructor(config: ConversationInitConfig & EngineInitConfig) {
     super({
