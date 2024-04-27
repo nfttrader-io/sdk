@@ -4,15 +4,15 @@ export interface MessageSchema {
   id: string
   content: string
   //#conversation
-  conversationId: string
+  conversationId: Maybe<string>
   //#user
-  userId: string
+  userId: Maybe<string>
   //#messageRoot
   messageRootId: Maybe<string>
   //#pin
   //reactions
   //#reports
-  type: "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT"
+  type: Maybe<"TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT">
   createdAt: Date
   updatedAt: Maybe<Date>
   deletedAt: Maybe<Date>

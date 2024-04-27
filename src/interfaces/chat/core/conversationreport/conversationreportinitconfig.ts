@@ -3,10 +3,8 @@ import Maybe from "../../../../types/general/maybe"
 
 export interface ConversationReportInitConfig {
   id: string
-  description: string
-  conversationReportsId: string
-  userId: string
+  description: Maybe<string>
+  userId: Maybe<string>
   createdAt: Date
-  updatedAt: Maybe<Date>
   client: Client
 }

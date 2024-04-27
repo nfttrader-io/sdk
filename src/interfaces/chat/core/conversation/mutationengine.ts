@@ -1,8 +1,16 @@
-import { ConversationMember, QIError } from "../../../../core/chat"
-import { AddMembersToConversationArgs } from "../../schema/args/addmemberstoconversation"
+import {
+  Conversation,
+  ConversationMember,
+  ConversationReport,
+  QIError,
+} from "../../../../core/chat"
+import {
+  AddMembersToConversationArgs,
+  AddReportToConversationArgs,
+} from "../../schema/args"
 
 export interface ConversationMutationEngine {
-  addMembersToConversation(
+  addMembers(
     membersIds: [
       {
         memberId: string
@@ -18,4 +26,12 @@ export interface ConversationMutationEngine {
   ): Promise<
     { conversationId: string; items: Array<ConversationMember> } | QIError
   >
+  addConversationReport(
+    description: string
+  ): Promise<ConversationReport | QIError>
+  addReportToConversation(
+    args: AddReportToConversationArgs
+  ): Promise<ConversationReport | QIError>
+  archiveConversation(): Promise<Conversation | QIError>
+  archiveConversation(id: string): Promise<Conversation | QIError>
 }

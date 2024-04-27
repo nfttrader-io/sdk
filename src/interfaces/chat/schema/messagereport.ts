@@ -3,9 +3,7 @@ import Maybe from "../../../types/general/maybe"
 export interface MessageReportSchema {
   id: string
   description: string
-  messageReportsId: string
   //#user
-  userId: string
+  userId: Maybe<string>
   createdAt: Date
-  updatedAt: Maybe<Date>
 }

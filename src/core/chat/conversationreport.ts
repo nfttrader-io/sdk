@@ -9,11 +9,9 @@ export class ConversationReport
   implements ConversationReportSchema
 {
   readonly id: string
-  readonly description: string
-  readonly conversationReportsId: string
-  readonly userId: string
+  readonly description: Maybe<string>
+  readonly userId: Maybe<string>
   readonly createdAt: Date
-  readonly updatedAt: Maybe<Date>
 
   constructor(config: ConversationReportInitConfig & EngineInitConfig) {
     super({
@@ -25,10 +23,8 @@ export class ConversationReport
 
     this.id = config.id
     this.description = config.description
-    this.conversationReportsId = config.conversationReportsId
     this.userId = config.userId
     this.createdAt = config.createdAt
-    this.updatedAt = config.updatedAt
     this._client = config.client
   }
 }

@@ -2,10 +2,8 @@ import Maybe from "../../../types/general/maybe"
 
 export interface ConversationReportSchema {
   id: string
-  description: string
-  conversationReportsId: string
+  description: Maybe<string>
   //#user
-  userId: string
+  userId: Maybe<string>
   createdAt: Date
-  updatedAt: Maybe<Date>
 }

@@ -7,10 +7,10 @@ import { Engine } from "./engine"
 export class Message extends Engine implements MessageSchema {
   readonly id: string
   readonly content: string
-  readonly conversationId: string
-  readonly userId: string
+  readonly conversationId: Maybe<string>
+  readonly userId: Maybe<string>
   readonly messageRootId: Maybe<string>
-  readonly type: "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT"
+  readonly type: Maybe<"TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT">
   readonly createdAt: Date
   readonly updatedAt: Maybe<Date>
   readonly deletedAt: Maybe<Date>

@@ -7,10 +7,8 @@ import { Engine } from "./engine"
 export class MessageReport extends Engine implements MessageReportSchema {
   readonly id: string
   readonly description: string
-  readonly messageReportsId: string
-  readonly userId: string
+  readonly userId: Maybe<string>
   readonly createdAt: Date
-  readonly updatedAt: Maybe<Date>
 
   constructor(config: MessageReportInitConfig & EngineInitConfig) {
     super({
@@ -22,10 +20,8 @@ export class MessageReport extends Engine implements MessageReportSchema {
 
     this.id = config.id
     this.description = config.description
-    this.messageReportsId = config.messageReportsId
     this.userId = config.userId
     this.createdAt = config.createdAt
-    this.updatedAt = config.updatedAt
     this._client = config.client
   }
 }
