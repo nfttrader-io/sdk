@@ -2,11 +2,12 @@ import { Message, MessageReport, QIError } from "../../../../core/chat"
 import {
   AddReactionToMessageArgs,
   AddReportToMessageArgs,
+  EditMessageArgs,
 } from "../../schema/args"
 
 export interface MessageMutationEngine {
-  addPin(): Promise<Message | QIError>
-  addPinToMessage(id: string): Promise<Message | QIError>
+  pinMessage(): Promise<Message | QIError>
+  pinMessage(id: string): Promise<Message | QIError>
   addReaction(reaction: string): Promise<Message | QIError>
   addReactionToMessage(
     args: AddReactionToMessageArgs
@@ -15,4 +16,7 @@ export interface MessageMutationEngine {
   addReportToMessage(
     args: AddReportToMessageArgs
   ): Promise<MessageReport | QIError>
+  editMessage(args: EditMessageArgs): Promise<Message | QIError>
+  unpinMessage(): Promise<Message | QIError>
+  unpinMessage(id: string): Promise<Message | QIError>
 }

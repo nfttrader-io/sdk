@@ -1,27 +1,31 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import { RequestTradeInitConfig } from "../../interfaces/chat/core/requesttrade/requesttradeinitconfig"
-import { RequestTradeSchema } from "../../interfaces/chat/schema"
+import { ConversationTradingPoolInitConfig } from "../../interfaces/chat/core/conversationtradingpool"
+import { ConversationTradingPoolSchema } from "../../interfaces/chat/schema"
 import Maybe from "../../types/general/maybe"
 import { Engine } from "./engine"
 
-export class RequestTrade extends Engine implements RequestTradeSchema {
+export class ConversationTradingPool
+  extends Engine
+  implements ConversationTradingPoolSchema
+{
   readonly id: string
-  readonly conversationId: string
-  readonly createdAt: Date
-  readonly creatorsIds: string[]
-  readonly initializatorsIds: string[]
-  readonly deletedAt: Maybe<Date>
-  readonly operation: JSON
-  readonly status:
+  readonly conversationId: Maybe<string>
+  readonly userId: Maybe<string>
+  readonly creatorsIds: Maybe<Array<Maybe<string>>>
+  readonly initializatorsIds: Maybe<Array<Maybe<string>>>
+  readonly operation: Maybe<JSON>
+  readonly status: Maybe<
     | "TRADE_INITIALIZED"
     | "TRADE_CONFIRMED"
     | "TRADE_PROGRESS"
     | "TRADE_COMPLETED"
-  readonly type: "RENT" | "TRADE"
+  >
+  readonly type: Maybe<"RENT" | "TRADE">
+  readonly createdAt: Maybe<Date>
   readonly updatedAt: Maybe<Date>
-  readonly userId: string
+  readonly deletedAt: Maybe<Date>
 
-  constructor(config: RequestTradeInitConfig & EngineInitConfig) {
+  constructor(config: ConversationTradingPoolInitConfig & EngineInitConfig) {
     super({
       jwtToken: config.jwtToken,
       apiKey: config.apiKey,

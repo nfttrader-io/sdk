@@ -2,11 +2,15 @@ import {
   Conversation,
   ConversationMember,
   ConversationReport,
+  Message,
   QIError,
 } from "../../../../core/chat"
+import { MutedDuration } from "../../../../enums/chat"
 import {
   AddMembersToConversationArgs,
   AddReportToConversationArgs,
+  EjectMemberArgs,
+  MuteConversationArgs,
 } from "../../schema/args"
 
 export interface ConversationMutationEngine {
@@ -34,4 +38,10 @@ export interface ConversationMutationEngine {
   ): Promise<ConversationReport | QIError>
   archiveConversation(): Promise<Conversation | QIError>
   archiveConversation(id: string): Promise<Conversation | QIError>
+  deleteMessage(id: string): Promise<Message | QIError>
+  ejectMember(args: EjectMemberArgs): Promise<Conversation | QIError>
+  leaveConversation(): Promise<Conversation | QIError>
+  leaveConversation(id: string): Promise<Conversation | QIError>
+  muteConversation(duration: MutedDuration): Promise<Conversation | QIError>
+  muteConversation(args: MuteConversationArgs): Promise<Conversation | QIError>
 }

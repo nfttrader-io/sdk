@@ -4,7 +4,7 @@ import { ConversationMemberSchema } from "./conversationmember"
 import { ConversationReportSchema } from "./conversationreport"
 import { MessageSchema } from "./message"
 import { MessageReportSchema } from "./messagereport"
-import { RequestTradeSchema } from "./requesttrade"
+import { ConversationTradingPoolSchema } from "./conversationtradingpool"
 import { UserSchema } from "./user"
 
 export {
@@ -14,6 +14,6 @@ export {
   ConversationReportSchema,
   MessageSchema,
   MessageReportSchema,
-  RequestTradeSchema,
+  ConversationTradingPoolSchema,
   UserSchema,
 }

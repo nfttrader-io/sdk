@@ -6,7 +6,7 @@ import { Engine } from "./engine"
 import { Message } from "./message"
 import { MessageReport } from "./messagereport"
 import { QIError } from "./qierror"
-import { RequestTrade } from "./requesttrade"
+import { ConversationTradingPool } from "./conversationtradingpool"
 import { User } from "./user"
 
 export {
@@ -17,7 +17,7 @@ export {
   Message,
   MessageReport,
   QIError,
-  RequestTrade,
+  ConversationTradingPool,
   User,
   ConversationMember,
 }
@@ -30,7 +30,7 @@ export default {
   Message,
   MessageReport,
   QIError,
-  RequestTrade,
+  ConversationTradingPool,
   User,
   ConversationMember,
 }
