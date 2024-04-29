@@ -59,6 +59,15 @@ import {
   MutationMuteConversationArgs,
   MutationRemoveBlockedUserArgs,
   MutationRemovePinFromMessageArgs,
+  MutationRemoveReactionFromMessageArgs,
+  MutationRequestTradeArgs,
+  MutationSendMessageArgs,
+  MutationUnarchiveConversationArgs,
+  MutationUnarchiveConversationsArgs,
+  UnarchiveConversationsBatchResult as UnarchiveConversationsBatchResultGraphQL,
+  MutationUnmuteConversationArgs,
+  MutationUpdateConversationGroupArgs,
+  MutationUpdateUserInfoArgs,
 } from "./graphql/generated/graphql"
 
 import {
@@ -82,6 +91,13 @@ import {
   muteConversation,
   removeBlockedUser,
   removePinFromMessage,
+  removeReactionFromMessage,
+  requestTrade,
+  sendMessage,
+  unarchiveConversation,
+  unarchiveConversations,
+  unmuteConversation,
+  updateUserInfo,
 } from "./constants/chat/mutations"
 import { getConversationById } from "./constants/chat/queries"
 import { AddMembersToConversationArgs } from "./interfaces/chat/schema/args/addmemberstoconversation"
@@ -95,6 +111,10 @@ import {
   DeleteBatchConversationMessagesArgs,
   EditMessageArgs,
   MuteConversationArgs,
+  RequestTradeArgs,
+  SendMessageArgs,
+  UpdateConversationGroupInputArgs,
+  UpdateUserArgs,
 } from "./interfaces/chat/schema/args"
 import { UAMutationEngine } from "./interfaces/chat/core/ua"
 import { EjectMemberArgs } from "./interfaces/chat/schema/args/ejectmember"
@@ -945,6 +965,381 @@ export default class Chat
       createdAt: response.createdAt,
       updatedAt: response.updatedAt ? response.updatedAt : null,
       deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async removeReaction(): Promise<QIError | Message>
+  async removeReaction(messageId: string): Promise<QIError | Message>
+  async removeReaction(messageId?: unknown): Promise<QIError | Message> {
+    if (!messageId)
+      throw new Error(
+        "messageId argument can not be null or undefined. Consider to use removeReaction(messageId : string) instead."
+      )
+    if (typeof messageId !== "string")
+      throw new Error("messageId argument must be a string.")
+
+    const response = await this._mutation<
+      MutationRemoveReactionFromMessageArgs,
+      { removeReactionFromMessage: MessageGraphQL },
+      MessageGraphQL
+    >(
+      "removeReactionFromMessage",
+      removeReactionFromMessage,
+      "_mutation() -> removeReaction()",
+      {
+        messageId,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Message({
+      ...this._parentConfig!,
+      id: response.id,
+      content: response.content,
+      conversationId: response.conversation ? response.conversationId : null,
+      userId: response.userId ? response.userId : null,
+      messageRootId: response.messageRootId ? response.messageRootId : null,
+      type: response.type
+        ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+        : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async requestTrade(
+    args: RequestTradeArgs
+  ): Promise<QIError | ConversationTradingPool> {
+    const response = await this._mutation<
+      MutationRequestTradeArgs,
+      { requestTrade: ConversationTradingPoolGraphQL },
+      ConversationTradingPoolGraphQL
+    >("requestTrade", requestTrade, "_mutation() -> requestTrade()", {
+      input: {
+        creatorsIds: args.creatorsIds,
+        initializatorIds: args.initializatorIds,
+        conversationId: args.conversationId,
+        operation: JSON.stringify(args.operation),
+      },
+    })
+
+    if (response instanceof QIError) return response
+
+    return new ConversationTradingPool({
+      ...this._parentConfig!,
+      id: response.id,
+      conversationId: response.conversationId ? response.conversationId : null,
+      userId: response.userId ? response.userId : null,
+      creatorsIds: response.creatorsIds ? response.creatorsIds : null,
+      initializatorsIds: response.initializatorsIds
+        ? response.initializatorsIds
+        : null,
+      operation: response.operation ? JSON.parse(response.operation) : null,
+      status: response.status ? response.status : null,
+      type: response.type ? response.type : null,
+      createdAt: response.createdAt ? response.createdAt : null,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async sendMessage(): Promise<QIError | Message>
+  async sendMessage(args: SendMessageArgs): Promise<QIError | Message>
+  async sendMessage(args?: unknown): Promise<QIError | Message> {
+    if (!args)
+      throw new Error(
+        "args argument can not be null or undefined. Consider to use sendMessage(args : SendMessageArgs) instead."
+      )
+    else {
+      const response = await this._mutation<
+        MutationSendMessageArgs,
+        { sendMessage: MessageGraphQL },
+        MessageGraphQL
+      >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
+        input: {
+          content: (args as SendMessageArgs).content,
+          conversationId: (args as SendMessageArgs).conversationId,
+          type: (args as SendMessageArgs).type,
+        },
+      })
+
+      if (response instanceof QIError) return response
+
+      return new Message({
+        ...this._parentConfig!,
+        id: response.id,
+        content: response.content,
+        conversationId: response.conversation ? response.conversationId : null,
+        userId: response.userId ? response.userId : null,
+        messageRootId: response.messageRootId ? response.messageRootId : null,
+        type: response.type
+          ? (response.type as
+              | "TEXTUAL"
+              | "ATTACHMENT"
+              | "SWAP_PROPOSAL"
+              | "RENT")
+          : null,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt ? response.updatedAt : null,
+        deletedAt: response.deletedAt ? response.deletedAt : null,
+        client: this._client!,
+      })
+    }
+  }
+
+  async unarchiveConversation(): Promise<QIError | Conversation>
+  async unarchiveConversation(id: string): Promise<QIError | Conversation>
+  async unarchiveConversation(id?: unknown): Promise<QIError | Conversation> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use unarchiveConversation(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
+
+    const response = await this._mutation<
+      MutationUnarchiveConversationArgs,
+      { unarchiveConversation: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "unarchiveConversation",
+      unarchiveConversation,
+      "_mutation() -> unarchiveConversation()",
+      {
+        conversationId: id,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Conversation({
+      ...this._parentConfig!,
+      id: response.id,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      bannerImageURL: response.bannerImageURL
+        ? new URL(response.bannerImageURL)
+        : null,
+      settings: response.settings ? JSON.parse(response.settings) : null,
+      membersIds: response.membersIds ? response.membersIds : null,
+      type: response.type,
+      lastMessageSentAt: response.lastMessageSentAt
+        ? response.lastMessageSentAt
+        : null,
+      ownerId: response.ownerId ? response.ownerId : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async unarchiveConversations(
+    ids: Array<string>
+  ): Promise<
+    { concatConversationIds: string; items: Array<{ id: string }> } | QIError
+  > {
+    const response = await this._mutation<
+      MutationUnarchiveConversationsArgs,
+      { unarchiveConversations: UnarchiveConversationsBatchResultGraphQL },
+      UnarchiveConversationsBatchResultGraphQL
+    >(
+      "unarchiveConversations",
+      unarchiveConversations,
+      "_mutation() -> unarchiveConversations()",
+      {
+        conversationIds: ids,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return {
+      concatConversationIds: response.concatConversationIds,
+      items: response.items,
+    }
+  }
+
+  async unmuteConversation(): Promise<QIError | Conversation>
+  async unmuteConversation(id: string): Promise<QIError | Conversation>
+  async unmuteConversation(id?: unknown): Promise<QIError | Conversation> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use unmuteConversation(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
+
+    const response = await this._mutation<
+      MutationUnmuteConversationArgs,
+      { unmuteConversation: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "unmuteConversation",
+      unmuteConversation,
+      "_mutation() -> unmuteConversation()",
+      {
+        conversationId: id,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Conversation({
+      ...this._parentConfig!,
+      id: response.id,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      bannerImageURL: response.bannerImageURL
+        ? new URL(response.bannerImageURL)
+        : null,
+      settings: response.settings ? JSON.parse(response.settings) : null,
+      membersIds: response.membersIds ? response.membersIds : null,
+      type: response.type,
+      lastMessageSentAt: response.lastMessageSentAt
+        ? response.lastMessageSentAt
+        : null,
+      ownerId: response.ownerId ? response.ownerId : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async updateConversationGroup(
+    args: Omit<UpdateConversationGroupInputArgs, "conversationId"> & {
+      conversationId?: string | undefined
+    }
+  ): Promise<QIError | Conversation>
+  async updateConversationGroup(
+    args: UpdateConversationGroupInputArgs
+  ): Promise<QIError | Conversation>
+  async updateConversationGroup(
+    args: unknown
+  ): Promise<QIError | Conversation> {
+    if (!("conversationId" in (args as UpdateConversationGroupInputArgs))) {
+      throw new Error(
+        "conversationId argument can not be null or undefined. Consider to use updateConversationGroup(args : UpdateConversationGroupInputArgs) instead."
+      )
+    } else {
+      const response = await this._mutation<
+        MutationUpdateConversationGroupArgs,
+        { updateConversationGroup: ConversationGraphQL },
+        ConversationGraphQL
+      >(
+        "unmuteConversation",
+        unmuteConversation,
+        "_mutation() -> unmuteConversation()",
+        {
+          input: {
+            conversationId: (args as UpdateConversationGroupInputArgs)
+              .conversationId,
+            description: (args as UpdateConversationGroupInputArgs).description,
+            imageURL: new URL(
+              (args as UpdateConversationGroupInputArgs).imageURL
+            ).toString(),
+            bannerImageURL: new URL(
+              (args as UpdateConversationGroupInputArgs).bannerImageURL
+            ).toString(),
+            name: (args as UpdateConversationGroupInputArgs).name,
+            settings: JSON.stringify(
+              (args as UpdateConversationGroupInputArgs).settings
+            ),
+          },
+        }
+      )
+
+      if (response instanceof QIError) return response
+
+      return new Conversation({
+        ...this._parentConfig!,
+        id: response.id,
+        name: response.name,
+        description: response.description ? response.description : null,
+        imageURL: response.imageURL ? new URL(response.imageURL) : null,
+        bannerImageURL: response.bannerImageURL
+          ? new URL(response.bannerImageURL)
+          : null,
+        settings: response.settings ? JSON.parse(response.settings) : null,
+        membersIds: response.membersIds ? response.membersIds : null,
+        type: response.type,
+        lastMessageSentAt: response.lastMessageSentAt
+          ? response.lastMessageSentAt
+          : null,
+        ownerId: response.ownerId ? response.ownerId : null,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt ? response.updatedAt : null,
+        deletedAt: response.deletedAt ? response.deletedAt : null,
+        client: this._client!,
+      })
+    }
+  }
+
+  async updateUser(args: UpdateUserArgs): Promise<QIError | User> {
+    const response = await this._mutation<
+      MutationUpdateUserInfoArgs,
+      { updateUserInfo: UserGraphQL },
+      UserGraphQL
+    >("updateUserInfo", updateUserInfo, "_mutation() -> updateUser()", {
+      input: {
+        allowNotification: args.allowNotification,
+        allowNotificationSound: args.allowNotificationSound,
+        visibility: args.visibility,
+        onlineStatus: args.onlineStatus,
+        allowReadReceipt: args.allowReadReceipt
+          ? args.allowReadReceipt
+          : undefined,
+        allowReceiveMessageFrom: args.allowReceiveMessageFrom,
+        allowAddToGroupsFrom: args.allowAddToGroupsFrom,
+        allowGroupsSuggestion: args.allowGroupsSuggestion,
+      },
+    })
+
+    if (response instanceof QIError) return response
+
+    return new User({
+      ...this._parentConfig!,
+      id: response.id,
+      username: response.username ? response.username : null,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      encryptedPrivateKey: response.encryptedPrivateKey
+        ? response.encryptedPrivateKey
+        : null,
+      publicKey: response.publicKey ? response.publicKey : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
   }

@@ -11,6 +11,8 @@ import {
   AddReportToConversationArgs,
   EjectMemberArgs,
   MuteConversationArgs,
+  SendMessageArgs,
+  UpdateConversationGroupInputArgs,
 } from "../../schema/args"
 
 export interface ConversationMutationEngine {
@@ -44,4 +46,18 @@ export interface ConversationMutationEngine {
   leaveConversation(id: string): Promise<Conversation | QIError>
   muteConversation(duration: MutedDuration): Promise<Conversation | QIError>
   muteConversation(args: MuteConversationArgs): Promise<Conversation | QIError>
+  sendMessage(): Promise<Message | QIError>
+  sendMessage(args: SendMessageArgs): Promise<Message | QIError>
+  unarchiveConversation(): Promise<Conversation | QIError>
+  unarchiveConversation(id: string): Promise<Conversation | QIError>
+  unmuteConversation(): Promise<Conversation | QIError>
+  unmuteConversation(id: string): Promise<Conversation | QIError>
+  updateConversationGroup(
+    args: Omit<UpdateConversationGroupInputArgs, "conversationId"> & {
+      conversationId?: string
+    }
+  ): Promise<Conversation | QIError>
+  updateConversationGroup(
+    args: UpdateConversationGroupInputArgs
+  ): Promise<Conversation | QIError>
 }

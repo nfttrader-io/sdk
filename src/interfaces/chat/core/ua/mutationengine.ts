@@ -1,8 +1,9 @@
-import { Conversation, QIError } from "../../../../core/chat"
+import { Conversation, QIError, User } from "../../../../core/chat"
 import {
   CreateConversationGroupArgs,
   CreateConversationOneToOneArgs,
   DeleteBatchConversationMessagesArgs,
+  UpdateUserArgs,
 } from "../../schema/args"
 
 export interface UAMutationEngine {
@@ -23,4 +24,10 @@ export interface UAMutationEngine {
   eraseConversationByAdmin(
     id: string
   ): Promise<{ conversationId: string; items: Array<{ id: string }> } | QIError>
+  unarchiveConversations(
+    ids: Array<string>
+  ): Promise<
+    { concatConversationIds: string; items: Array<{ id: string }> } | QIError
+  >
+  updateUser(args: UpdateUserArgs): Promise<User | QIError>
 }

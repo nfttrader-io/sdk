@@ -19,4 +19,6 @@ export interface MessageMutationEngine {
   editMessage(args: EditMessageArgs): Promise<Message | QIError>
   unpinMessage(): Promise<Message | QIError>
   unpinMessage(id: string): Promise<Message | QIError>
+  removeReaction(): Promise<Message | QIError>
+  removeReaction(messageId: string): Promise<Message | QIError>
 }

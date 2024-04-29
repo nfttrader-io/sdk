@@ -8,6 +8,10 @@ import { DeleteBatchConversationMessagesArgs } from "./deletebatchconversationme
 import { EditMessageArgs } from "./editmessage"
 import { EjectMemberArgs } from "./ejectmember"
 import { MuteConversationArgs } from "./muteconversation"
+import { RequestTradeArgs } from "./requesttrade"
+import { SendMessageArgs } from "./sendmessage"
+import { UpdateConversationGroupInputArgs } from "./updateconversationgroup"
+import { UpdateUserArgs } from "./updateuser"
 
 export {
   AddMembersToConversationArgs,
@@ -20,4 +24,8 @@ export {
   EditMessageArgs,
   EjectMemberArgs,
   MuteConversationArgs,
+  RequestTradeArgs,
+  SendMessageArgs,
+  UpdateConversationGroupInputArgs,
+  UpdateUserArgs,
 }
