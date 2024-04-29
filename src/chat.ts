@@ -68,6 +68,14 @@ import {
   MutationUnmuteConversationArgs,
   MutationUpdateConversationGroupArgs,
   MutationUpdateUserInfoArgs,
+  QueryListAllActiveUserConversationIdsArgs,
+  ListAllActiveUserConversationIdsResult as ListAllActiveUserConversationIdsResultGraphQL,
+  QueryListConversationsByIdsArgs,
+  ListConversationsByIdsResult as ListConversationsByIdsResultGraphQL,
+  QueryListMessagesByConversationIdArgs,
+  ListMessagesByConversationIdResult as ListMessagesByConversationIdResultGraphQL,
+  QueryFindUsersByUsernameOrAddressArgs,
+  FindUsersByUsernameOrAddressResult as FindUsersByUsernameOrAddressResultGraphQL,
 } from "./graphql/generated/graphql"
 
 import {
@@ -99,7 +107,14 @@ import {
   unmuteConversation,
   updateUserInfo,
 } from "./constants/chat/mutations"
-import { getConversationById } from "./constants/chat/queries"
+import {
+  findUsersByUsernameOrAddress,
+  getConversationById,
+  getCurrentUser,
+  listAllActiveUserConversationIds,
+  listConversationsByIds,
+  listMessagesByConversationId,
+} from "./constants/chat/queries"
 import { AddMembersToConversationArgs } from "./interfaces/chat/schema/args/addmemberstoconversation"
 import { ConversationMember } from "./core/chat/conversationmember"
 import {
@@ -110,14 +125,17 @@ import {
   CreateConversationOneToOneArgs,
   DeleteBatchConversationMessagesArgs,
   EditMessageArgs,
+  FindUsersByUsernameOrAddressArgs,
+  ListMessagesByConversationIdArgs,
   MuteConversationArgs,
   RequestTradeArgs,
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
   UpdateUserArgs,
 } from "./interfaces/chat/schema/args"
-import { UAMutationEngine } from "./interfaces/chat/core/ua"
+import { UAMutationEngine, UAQueryEngine } from "./interfaces/chat/core/ua"
 import { EjectMemberArgs } from "./interfaces/chat/schema/args/ejectmember"
+import Maybe from "./types/general/maybe"
 
 export default class Chat
   extends Engine
@@ -133,7 +151,8 @@ export default class Chat
     ConversationTradingPoolQueryEngine,
     ConversationTradingPoolMutationEngine,
     ConversationTradingPoolSubscriptionEngine,
-    UAMutationEngine
+    UAMutationEngine,
+    UAQueryEngine
 {
   async blockUser(): Promise<User | QIError>
   async blockUser(id: string): Promise<User | QIError>
@@ -1346,6 +1365,263 @@ export default class Chat
 
   async blacklist(): Promise<BlacklistUserEntry[]> {
     return new Promise(() => {})
+  }
+
+  async listAllActiveUserConversationIds(
+    nextToken?: string | undefined
+  ): Promise<QIError | { items: string[]; nextToken?: String | undefined }> {
+    const response = await this._query<
+      QueryListAllActiveUserConversationIdsArgs,
+      {
+        listAllActiveUserConversationIds: ListAllActiveUserConversationIdsResultGraphQL
+      },
+      ListAllActiveUserConversationIdsResultGraphQL
+    >(
+      "listAllActiveUserConversationIds",
+      listAllActiveUserConversationIds,
+      "_query() -> listAllActiveUserConversationIds()",
+      {
+        nextToken: nextToken,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    const activeUserConversationIds = {
+      items: response.items,
+      nextToken: response.nextToken ? response.nextToken : undefined,
+    }
+
+    return activeUserConversationIds
+  }
+
+  async listConversationsByIds(ids: string[]): Promise<
+    | QIError
+    | {
+        items: Conversation[]
+        unprocessedKeys?: Maybe<Maybe<string>[]> | undefined
+      }
+  > {
+    const response = await this._query<
+      QueryListConversationsByIdsArgs,
+      { listConversationsByIds: ListConversationsByIdsResultGraphQL },
+      ListConversationsByIdsResultGraphQL
+    >(
+      "listConversationsByIds",
+      listConversationsByIds,
+      "_query() -> listConversationsByIds()",
+      { conversationsIds: ids }
+    )
+
+    if (response instanceof QIError) return response
+
+    const listConversations: {
+      unprocessedKeys?: Maybe<Maybe<string>[]>
+      items: Array<Conversation>
+    } = {
+      unprocessedKeys: response.unprocessedKeys,
+      items: response.items.map((item) => {
+        return new Conversation({
+          ...this._parentConfig!,
+          id: item.id,
+          name: item.name,
+          description: item.description ? item.description : null,
+          imageURL: item.imageURL ? new URL(item.imageURL) : null,
+          bannerImageURL: item.bannerImageURL
+            ? new URL(item.bannerImageURL)
+            : null,
+          settings: item.settings ? JSON.parse(item.settings) : null,
+          membersIds: item.membersIds ? item.membersIds : null,
+          type: item.type,
+          lastMessageSentAt: item.lastMessageSentAt
+            ? item.lastMessageSentAt
+            : null,
+          ownerId: item.ownerId ? item.ownerId : null,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt ? item.updatedAt : null,
+          deletedAt: item.deletedAt ? item.deletedAt : null,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listConversations
+  }
+
+  async listMessagesByConversationId(
+    args: ListMessagesByConversationIdArgs
+  ): Promise<
+    QIError | { items: Message[]; nextToken?: Maybe<string> | undefined }
+  > {
+    const response = await this._query<
+      QueryListMessagesByConversationIdArgs,
+      { listConversationsByIds: ListMessagesByConversationIdResultGraphQL },
+      ListMessagesByConversationIdResultGraphQL
+    >(
+      "listMessagesByConversationId",
+      listMessagesByConversationId,
+      "_query() -> listMessagesByConversationId()",
+      {
+        input: {
+          conversationId: args.id,
+          nextToken: args.nextToken,
+        },
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    const listMessages: {
+      nextToken?: string
+      items: Array<Message>
+    } = {
+      nextToken: response.nextToken ? response.nextToken : undefined,
+      items: response.items.map((item) => {
+        return new Message({
+          ...this._parentConfig!,
+          id: item.id,
+          content: item.content,
+          conversationId: item.conversation ? item.conversationId : null,
+          userId: item.userId ? item.userId : null,
+          messageRootId: item.messageRootId ? item.messageRootId : null,
+          type: item.type
+            ? (item.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt ? item.updatedAt : null,
+          deletedAt: item.deletedAt ? item.deletedAt : null,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listMessages
+  }
+
+  async findUsersByUsernameOrAddress(
+    args: FindUsersByUsernameOrAddressArgs
+  ): Promise<QIError | { items: User[]; nextToken?: String | undefined }> {
+    const response = await this._query<
+      QueryFindUsersByUsernameOrAddressArgs,
+      {
+        findUsersByUsernameOrAddress: FindUsersByUsernameOrAddressResultGraphQL
+      },
+      FindUsersByUsernameOrAddressResultGraphQL
+    >(
+      "findUsersByUsernameOrAddress",
+      findUsersByUsernameOrAddress,
+      "_query() -> findUsersByUsernameOrAddress()",
+      {
+        input: {
+          searchTerm: args.searchTerm,
+          nextToken: args.nextToken,
+        },
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    const listUsers: {
+      nextToken?: string
+      items: Array<User>
+    } = {
+      nextToken: response.nextToken ? response.nextToken : undefined,
+      items: response.items.map((item) => {
+        return new User({
+          ...this._parentConfig!,
+          id: item.id,
+          username: item.username ? item.username : null,
+          address: item.address,
+          email: item.email ? item.email : null,
+          bio: item.bio ? item.bio : null,
+          avatarUrl: item.avatarUrl ? new URL(item.avatarUrl) : null,
+          isVerified: item.isVerified ? item.isVerified : false,
+          isNft: item.isNft ? item.isNft : false,
+          blacklistIds: item.blacklistIds ? item.blacklistIds : null,
+          allowNotification: item.allowNotification
+            ? item.allowNotification
+            : false,
+          allowNotificationSound: item.allowNotificationSound
+            ? item.allowNotificationSound
+            : false,
+          visibility: item.visibility ? item.visibility : false,
+          onlineStatus: item.onlineStatus ? item.onlineStatus : null,
+          allowReadReceipt: item.allowReadReceipt
+            ? item.allowReadReceipt
+            : false,
+          allowReceiveMessageFrom: item.allowReceiveMessageFrom
+            ? item.allowReceiveMessageFrom
+            : null,
+          allowAddToGroupsFrom: item.allowAddToGroupsFrom
+            ? item.allowAddToGroupsFrom
+            : null,
+          allowGroupsSuggestion: item.allowGroupsSuggestion
+            ? item.allowGroupsSuggestion
+            : false,
+          encryptedPrivateKey: item.encryptedPrivateKey
+            ? item.encryptedPrivateKey
+            : null,
+          publicKey: item.publicKey ? item.publicKey : null,
+          createdAt: new Date(item.createdAt),
+          updatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listUsers
+  }
+
+  async getCurrentUser(): Promise<QIError | User> {
+    const response = await this._query<
+      null,
+      {
+        getCurrentUser: UserGraphQL
+      },
+      UserGraphQL
+    >("getCurrentUser", getCurrentUser, "_query() -> getCurrentUser()", null)
+
+    if (response instanceof QIError) return response
+
+    return new User({
+      ...this._parentConfig!,
+      id: response.id,
+      username: response.username ? response.username : null,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      encryptedPrivateKey: response.encryptedPrivateKey
+        ? response.encryptedPrivateKey
+        : null,
+      publicKey: response.publicKey ? response.publicKey : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
+      client: this._client!,
+    })
   }
 
   async getConversationById(id: string): Promise<Conversation | QIError> {

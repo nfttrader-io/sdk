@@ -12,6 +12,8 @@ import { RequestTradeArgs } from "./requesttrade"
 import { SendMessageArgs } from "./sendmessage"
 import { UpdateConversationGroupInputArgs } from "./updateconversationgroup"
 import { UpdateUserArgs } from "./updateuser"
+import { ListMessagesByConversationIdArgs } from "./listmessagesbyconversationid"
+import { FindUsersByUsernameOrAddressArgs } from "./findusersbyusernameoraddress"
 
 export {
   AddMembersToConversationArgs,
@@ -28,4 +30,6 @@ export {
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
   UpdateUserArgs,
+  ListMessagesByConversationIdArgs,
+  FindUsersByUsernameOrAddressArgs,
 }
