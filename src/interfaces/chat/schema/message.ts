@@ -3,15 +3,16 @@ import Maybe from "../../../types/general/maybe"
 export interface MessageSchema {
   id: string
   content: string
-  //#conversation
+  //conversation
   conversationId: Maybe<string>
-  //#user
+  //user
   userId: Maybe<string>
-  //#messageRoot
+  //messageRoot
   messageRootId: Maybe<string>
-  //#pin
+  //pin
+  //important
   //reactions
-  //#reports
+  //reports
   type: Maybe<"TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT">
   createdAt: Date
   updatedAt: Maybe<Date>

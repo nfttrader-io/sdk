@@ -3,6 +3,7 @@ import {
   AddReactionToMessageArgs,
   AddReportToMessageArgs,
   EditMessageArgs,
+  RemoveReactionFromMessageArgs,
 } from "../../schema/args"
 
 export interface MessageMutationEngine {
@@ -19,6 +20,12 @@ export interface MessageMutationEngine {
   editMessage(args: EditMessageArgs): Promise<Message | QIError>
   unpinMessage(): Promise<Message | QIError>
   unpinMessage(id: string): Promise<Message | QIError>
-  removeReaction(): Promise<Message | QIError>
-  removeReaction(messageId: string): Promise<Message | QIError>
+  removeReaction(reaction: string): Promise<Message | QIError>
+  removeReactionFromMessage(
+    args: RemoveReactionFromMessageArgs
+  ): Promise<Message | QIError>
+  markImportantMessage(): Promise<Message | QIError>
+  markImportantMessage(id: string): Promise<Message | QIError>
+  unmarkImportantMessage(): Promise<Message | QIError>
+  unmarkImportantMessage(id: string): Promise<Message | QIError>
 }

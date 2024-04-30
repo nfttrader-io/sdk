@@ -76,10 +76,13 @@ import {
   ListMessagesByConversationIdResult as ListMessagesByConversationIdResultGraphQL,
   QueryFindUsersByUsernameOrAddressArgs,
   FindUsersByUsernameOrAddressResult as FindUsersByUsernameOrAddressResultGraphQL,
+  MutationAddImportantToMessageArgs,
+  MutationRemoveImportantFromMessageArgs,
 } from "./graphql/generated/graphql"
 
 import {
   addBlockedUser,
+  addImportantToMessage,
   addMembersToConversation,
   addPinToMessage,
   addReactionToMessage,
@@ -98,6 +101,7 @@ import {
   leaveConversation,
   muteConversation,
   removeBlockedUser,
+  removeImportantFromMessage,
   removePinFromMessage,
   removeReactionFromMessage,
   requestTrade,
@@ -128,6 +132,7 @@ import {
   FindUsersByUsernameOrAddressArgs,
   ListMessagesByConversationIdArgs,
   MuteConversationArgs,
+  RemoveReactionFromMessageArgs,
   RequestTradeArgs,
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
@@ -988,16 +993,13 @@ export default class Chat
     })
   }
 
-  async removeReaction(): Promise<QIError | Message>
-  async removeReaction(messageId: string): Promise<QIError | Message>
-  async removeReaction(messageId?: unknown): Promise<QIError | Message> {
-    if (!messageId)
-      throw new Error(
-        "messageId argument can not be null or undefined. Consider to use removeReaction(messageId : string) instead."
-      )
-    if (typeof messageId !== "string")
-      throw new Error("messageId argument must be a string.")
+  async removeReaction(): Promise<QIError | Message> {
+    throw new Error("Method not implemented.")
+  }
 
+  async removeReactionFromMessage(
+    args: RemoveReactionFromMessageArgs
+  ): Promise<QIError | Message> {
     const response = await this._mutation<
       MutationRemoveReactionFromMessageArgs,
       { removeReactionFromMessage: MessageGraphQL },
@@ -1007,7 +1009,10 @@ export default class Chat
       removeReactionFromMessage,
       "_mutation() -> removeReaction()",
       {
-        messageId,
+        input: {
+          reactionContent: args.reaction,
+          messageId: args.messageId,
+        },
       }
     )
 
@@ -1362,6 +1367,92 @@ export default class Chat
       client: this._client!,
     })
   }
+
+  async markImportantMessage(): Promise<Message | QIError>
+  async markImportantMessage(id: string): Promise<Message | QIError>
+  async markImportantMessage(id?: unknown): Promise<Message | QIError> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use markImportantMessage(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
+
+    const response = await this._mutation<
+      MutationAddImportantToMessageArgs,
+      { addImportantToMessage: MessageGraphQL },
+      MessageGraphQL
+    >(
+      "addImportantToMessage",
+      addImportantToMessage,
+      "_mutation() -> markImportantMessage()",
+      {
+        messageId: id,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Message({
+      ...this._parentConfig!,
+      id: response.id,
+      content: response.content,
+      conversationId: response.conversation ? response.conversationId : null,
+      userId: response.userId ? response.userId : null,
+      messageRootId: response.messageRootId ? response.messageRootId : null,
+      type: response.type
+        ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+        : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async unmarkImportantMessage(): Promise<QIError | Message>
+  async unmarkImportantMessage(id: string): Promise<QIError | Message>
+  async unmarkImportantMessage(id?: unknown): Promise<QIError | Message> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use unmarkImportantMessage(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
+
+    const response = await this._mutation<
+      MutationRemoveImportantFromMessageArgs,
+      { removeImportantFromMessage: MessageGraphQL },
+      MessageGraphQL
+    >(
+      "removeImportantFromMessage",
+      removeImportantFromMessage,
+      "_mutation() -> removeImportantFromMessage()",
+      {
+        messageId: id,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Message({
+      ...this._parentConfig!,
+      id: response.id,
+      content: response.content,
+      conversationId: response.conversation ? response.conversationId : null,
+      userId: response.userId ? response.userId : null,
+      messageRootId: response.messageRootId ? response.messageRootId : null,
+      type: response.type
+        ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+        : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  /*
+    Query
+  */
 
   async blacklist(): Promise<BlacklistUserEntry[]> {
     return new Promise(() => {})
