@@ -60,4 +60,8 @@ export interface ConversationMutationEngine {
   updateConversationGroup(
     args: UpdateConversationGroupInputArgs
   ): Promise<Conversation | QIError>
+  pinConversation(): Promise<Conversation | QIError>
+  pinConversation(id: string): Promise<Conversation | QIError>
+  unpinConversation(): Promise<Conversation | QIError>
+  unpinConversation(id: string): Promise<Conversation | QIError>
 }

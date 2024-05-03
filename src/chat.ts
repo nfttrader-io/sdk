@@ -78,12 +78,15 @@ import {
   FindUsersByUsernameOrAddressResult as FindUsersByUsernameOrAddressResultGraphQL,
   MutationAddImportantToMessageArgs,
   MutationRemoveImportantFromMessageArgs,
+  MutationAddPinToConversationArgs,
+  MutationRemovePinFromConversationArgs,
 } from "./graphql/generated/graphql"
 
 import {
   addBlockedUser,
   addImportantToMessage,
   addMembersToConversation,
+  addPinToConversation,
   addPinToMessage,
   addReactionToMessage,
   addReportToConversation,
@@ -102,6 +105,7 @@ import {
   muteConversation,
   removeBlockedUser,
   removeImportantFromMessage,
+  removePinFromConversation,
   removePinFromMessage,
   removeReactionFromMessage,
   requestTrade,
@@ -1443,6 +1447,100 @@ export default class Chat
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
         : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async pinConversation(): Promise<Conversation | QIError>
+  async pinConversation(id: string): Promise<Conversation | QIError>
+  async pinConversation(id?: unknown): Promise<Conversation | QIError> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use pinConversation(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
+
+    const response = await this._mutation<
+      MutationAddPinToConversationArgs,
+      { addPinToConversation: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "addPinToConversation",
+      addPinToConversation,
+      "_mutation() -> pinConversation()",
+      {
+        conversationId: id,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Conversation({
+      ...this._parentConfig!,
+      id: response.id,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      bannerImageURL: response.bannerImageURL
+        ? new URL(response.bannerImageURL)
+        : null,
+      settings: response.settings ? JSON.parse(response.settings) : null,
+      membersIds: response.membersIds ? response.membersIds : null,
+      type: response.type,
+      lastMessageSentAt: response.lastMessageSentAt
+        ? response.lastMessageSentAt
+        : null,
+      ownerId: response.ownerId ? response.ownerId : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
+  }
+
+  async unpinConversation(): Promise<QIError | Conversation>
+  async unpinConversation(id: string): Promise<QIError | Conversation>
+  async unpinConversation(id?: unknown): Promise<QIError | Conversation> {
+    if (!id)
+      throw new Error(
+        "id argument can not be null or undefined. Consider to use unpinConversation(id : string) instead."
+      )
+    if (typeof id !== "string") throw new Error("id argument must be a string.")
+
+    const response = await this._mutation<
+      MutationRemovePinFromConversationArgs,
+      { removePinFromConversation: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "removePinFromConversation",
+      removePinFromConversation,
+      "_mutation() -> unpinConversation()",
+      {
+        conversationId: id,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new Conversation({
+      ...this._parentConfig!,
+      id: response.id,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      bannerImageURL: response.bannerImageURL
+        ? new URL(response.bannerImageURL)
+        : null,
+      settings: response.settings ? JSON.parse(response.settings) : null,
+      membersIds: response.membersIds ? response.membersIds : null,
+      type: response.type,
+      lastMessageSentAt: response.lastMessageSentAt
+        ? response.lastMessageSentAt
+        : null,
+      ownerId: response.ownerId ? response.ownerId : null,
       createdAt: response.createdAt,
       updatedAt: response.updatedAt ? response.updatedAt : null,
       deletedAt: response.deletedAt ? response.deletedAt : null,
