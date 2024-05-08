@@ -80,6 +80,7 @@ import {
   MutationRemoveImportantFromMessageArgs,
   MutationAddPinToConversationArgs,
   MutationRemovePinFromConversationArgs,
+  SubscriptionOnSendMessageArgs,
 } from "./graphql/generated/graphql"
 
 import {
@@ -145,6 +146,9 @@ import {
 import { UAMutationEngine, UAQueryEngine } from "./interfaces/chat/core/ua"
 import { EjectMemberArgs } from "./interfaces/chat/schema/args/ejectmember"
 import Maybe from "./types/general/maybe"
+import { onSendMessage } from "./constants/chat/subscriptions"
+import { OperationResult } from "@urql/core"
+import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 
 export default class Chat
   extends Engine
@@ -1850,5 +1854,75 @@ export default class Chat
       deletedAt: response.deletedAt ? response.deletedAt : null,
       client: this._client!,
     })
+  }
+
+  /**
+   * Subscriptions
+   */
+
+  connect(callback: Function) {
+    this._connect(callback)
+  }
+
+  collect(garbage: Array<SubscriptionGarbage> | SubscriptionGarbage) {
+    super._collectGarbage(garbage)
+  }
+
+  onSendMessage(
+    conversationId: string,
+    callback: (
+      response: Message | QIError,
+      source: OperationResult<
+        {
+          onSendMessage: MessageGraphQL
+        },
+        SubscriptionOnSendMessageArgs & {
+          jwt: string
+        }
+      >
+    ) => void
+  ): SubscriptionGarbage | QIError {
+    const key = "onSendMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnSendMessageArgs,
+      { onSendMessage: MessageGraphQL }
+    >(onSendMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onSendMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onSendMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
   }
 }
