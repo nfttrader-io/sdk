@@ -262,51 +262,6 @@ export class Engine extends HTTPClient implements IEngine {
     }
   }
 
-  protected _collectGarbage(
-    garbage: Array<SubscriptionGarbage> | SubscriptionGarbage
-  ): void {
-    if (!this._unsubscribeGarbageCollector) {
-      if (garbage instanceof Array) this._unsubscribeGarbageCollector = garbage
-      else this._unsubscribeGarbageCollector = [garbage]
-    } else {
-      if (garbage instanceof Array) {
-        garbage.forEach((g: SubscriptionGarbage) => {
-          if (
-            this._unsubscribeGarbageCollector?.findIndex(
-              (el: SubscriptionGarbage) => {
-                return el.uuid.toLowerCase() === g.uuid.toLowerCase()
-              }
-            ) === -1
-          )
-            this._unsubscribeGarbageCollector.push(g)
-        })
-      } else {
-        if (
-          this._unsubscribeGarbageCollector?.findIndex(
-            (el: SubscriptionGarbage) => {
-              return el.uuid.toLowerCase() === garbage.uuid.toLowerCase()
-            }
-          ) === -1
-        )
-          this._unsubscribeGarbageCollector.push(garbage)
-      }
-    }
-
-    this._removeDuplicatedFromGarbageCollector(
-      this._unsubscribeGarbageCollector
-    )
-  }
-
-  protected _reconnect(callback: Function): void {
-    this._reset(() => {
-      this._connect(callback)
-    })
-  }
-
-  protected _connect(callback: Function): void {
-    this._makeWSClient(callback)
-  }
-
   protected _handleResponse<K extends string, T extends { [key in K]: any }, R>(
     queryName: K,
     response: OperationResult<T>
@@ -439,6 +394,54 @@ export class Engine extends HTTPClient implements IEngine {
         `Internal error: ${__functionName}() thrown an exception. See the console to have more information.`
       )
     }
+  }
+
+  refreshJWTToken(jwt: string): void {
+    this._jwtToken = jwt
+    this._realtimeAuthorizationToken = `${this._apiKey}##${this._jwtToken}`
+  }
+
+  reconnect(callback: Function): void {
+    this._reset(() => {
+      this.connect(callback)
+    })
+  }
+
+  connect(callback: Function): void {
+    this._makeWSClient(callback)
+  }
+
+  collect(garbage: SubscriptionGarbage | SubscriptionGarbage[]): void {
+    if (!this._unsubscribeGarbageCollector) {
+      if (garbage instanceof Array) this._unsubscribeGarbageCollector = garbage
+      else this._unsubscribeGarbageCollector = [garbage]
+    } else {
+      if (garbage instanceof Array) {
+        garbage.forEach((g: SubscriptionGarbage) => {
+          if (
+            this._unsubscribeGarbageCollector?.findIndex(
+              (el: SubscriptionGarbage) => {
+                return el.uuid.toLowerCase() === g.uuid.toLowerCase()
+              }
+            ) === -1
+          )
+            this._unsubscribeGarbageCollector.push(g)
+        })
+      } else {
+        if (
+          this._unsubscribeGarbageCollector?.findIndex(
+            (el: SubscriptionGarbage) => {
+              return el.uuid.toLowerCase() === garbage.uuid.toLowerCase()
+            }
+          ) === -1
+        )
+          this._unsubscribeGarbageCollector.push(garbage)
+      }
+    }
+
+    this._removeDuplicatedFromGarbageCollector(
+      this._unsubscribeGarbageCollector
+    )
   }
 
   getJWTToken(): string | null {

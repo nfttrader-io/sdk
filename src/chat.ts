@@ -81,6 +81,26 @@ import {
   MutationAddPinToConversationArgs,
   MutationRemovePinFromConversationArgs,
   SubscriptionOnSendMessageArgs,
+  SubscriptionOnEditMessageArgs,
+  SubscriptionOnDeleteMessageArgs,
+  SubscriptionOnRemoveReactionArgs,
+  SubscriptionOnAddReactionArgs,
+  SubscriptionOnAddPinMessageArgs,
+  SubscriptionOnRemovePinMessageArgs,
+  SubscriptionOnAddImportantMessageArgs,
+  SubscriptionOnRemoveImportantMessageArgs,
+  SubscriptionOnUpdateConversationGroupArgs,
+  SubscriptionOnEjectMemberArgs,
+  SubscriptionOnLeaveConversationArgs,
+  SubscriptionOnAddPinConversationArgs,
+  SubscriptionOnRemovePinConversationArgs,
+  SubscriptionOnArchiveConversationArgs,
+  SubscriptionOnUnarchiveConversationArgs,
+  SubscriptionOnMuteConversationArgs,
+  SubscriptionOnUpdateUserArgs,
+  SubscriptionOnRequestTradeArgs,
+  SubscriptionOnDeleteRequestTradeArgs,
+  SubscriptionOnAddMembersToConversationArgs,
 } from "./graphql/generated/graphql"
 
 import {
@@ -146,7 +166,30 @@ import {
 import { UAMutationEngine, UAQueryEngine } from "./interfaces/chat/core/ua"
 import { EjectMemberArgs } from "./interfaces/chat/schema/args/ejectmember"
 import Maybe from "./types/general/maybe"
-import { onSendMessage } from "./constants/chat/subscriptions"
+import {
+  onDeleteMessage,
+  onEditMessage,
+  onSendMessage,
+  onRemoveReaction,
+  onAddReaction,
+  onAddPinMessage,
+  onRemovePinMessage,
+  onAddImportantMessage,
+  onRemoveImportantMessage,
+  onUpdateConversationGroup,
+  onEjectMember,
+  onLeaveConversation,
+  onAddPinConversation,
+  onRemovePinConversation,
+  onArchiveConversation,
+  onUnarchiveConversation,
+  onMuteConversation,
+  onUnmuteConversation,
+  onUpdateUser,
+  onRequestTrade,
+  onDeleteRequestTrade,
+  onAddMembersToConversation,
+} from "./constants/chat/subscriptions"
 import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 
@@ -1860,14 +1903,6 @@ export default class Chat
    * Subscriptions
    */
 
-  connect(callback: Function) {
-    this._connect(callback)
-  }
-
-  collect(garbage: Array<SubscriptionGarbage> | SubscriptionGarbage) {
-    super._collectGarbage(garbage)
-  }
-
   onSendMessage(
     conversationId: string,
     callback: (
@@ -1915,6 +1950,1183 @@ export default class Chat
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
           createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onEditMessage(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onEditMessage: MessageGraphQL },
+        SubscriptionOnEditMessageArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onEditMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnEditMessageArgs,
+      { onEditMessage: MessageGraphQL }
+    >(onEditMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onEditMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onEditMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onDeleteMessage(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onDeleteMessage: MessageGraphQL },
+        SubscriptionOnDeleteMessageArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onDeleteMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnDeleteMessageArgs,
+      { onDeleteMessage: MessageGraphQL }
+    >(onDeleteMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onDeleteMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onDeleteMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onAddReaction(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onAddReaction: MessageGraphQL },
+        SubscriptionOnAddReactionArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onAddReaction"
+    const metasubcription = this._subscription<
+      SubscriptionOnAddReactionArgs,
+      { onAddReaction: MessageGraphQL }
+    >(onAddReaction, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onAddReaction: MessageGraphQL },
+        MessageGraphQL
+      >("onAddReaction", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onRemoveReaction(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onRemoveReaction: MessageGraphQL },
+        SubscriptionOnRemoveReactionArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onRemoveReaction"
+    const metasubcription = this._subscription<
+      SubscriptionOnRemoveReactionArgs,
+      { onRemoveReaction: MessageGraphQL }
+    >(onRemoveReaction, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onRemoveReaction: MessageGraphQL },
+        MessageGraphQL
+      >("onRemoveReaction", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onAddPinMessage(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onAddPinMessage: MessageGraphQL },
+        SubscriptionOnAddPinMessageArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onAddPinMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnAddPinMessageArgs,
+      { onAddPinMessage: MessageGraphQL }
+    >(onAddPinMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onAddPinMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onAddPinMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onRemovePinMessage(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onRemovePinMessage: MessageGraphQL },
+        SubscriptionOnRemovePinMessageArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onRemovePinMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnRemovePinMessageArgs,
+      { onRemovePinMessage: MessageGraphQL }
+    >(onRemovePinMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onRemovePinMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onRemovePinMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onAddImportantMessage(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onAddImportantMessage: MessageGraphQL },
+        SubscriptionOnAddImportantMessageArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onAddImportantMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnAddImportantMessageArgs,
+      { onAddImportantMessage: MessageGraphQL }
+    >(onAddImportantMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onAddImportantMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onAddImportantMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onRemoveImportantMessage(
+    conversationId: string,
+    callback: (
+      response: QIError | Message,
+      source: OperationResult<
+        { onRemoveImportantMessage: MessageGraphQL },
+        SubscriptionOnRemoveImportantMessageArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onRemoveImportantMessage"
+    const metasubcription = this._subscription<
+      SubscriptionOnRemoveImportantMessageArgs,
+      { onRemoveImportantMessage: MessageGraphQL }
+    >(onRemoveImportantMessage, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onRemoveImportantMessage: MessageGraphQL },
+        MessageGraphQL
+      >("onRemoveImportantMessage", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Message({
+          ...this._parentConfig!,
+          id: r.id,
+          content: r.content,
+          conversationId: r.conversation ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          messageRootId: r.messageRootId ? r.messageRootId : null,
+          type: r.type
+            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+            : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onUpdateConversationGroup(
+    id: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onUpdateConversationGroup: ConversationGraphQL },
+        SubscriptionOnUpdateConversationGroupArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onUpdateConversationGroup"
+    const metasubcription = this._subscription<
+      SubscriptionOnUpdateConversationGroupArgs,
+      { onUpdateConversationGroup: ConversationGraphQL }
+    >(onUpdateConversationGroup, key, { id })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onUpdateConversationGroup: ConversationGraphQL },
+        ConversationGraphQL
+      >("onUpdateConversationGroup", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onEjectMember(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onEjectMember: ConversationGraphQL },
+        SubscriptionOnEjectMemberArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onEjectMember"
+    const metasubcription = this._subscription<
+      SubscriptionOnEjectMemberArgs,
+      { onEjectMember: ConversationGraphQL }
+    >(onEjectMember, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onEjectMember: ConversationGraphQL },
+        ConversationGraphQL
+      >("onEjectMember", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onLeaveConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onLeaveConversation: ConversationGraphQL },
+        SubscriptionOnLeaveConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onLeaveConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnLeaveConversationArgs,
+      { onLeaveConversation: ConversationGraphQL }
+    >(onLeaveConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onLeaveConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onLeaveConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onAddPinConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onAddPinConversation: ConversationGraphQL },
+        SubscriptionOnAddPinConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onAddPinConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnAddPinConversationArgs,
+      { onAddPinConversation: ConversationGraphQL }
+    >(onAddPinConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onAddPinConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onAddPinConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onRemovePinConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onRemovePinConversation: ConversationGraphQL },
+        SubscriptionOnRemovePinConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onRemovePinConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnRemovePinConversationArgs,
+      { onRemovePinConversation: ConversationGraphQL }
+    >(onRemovePinConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onRemovePinConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onRemovePinConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onArchiveConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onArchiveConversation: ConversationGraphQL },
+        SubscriptionOnArchiveConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onArchiveConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnArchiveConversationArgs,
+      { onArchiveConversation: ConversationGraphQL }
+    >(onArchiveConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onArchiveConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onArchiveConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onUnarchiveConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onUnarchiveConversation: ConversationGraphQL },
+        SubscriptionOnUnarchiveConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onUnarchiveConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnUnarchiveConversationArgs,
+      { onUnarchiveConversation: ConversationGraphQL }
+    >(onUnarchiveConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onUnarchiveConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onUnarchiveConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onMuteConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onMuteConversation: ConversationGraphQL },
+        SubscriptionOnMuteConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onMuteConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnMuteConversationArgs,
+      { onMuteConversation: ConversationGraphQL }
+    >(onMuteConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onMuteConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onMuteConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onUnmuteConversation(
+    conversationId: string,
+    callback: (
+      response: QIError | Conversation,
+      source: OperationResult<
+        { onUnmuteConversation: ConversationGraphQL },
+        SubscriptionOnUnarchiveConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onUnmuteConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnUnarchiveConversationArgs,
+      { onUnmuteConversation: ConversationGraphQL }
+    >(onUnmuteConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onUnmuteConversation: ConversationGraphQL },
+        ConversationGraphQL
+      >("onUnmuteConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new Conversation({
+          ...this._parentConfig!,
+          id: r.id,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? new URL(r.imageURL) : null,
+          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          settings: r.settings ? JSON.parse(r.settings) : null,
+          membersIds: r.membersIds ? r.membersIds : null,
+          type: r.type,
+          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
+          ownerId: r.ownerId ? r.ownerId : null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onAddMembersToConversation(
+    conversationId: string,
+    callback: (
+      response:
+        | QIError
+        | { conversationId: string; items: ConversationMember[] },
+      source: OperationResult<
+        { onAddMembersToConversation: ListConversationMembersGraphQL },
+        SubscriptionOnAddMembersToConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onAddMembersToConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnAddMembersToConversationArgs,
+      { onAddMembersToConversation: ListConversationMembersGraphQL }
+    >(onAddMembersToConversation, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onAddMembersToConversation: ListConversationMembersGraphQL },
+        ListConversationMembersGraphQL
+      >("onAddMembersToConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        {
+          conversationId: r.conversationId,
+          items: r.items.map((item) => {
+            return new ConversationMember({
+              ...this._parentConfig!,
+              id: item.id,
+              conversationId: item.conversationId ? item.conversationId : null,
+              userId: item.userId,
+              type: item.type,
+              encryptedConversationPublicKey:
+                item.encryptedConversationPublicKey,
+              encryptedConversationPrivateKey:
+                item.encryptedConversationPrivateKey,
+              createdAt: item.createdAt ? item.createdAt : null,
+              client: this._client!,
+            })
+          }),
+        },
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onUpdateUser(
+    id: string,
+    callback: (
+      response: QIError | User,
+      source: OperationResult<
+        { onUpdateUser: UserGraphQL },
+        SubscriptionOnUpdateUserArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onUpdateUser"
+    const metasubcription = this._subscription<
+      SubscriptionOnUpdateUserArgs,
+      { onUpdateUser: UserGraphQL }
+    >(onUpdateUser, key, { id })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onUpdateUser: UserGraphQL },
+        UserGraphQL
+      >("onUpdateUser", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new User({
+          ...this._parentConfig!,
+          id: r.id,
+          username: r.username ? r.username : null,
+          address: r.address,
+          email: r.email ? r.email : null,
+          bio: r.bio ? r.bio : null,
+          avatarUrl: r.avatarUrl ? new URL(r.avatarUrl) : null,
+          isVerified: r.isVerified ? r.isVerified : false,
+          isNft: r.isNft ? r.isNft : false,
+          blacklistIds: r.blacklistIds ? r.blacklistIds : null,
+          allowNotification: r.allowNotification ? r.allowNotification : false,
+          allowNotificationSound: r.allowNotificationSound
+            ? r.allowNotificationSound
+            : false,
+          visibility: r.visibility ? r.visibility : false,
+          onlineStatus: r.onlineStatus ? r.onlineStatus : null,
+          allowReadReceipt: r.allowReadReceipt ? r.allowReadReceipt : false,
+          allowReceiveMessageFrom: r.allowReceiveMessageFrom
+            ? r.allowReceiveMessageFrom
+            : null,
+          allowAddToGroupsFrom: r.allowAddToGroupsFrom
+            ? r.allowAddToGroupsFrom
+            : null,
+          allowGroupsSuggestion: r.allowGroupsSuggestion
+            ? r.allowGroupsSuggestion
+            : false,
+          encryptedPrivateKey: r.encryptedPrivateKey
+            ? r.encryptedPrivateKey
+            : null,
+          publicKey: r.publicKey ? r.publicKey : null,
+          createdAt: new Date(r.createdAt),
+          updatedAt: r.updatedAt ? new Date(r.updatedAt) : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onRequestTrade(
+    conversationId: string,
+    callback: (
+      response: QIError | ConversationTradingPool,
+      source: OperationResult<
+        { onRequestTrade: ConversationTradingPoolGraphQL },
+        SubscriptionOnRequestTradeArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onRequestTrade"
+    const metasubcription = this._subscription<
+      SubscriptionOnRequestTradeArgs,
+      { onRequestTrade: ConversationTradingPoolGraphQL }
+    >(onRequestTrade, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onRequestTrade: ConversationTradingPoolGraphQL },
+        ConversationTradingPoolGraphQL
+      >("onRequestTrade", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new ConversationTradingPool({
+          ...this._parentConfig!,
+          id: r.id,
+          conversationId: r.conversationId ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          creatorsIds: r.creatorsIds ? r.creatorsIds : null,
+          initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
+          operation: r.operation ? JSON.parse(r.operation) : null,
+          status: r.status ? r.status : null,
+          type: r.type ? r.type : null,
+          createdAt: r.createdAt ? r.createdAt : null,
+          updatedAt: r.updatedAt ? r.updatedAt : null,
+          deletedAt: r.deletedAt ? r.deletedAt : null,
+          client: this._client!,
+        }),
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onDeleteRequestTrade(
+    conversationId: string,
+    callback: (
+      response: QIError | ConversationTradingPool,
+      source: OperationResult<
+        { onDeleteRequestTrade: ConversationTradingPoolGraphQL },
+        SubscriptionOnDeleteRequestTradeArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onDeleteRequestTrade"
+    const metasubcription = this._subscription<
+      SubscriptionOnDeleteRequestTradeArgs,
+      { onDeleteRequestTrade: ConversationTradingPoolGraphQL }
+    >(onDeleteRequestTrade, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onDeleteRequestTrade: ConversationTradingPoolGraphQL },
+        ConversationTradingPoolGraphQL
+      >("onDeleteRequestTrade", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        new ConversationTradingPool({
+          ...this._parentConfig!,
+          id: r.id,
+          conversationId: r.conversationId ? r.conversationId : null,
+          userId: r.userId ? r.userId : null,
+          creatorsIds: r.creatorsIds ? r.creatorsIds : null,
+          initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
+          operation: r.operation ? JSON.parse(r.operation) : null,
+          status: r.status ? r.status : null,
+          type: r.type ? r.type : null,
+          createdAt: r.createdAt ? r.createdAt : null,
           updatedAt: r.updatedAt ? r.updatedAt : null,
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
