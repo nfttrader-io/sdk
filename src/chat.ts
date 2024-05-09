@@ -1,7 +1,6 @@
 import {
   Engine,
   User,
-  BlacklistUserEntry,
   Conversation,
   QIError,
   Message,
@@ -25,7 +24,6 @@ import {
 } from "./interfaces/chat/core/conversationtradingpool"
 import {
   UserMutationEngine,
-  UserQueryEngine,
   UserSubscriptionEngine,
 } from "./interfaces/chat/core/user"
 import {
@@ -134,6 +132,7 @@ import {
   unarchiveConversation,
   unarchiveConversations,
   unmuteConversation,
+  updateConversationGroup,
   updateUserInfo,
 } from "./constants/chat/mutations"
 import {
@@ -196,7 +195,6 @@ import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 export default class Chat
   extends Engine
   implements
-    UserQueryEngine,
     UserMutationEngine,
     UserSubscriptionEngine,
     ConversationMutationEngine,
@@ -268,20 +266,6 @@ export default class Chat
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
-  }
-
-  async addMembers(
-    membersIds: [
-      {
-        memberId: string
-        encryptedConversationPrivateKey: string
-        encryptedConversationPublicKey: string
-      }
-    ]
-  ): Promise<
-    QIError | { conversationId: string; items: Array<ConversationMember> }
-  > {
-    throw new Error("Method not implemented.")
   }
 
   async addMembersToConversation(
@@ -366,10 +350,6 @@ export default class Chat
     })
   }
 
-  async addReaction(reaction: string): Promise<Message | QIError> {
-    throw new Error("Method not implemented.")
-  }
-
   async addReactionToMessage(
     args: AddReactionToMessageArgs
   ): Promise<Message | QIError> {
@@ -408,12 +388,6 @@ export default class Chat
     })
   }
 
-  async addConversationReport(
-    description: string
-  ): Promise<QIError | ConversationReport> {
-    throw new Error("Method not implemented.")
-  }
-
   async addReportToConversation(
     args: AddReportToConversationArgs
   ): Promise<QIError | ConversationReport> {
@@ -443,12 +417,6 @@ export default class Chat
       createdAt: response.createdAt,
       client: this._client!,
     })
-  }
-
-  async addMessageReport(
-    description: string
-  ): Promise<QIError | MessageReport> {
-    throw new Error("Method not implemented.")
   }
 
   async addReportToMessage(
@@ -890,57 +858,48 @@ export default class Chat
   }
 
   async muteConversation(
-    duration: "EIGHT_HOURS" | "ONE_DAY" | "ONE_WEEK" | "FOREVER"
-  ): Promise<QIError | Conversation>
-  async muteConversation(
     args: MuteConversationArgs
   ): Promise<QIError | Conversation>
   async muteConversation(args: unknown): Promise<Conversation | QIError> {
-    if (!args) {
-      throw new Error(
-        "args argument can not be null or undefined. Consider to use muteConversation(args: MuteConversationArgs) instead."
-      )
-    } else {
-      const response = await this._mutation<
-        MutationMuteConversationArgs,
-        { muteConversation: ConversationGraphQL },
-        ConversationGraphQL
-      >(
-        "muteConversation",
-        muteConversation,
-        "_mutation() -> muteConversation()",
-        {
-          input: {
-            conversationId: (args as MuteConversationArgs).id,
-            duration: (args as MuteConversationArgs).duration,
-          },
-        }
-      )
+    const response = await this._mutation<
+      MutationMuteConversationArgs,
+      { muteConversation: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "muteConversation",
+      muteConversation,
+      "_mutation() -> muteConversation()",
+      {
+        input: {
+          conversationId: (args as MuteConversationArgs).id,
+          duration: (args as MuteConversationArgs).duration,
+        },
+      }
+    )
 
-      if (response instanceof QIError) return response
+    if (response instanceof QIError) return response
 
-      return new Conversation({
-        ...this._parentConfig!,
-        id: response.id,
-        name: response.name,
-        description: response.description ? response.description : null,
-        imageURL: response.imageURL ? new URL(response.imageURL) : null,
-        bannerImageURL: response.bannerImageURL
-          ? new URL(response.bannerImageURL)
-          : null,
-        settings: response.settings ? JSON.parse(response.settings) : null,
-        membersIds: response.membersIds ? response.membersIds : null,
-        type: response.type,
-        lastMessageSentAt: response.lastMessageSentAt
-          ? response.lastMessageSentAt
-          : null,
-        ownerId: response.ownerId ? response.ownerId : null,
-        createdAt: response.createdAt,
-        updatedAt: response.updatedAt ? response.updatedAt : null,
-        deletedAt: response.deletedAt ? response.deletedAt : null,
-        client: this._client!,
-      })
-    }
+    return new Conversation({
+      ...this._parentConfig!,
+      id: response.id,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      bannerImageURL: response.bannerImageURL
+        ? new URL(response.bannerImageURL)
+        : null,
+      settings: response.settings ? JSON.parse(response.settings) : null,
+      membersIds: response.membersIds ? response.membersIds : null,
+      type: response.type,
+      lastMessageSentAt: response.lastMessageSentAt
+        ? response.lastMessageSentAt
+        : null,
+      ownerId: response.ownerId ? response.ownerId : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
   }
 
   async unlockUser(): Promise<QIError | User>
@@ -1044,10 +1003,6 @@ export default class Chat
     })
   }
 
-  async removeReaction(): Promise<QIError | Message> {
-    throw new Error("Method not implemented.")
-  }
-
   async removeReactionFromMessage(
     args: RemoveReactionFromMessageArgs
   ): Promise<QIError | Message> {
@@ -1123,48 +1078,36 @@ export default class Chat
     })
   }
 
-  async sendMessage(): Promise<QIError | Message>
-  async sendMessage(args: SendMessageArgs): Promise<QIError | Message>
-  async sendMessage(args?: unknown): Promise<QIError | Message> {
-    if (!args)
-      throw new Error(
-        "args argument can not be null or undefined. Consider to use sendMessage(args : SendMessageArgs) instead."
-      )
-    else {
-      const response = await this._mutation<
-        MutationSendMessageArgs,
-        { sendMessage: MessageGraphQL },
-        MessageGraphQL
-      >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
-        input: {
-          content: (args as SendMessageArgs).content,
-          conversationId: (args as SendMessageArgs).conversationId,
-          type: (args as SendMessageArgs).type,
-        },
-      })
+  async sendMessage(args: SendMessageArgs): Promise<QIError | Message> {
+    const response = await this._mutation<
+      MutationSendMessageArgs,
+      { sendMessage: MessageGraphQL },
+      MessageGraphQL
+    >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
+      input: {
+        content: (args as SendMessageArgs).content,
+        conversationId: (args as SendMessageArgs).conversationId,
+        type: (args as SendMessageArgs).type,
+      },
+    })
 
-      if (response instanceof QIError) return response
+    if (response instanceof QIError) return response
 
-      return new Message({
-        ...this._parentConfig!,
-        id: response.id,
-        content: response.content,
-        conversationId: response.conversation ? response.conversationId : null,
-        userId: response.userId ? response.userId : null,
-        messageRootId: response.messageRootId ? response.messageRootId : null,
-        type: response.type
-          ? (response.type as
-              | "TEXTUAL"
-              | "ATTACHMENT"
-              | "SWAP_PROPOSAL"
-              | "RENT")
-          : null,
-        createdAt: response.createdAt,
-        updatedAt: response.updatedAt ? response.updatedAt : null,
-        deletedAt: response.deletedAt ? response.deletedAt : null,
-        client: this._client!,
-      })
-    }
+    return new Message({
+      ...this._parentConfig!,
+      id: response.id,
+      content: response.content,
+      conversationId: response.conversation ? response.conversationId : null,
+      userId: response.userId ? response.userId : null,
+      messageRootId: response.messageRootId ? response.messageRootId : null,
+      type: response.type
+        ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+        : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
   }
 
   async unarchiveConversation(): Promise<QIError | Conversation>
@@ -1288,72 +1231,51 @@ export default class Chat
   }
 
   async updateConversationGroup(
-    args: Omit<UpdateConversationGroupInputArgs, "conversationId"> & {
-      conversationId?: string | undefined
-    }
-  ): Promise<QIError | Conversation>
-  async updateConversationGroup(
     args: UpdateConversationGroupInputArgs
-  ): Promise<QIError | Conversation>
-  async updateConversationGroup(
-    args: unknown
   ): Promise<QIError | Conversation> {
-    if (!("conversationId" in (args as UpdateConversationGroupInputArgs))) {
-      throw new Error(
-        "conversationId argument can not be null or undefined. Consider to use updateConversationGroup(args : UpdateConversationGroupInputArgs) instead."
-      )
-    } else {
-      const response = await this._mutation<
-        MutationUpdateConversationGroupArgs,
-        { updateConversationGroup: ConversationGraphQL },
-        ConversationGraphQL
-      >(
-        "unmuteConversation",
-        unmuteConversation,
-        "_mutation() -> unmuteConversation()",
-        {
-          input: {
-            conversationId: (args as UpdateConversationGroupInputArgs)
-              .conversationId,
-            description: (args as UpdateConversationGroupInputArgs).description,
-            imageURL: new URL(
-              (args as UpdateConversationGroupInputArgs).imageURL
-            ).toString(),
-            bannerImageURL: new URL(
-              (args as UpdateConversationGroupInputArgs).bannerImageURL
-            ).toString(),
-            name: (args as UpdateConversationGroupInputArgs).name,
-            settings: JSON.stringify(
-              (args as UpdateConversationGroupInputArgs).settings
-            ),
-          },
-        }
-      )
+    const response = await this._mutation<
+      MutationUpdateConversationGroupArgs,
+      { updateConversationGroup: ConversationGraphQL },
+      ConversationGraphQL
+    >(
+      "updateConversationGroup",
+      updateConversationGroup,
+      "_mutation() -> updateConversationGroup()",
+      {
+        input: {
+          conversationId: args.conversationId,
+          description: args.description,
+          imageURL: new URL(args.imageURL).toString(),
+          bannerImageURL: new URL(args.bannerImageURL).toString(),
+          name: args.name,
+          settings: JSON.stringify(args.settings),
+        },
+      }
+    )
 
-      if (response instanceof QIError) return response
+    if (response instanceof QIError) return response
 
-      return new Conversation({
-        ...this._parentConfig!,
-        id: response.id,
-        name: response.name,
-        description: response.description ? response.description : null,
-        imageURL: response.imageURL ? new URL(response.imageURL) : null,
-        bannerImageURL: response.bannerImageURL
-          ? new URL(response.bannerImageURL)
-          : null,
-        settings: response.settings ? JSON.parse(response.settings) : null,
-        membersIds: response.membersIds ? response.membersIds : null,
-        type: response.type,
-        lastMessageSentAt: response.lastMessageSentAt
-          ? response.lastMessageSentAt
-          : null,
-        ownerId: response.ownerId ? response.ownerId : null,
-        createdAt: response.createdAt,
-        updatedAt: response.updatedAt ? response.updatedAt : null,
-        deletedAt: response.deletedAt ? response.deletedAt : null,
-        client: this._client!,
-      })
-    }
+    return new Conversation({
+      ...this._parentConfig!,
+      id: response.id,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      bannerImageURL: response.bannerImageURL
+        ? new URL(response.bannerImageURL)
+        : null,
+      settings: response.settings ? JSON.parse(response.settings) : null,
+      membersIds: response.membersIds ? response.membersIds : null,
+      type: response.type,
+      lastMessageSentAt: response.lastMessageSentAt
+        ? response.lastMessageSentAt
+        : null,
+      ownerId: response.ownerId ? response.ownerId : null,
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt ? response.updatedAt : null,
+      deletedAt: response.deletedAt ? response.deletedAt : null,
+      client: this._client!,
+    })
   }
 
   async updateUser(args: UpdateUserArgs): Promise<QIError | User> {
@@ -1598,10 +1520,6 @@ export default class Chat
   /*
     Query
   */
-
-  async blacklist(): Promise<BlacklistUserEntry[]> {
-    return new Promise(() => {})
-  }
 
   async listAllActiveUserConversationIds(
     nextToken?: string | undefined
