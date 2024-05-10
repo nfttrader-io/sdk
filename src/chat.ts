@@ -208,6 +208,11 @@ export default class Chat
     UAMutationEngine,
     UAQueryEngine
 {
+  /**
+   * Blocks a user by their ID.
+   * @param {string} [id] - The ID of the user to block.
+   * @returns {Promise<User | QIError>} A promise that resolves to a User object if successful, or a QIError object if there was an error.
+   */
   async blockUser(): Promise<User | QIError>
   async blockUser(id: string): Promise<User | QIError>
   async blockUser(id?: unknown): Promise<User | QIError> {
@@ -1013,7 +1018,7 @@ export default class Chat
     >(
       "removeReactionFromMessage",
       removeReactionFromMessage,
-      "_mutation() -> removeReaction()",
+      "_mutation() -> removeReactionFromMessage()",
       {
         input: {
           reactionContent: args.reaction,

@@ -1,6 +1,6 @@
 import { BlacklistUserEntrySchema } from "../../interfaces/chat/schema"
 import Maybe from "../../types/general/maybe"
-import { BlacklistUserEntryInitConfig } from "../../interfaces/chat/core/blacklistuserentry/blacklistuserentryinitconfig"
+import { BlacklistUserEntryInitConfig } from "../../interfaces/chat/core/blacklistuserentry"
 import { Engine } from "./engine"
 import { EngineInitConfig } from "../../interfaces/chat/core"
 import { User } from "./user"

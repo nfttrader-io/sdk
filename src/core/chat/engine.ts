@@ -18,6 +18,13 @@ import { Observable } from "subscriptions-transport-ws"
 import { v4 as uuid4 } from "uuid"
 import { SubscriptionGarbage } from "../../types/chat/subscriptiongarbage"
 
+/**
+ * Represents an Engine class that extends HTTPClient and implements IEngine interface.
+ * Manages API configurations, WebSocket connections, and GraphQL operations.
+ * @extends HTTPClient
+ * @implements IEngine
+ */
+
 export class Engine extends HTTPClient implements IEngine {
   protected _jwtToken: Maybe<string> = null
   protected _apiKey: Maybe<string> = null
@@ -108,7 +115,7 @@ export class Engine extends HTTPClient implements IEngine {
 
     const offReconnected = this._realtimeClient.on("reconnected", (payload) => {
       console.log("reconnected", "[payload]:", payload)
-
+      //reset?
       if (this._connectCallback) this._connectCallback()
     })
 

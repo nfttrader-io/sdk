@@ -1,3 +1,3 @@
-import { BlacklistUserEntry } from "../../../../core/chat"
+import { BlacklistUserEntryInitConfig } from "./blacklistuserentryinitconfig"
 
-export { BlacklistUserEntry }
+export { BlacklistUserEntryInitConfig }
