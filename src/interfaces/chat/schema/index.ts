@@ -6,6 +6,8 @@ import { MessageSchema } from "./message"
 import { MessageReportSchema } from "./messagereport"
 import { ConversationTradingPoolSchema } from "./conversationtradingpool"
 import { UserSchema } from "./user"
+import { MessageImportantSchema } from "./messageimportant"
+import { ConversationPinSchema } from "./conversationpin"
 
 export {
   BlacklistUserEntrySchema,
@@ -16,4 +18,6 @@ export {
   MessageReportSchema,
   ConversationTradingPoolSchema,
   UserSchema,
+  MessageImportantSchema,
+  ConversationPinSchema,
 }

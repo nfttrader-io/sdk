@@ -8,6 +8,8 @@ import { MessageReport } from "./messagereport"
 import { QIError } from "./qierror"
 import { ConversationTradingPool } from "./conversationtradingpool"
 import { User } from "./user"
+import { MessageImportant } from "./messageimportant"
+import { ConversationPin } from "./conversationpin"
 
 export {
   BlacklistUserEntry,
@@ -20,6 +22,8 @@ export {
   ConversationTradingPool,
   User,
   ConversationMember,
+  MessageImportant,
+  ConversationPin,
 }
 
 export default {
@@ -33,4 +37,6 @@ export default {
   ConversationTradingPool,
   User,
   ConversationMember,
+  MessageImportant,
+  ConversationPin,
 }
