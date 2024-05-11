@@ -1,8 +1,16 @@
-import { Conversation, Message, QIError, User } from "../../../../core/chat"
+import {
+  Conversation,
+  ConversationPin,
+  Message,
+  MessageImportant,
+  QIError,
+  User,
+} from "../../../../core/chat"
 import Maybe from "../../../../types/general/maybe"
 import {
   FindUsersByUsernameOrAddressArgs,
   ListMessagesByConversationIdArgs,
+  ListMessagesImportantByUserConversationIdArgs,
 } from "../../schema/args"
 
 export interface UAQueryEngine {
@@ -22,6 +30,16 @@ export interface UAQueryEngine {
   listMessagesByConversationId(
     args: ListMessagesByConversationIdArgs
   ): Promise<{ items: Array<Message>; nextToken?: Maybe<string> } | QIError>
+  listMessagesImportantByUserConversationId(
+    args: ListMessagesImportantByUserConversationIdArgs
+  ): Promise<
+    { items: Array<MessageImportant>; nextToken?: Maybe<string> } | QIError
+  >
+  listConversationsPinnedByCurrentUser(
+    nextToken?: string
+  ): Promise<
+    { items: Array<ConversationPin>; nextToken?: Maybe<string> } | QIError
+  >
   getConversationById(id: string): Promise<Conversation | QIError>
   findUsersByUsernameOrAddress(
     args: FindUsersByUsernameOrAddressArgs

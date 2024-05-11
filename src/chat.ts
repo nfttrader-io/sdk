@@ -7,6 +7,8 @@ import {
   ConversationReport,
   MessageReport,
   ConversationTradingPool,
+  MessageImportant,
+  ConversationPin,
 } from "./core/chat"
 import {
   ConversationMutationEngine,
@@ -99,6 +101,10 @@ import {
   SubscriptionOnRequestTradeArgs,
   SubscriptionOnDeleteRequestTradeArgs,
   SubscriptionOnAddMembersToConversationArgs,
+  QueryListMessagesImportantByUserConversationIdArgs,
+  ListMessagesImportantByUserConversationIdResult as ListMessagesImportantByUserConversationIdResultGraphQL,
+  QueryListConversationsPinnedByCurrentUserArgs,
+  ListConversationsPinnedByUserIdResult as ListConversationsPinnedByUserIdResultGraphQL,
 } from "./graphql/generated/graphql"
 
 import {
@@ -141,7 +147,9 @@ import {
   getCurrentUser,
   listAllActiveUserConversationIds,
   listConversationsByIds,
+  listConversationsPinnedByCurrentUser,
   listMessagesByConversationId,
+  listMessagesImportantByUserConversationId,
 } from "./constants/chat/queries"
 import { AddMembersToConversationArgs } from "./interfaces/chat/schema/args/addmemberstoconversation"
 import { ConversationMember } from "./core/chat/conversationmember"
@@ -155,6 +163,7 @@ import {
   EditMessageArgs,
   FindUsersByUsernameOrAddressArgs,
   ListMessagesByConversationIdArgs,
+  ListMessagesImportantByUserConversationIdArgs,
   MuteConversationArgs,
   RemoveReactionFromMessageArgs,
   RequestTradeArgs,
@@ -1655,6 +1664,157 @@ export default class Chat
     }
 
     return listMessages
+  }
+
+  async listMessagesImportantByUserConversationId(
+    args: ListMessagesImportantByUserConversationIdArgs
+  ): Promise<
+    | {
+        items: MessageImportant[]
+        nextToken?: Maybe<string> | undefined
+      }
+    | QIError
+  > {
+    const response = await this._query<
+      QueryListMessagesImportantByUserConversationIdArgs,
+      {
+        listMessagesImportantByUserConversationId: ListMessagesImportantByUserConversationIdResultGraphQL
+      },
+      ListMessagesImportantByUserConversationIdResultGraphQL
+    >(
+      "listMessagesImportantByUserConversationId",
+      listMessagesImportantByUserConversationId,
+      "_query() -> listMessagesImportantByUserConversationId()",
+      {
+        input: {
+          conversationId: args.conversationId,
+          nextToken: args.nextToken,
+        },
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    const listMessagesImportant: {
+      nextToken?: string
+      items: Array<MessageImportant>
+    } = {
+      nextToken: response.nextToken ? response.nextToken : undefined,
+      items: response.items.map((item) => {
+        return new MessageImportant({
+          ...this._parentConfig!,
+          id: item.id,
+          userId: item.userId,
+          messageId: item.messageId,
+          message: new Message({
+            ...this._parentConfig!,
+            id: item.message!.id,
+            content: item.message!.content,
+            conversationId: item.message!.conversation
+              ? item.message!.conversationId
+              : null,
+            userId: item.message!.userId ? item.message!.userId : null,
+            messageRootId: item.message!.messageRootId
+              ? item.message!.messageRootId
+              : null,
+            type: item.message!.type
+              ? (item.message!.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: item.message!.createdAt,
+            updatedAt: item.message!.updatedAt ? item.message!.updatedAt : null,
+            deletedAt: item.message!.deletedAt ? item.message!.deletedAt : null,
+            client: this._client!,
+          }),
+          conversationId: item.conversationId,
+          createdAt: item.createdAt,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listMessagesImportant
+  }
+
+  async listConversationsPinnedByCurrentUser(
+    nextToken?: string | undefined
+  ): Promise<
+    | QIError
+    | { items: ConversationPin[]; nextToken?: Maybe<string> | undefined }
+  > {
+    const response = await this._query<
+      QueryListConversationsPinnedByCurrentUserArgs,
+      {
+        listConversationsPinnedByCurrentUser: ListConversationsPinnedByUserIdResultGraphQL
+      },
+      ListConversationsPinnedByUserIdResultGraphQL
+    >(
+      "listConversationsPinnedByCurrentUser",
+      listConversationsPinnedByCurrentUser,
+      "_query() -> listConversationsPinnedByCurrentUser()",
+      {
+        nextToken,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    const listConversationsPinned: {
+      nextToken?: string
+      items: Array<ConversationPin>
+    } = {
+      nextToken: response.nextToken ? response.nextToken : undefined,
+      items: response.items.map((item) => {
+        return new ConversationPin({
+          ...this._parentConfig!,
+          id: item.id,
+          userId: item.userId,
+          conversationId: item.conversationId,
+          conversation: new Conversation({
+            ...this._parentConfig!,
+            id: item.conversation!.id,
+            name: item.conversation!.name,
+            description: item.conversation!.description
+              ? item.conversation!.description
+              : null,
+            imageURL: item.conversation!.imageURL
+              ? new URL(item.conversation!.imageURL)
+              : null,
+            bannerImageURL: item.conversation!.bannerImageURL
+              ? new URL(item.conversation!.bannerImageURL)
+              : null,
+            settings: item.conversation!.settings
+              ? JSON.parse(item.conversation!.settings)
+              : null,
+            membersIds: item.conversation!.membersIds
+              ? item.conversation!.membersIds
+              : null,
+            type: item.conversation!.type,
+            lastMessageSentAt: item.conversation!.lastMessageSentAt
+              ? item.conversation!.lastMessageSentAt
+              : null,
+            ownerId: item.conversation!.ownerId
+              ? item.conversation!.ownerId
+              : null,
+            createdAt: item.conversation!.createdAt,
+            updatedAt: item.conversation!.updatedAt
+              ? item.conversation!.updatedAt
+              : null,
+            deletedAt: item.conversation!.deletedAt
+              ? item.conversation!.deletedAt
+              : null,
+            client: this._client!,
+          }),
+          createdAt: item.createdAt,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listConversationsPinned
   }
 
   async findUsersByUsernameOrAddress(

@@ -15,6 +15,7 @@ import { UpdateUserArgs } from "./updateuser"
 import { ListMessagesByConversationIdArgs } from "./listmessagesbyconversationid"
 import { FindUsersByUsernameOrAddressArgs } from "./findusersbyusernameoraddress"
 import { RemoveReactionFromMessageArgs } from "./removereactionfrommessage"
+import { ListMessagesImportantByUserConversationIdArgs } from "./listmessagesimportantbyconversationid"
 
 export {
   AddMembersToConversationArgs,
@@ -34,4 +35,5 @@ export {
   ListMessagesByConversationIdArgs,
   FindUsersByUsernameOrAddressArgs,
   RemoveReactionFromMessageArgs,
+  ListMessagesImportantByUserConversationIdArgs,
 }
