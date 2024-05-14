@@ -122,7 +122,7 @@ export class Message
   }
 
   async addReactionToMessage(
-    args: Pick<AddReactionToMessageArgs, "reaction">
+    args: Pick<AddReactionToMessageArgs, "reaction" | "conversationId">
   ): Promise<Message | QIError> {
     const response = await this._mutation<
       MutationAddReactionToMessageArgs,
@@ -135,7 +135,11 @@ export class Message
       {
         input: {
           messageId: this.id,
-          reactionContent: args.reaction,
+          reactionContent: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            args.reaction
+          ),
+          conversationId: args.conversationId,
         },
       }
     )
@@ -194,7 +198,7 @@ export class Message
   }
 
   async editMessage(
-    args: Pick<EditMessageArgs, "content">
+    args: Pick<EditMessageArgs, "content" | "conversationId">
   ): Promise<Message | QIError> {
     const response = await this._mutation<
       MutationEditMessageArgs,
@@ -203,7 +207,11 @@ export class Message
     >("editMessage", editMessage, "_mutation() -> editMessage()", {
       input: {
         messageId: this.id,
-        content: args.content,
+        content: Crypto.encryptStringOrFail(
+          this.findPublicKeyById(args.conversationId),
+          args.content
+        ),
+        conversationId: args.conversationId,
       },
     })
 
@@ -273,7 +281,7 @@ export class Message
   }
 
   async removeReactionFromMessage(
-    args: Pick<RemoveReactionFromMessageArgs, "reaction">
+    args: Pick<RemoveReactionFromMessageArgs, "reaction" | "conversationId">
   ): Promise<Message | QIError> {
     const response = await this._mutation<
       MutationRemoveReactionFromMessageArgs,
@@ -285,8 +293,12 @@ export class Message
       "_mutation() -> removeReactionFromMessage()",
       {
         input: {
-          reactionContent: args.reaction,
+          reactionContent: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            args.reaction
+          ),
           messageId: this.id,
+          conversationId: args.conversationId,
         },
       }
     )
