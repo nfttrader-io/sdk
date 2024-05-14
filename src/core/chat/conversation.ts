@@ -54,6 +54,7 @@ import { Engine } from "./engine"
 import { Message } from "./message"
 import { QIError } from "./qierror"
 import { User } from "./user"
+import { Crypto } from "./crypto"
 
 export class Conversation
   extends Engine
@@ -82,6 +83,8 @@ export class Conversation
       apiKey: config.apiKey,
       apiUrl: config.apiUrl,
       realtimeApiUrl: config.realtimeApiUrl,
+      userKeyPair: config.userKeyPair,
+      keyPairsMap: config.keyPairsMap,
     })
 
     this.id = config.id
@@ -120,11 +123,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -243,11 +266,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -284,8 +327,11 @@ export class Conversation
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -324,11 +370,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -368,11 +434,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -397,7 +483,10 @@ export class Conversation
       MessageGraphQL
     >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
       input: {
-        content: args.content,
+        content: Crypto.encryptStringOrFail(
+          this.findPublicKeyById(this.id),
+          args.content
+        ),
         conversationId: this.id,
         type: args.type,
       },
@@ -408,8 +497,11 @@ export class Conversation
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -449,10 +541,27 @@ export class Conversation
       ...this._parentConfig!,
       id: response.id,
       name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -494,9 +603,24 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
         ? new URL(response.bannerImageURL)
         : null,
@@ -531,10 +655,26 @@ export class Conversation
       {
         input: {
           conversationId: this.id,
-          description: args.description,
-          imageURL: new URL(args.imageURL).toString(),
-          bannerImageURL: new URL(args.bannerImageURL).toString(),
-          name: args.name,
+          description: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(this.id),
+            args.description
+          ),
+          imageURL: new URL(
+            Crypto.encryptStringOrFail(
+              this.findPublicKeyById(this.id),
+              args.imageURL
+            )
+          ).toString(),
+          bannerImageURL: new URL(
+            Crypto.encryptStringOrFail(
+              this.findPublicKeyById(this.id),
+              args.bannerImageURL
+            )
+          ).toString(),
+          name: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(this.id),
+            args.name
+          ),
           settings: JSON.stringify(args.settings),
         },
       }
@@ -545,11 +685,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -591,11 +751,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -637,11 +817,31 @@ export class Conversation
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
+      description: response.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
+        : null,
+      imageURL: response.imageURL
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,

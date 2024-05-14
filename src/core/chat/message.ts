@@ -45,6 +45,7 @@ import { MessageReport } from "./messagereport"
 import { QIError } from "./qierror"
 import { Reaction } from "./reaction"
 import { User } from "./user"
+import { Crypto } from "./crypto"
 
 export class Message
   extends Engine
@@ -66,6 +67,8 @@ export class Message
       apiKey: config.apiKey,
       apiUrl: config.apiUrl,
       realtimeApiUrl: config.realtimeApiUrl,
+      userKeyPair: config.userKeyPair,
+      keyPairsMap: config.keyPairsMap,
     })
 
     this.id = config.id
@@ -101,8 +104,11 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -139,8 +145,11 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -203,8 +212,11 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -243,7 +255,10 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -281,8 +296,11 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -321,8 +339,11 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -361,8 +382,11 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -394,15 +418,31 @@ export class Message
     return new Conversation({
       ...this._parentConfig!,
       id: response.conversation!.id,
-      name: response.conversation!.name,
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversation!.id),
+        response.conversation!.name
+      ),
       description: response.conversation!.description
-        ? response.conversation!.description
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.conversation!.id),
+            response.conversation!.description
+          )
         : null,
       imageURL: response.conversation!.imageURL
-        ? new URL(response.conversation!.imageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.conversation!.id),
+              response.conversation!.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.conversation!.bannerImageURL
-        ? new URL(response.conversation!.bannerImageURL)
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.conversation!.id),
+              response.conversation!.bannerImageURL
+            )
+          )
         : null,
       settings: response.conversation!.settings
         ? JSON.parse(response.conversation!.settings)
@@ -443,7 +483,10 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.messageRoot!.id,
-      content: response.messageRoot!.content,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.messageRoot!.conversationId),
+        response.messageRoot!.content
+      ),
       conversationId: response.messageRoot!.conversation
         ? response.messageRoot!.conversationId
         : null,

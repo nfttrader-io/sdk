@@ -9,6 +9,7 @@ import {
   ConversationTradingPool,
   MessageImportant,
   ConversationPin,
+  Crypto,
 } from "./core/chat"
 import {
   ConversationMutationEngine,
@@ -201,7 +202,6 @@ import {
 } from "./constants/chat/subscriptions"
 import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
-import Crypto from "./core/chat/crypto"
 import { KeyPairItem } from "./types/chat/keypairitem"
 
 export default class Chat

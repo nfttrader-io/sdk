@@ -37,7 +37,7 @@ export class Engine extends HTTPClient implements IEngine {
   protected _client: Maybe<Client> = null
   protected _realtimeClient: Maybe<UUIDSubscriptionClient> = null
   protected _userKeyPair: Maybe<forge.pki.rsa.KeyPair> = null
-  protected _mapKeyPairs: Maybe<Array<KeyPairItem>> = null
+  protected _keyPairsMap: Maybe<Array<KeyPairItem>> = null
 
   private _connectCallback: Maybe<Function> = null
   private _connectionParams: Maybe<RealTimeWebSocketConnectionParams> = null
@@ -54,8 +54,9 @@ export class Engine extends HTTPClient implements IEngine {
     this._apiUrl = new URL(config.apiUrl)
     this._realtimeApiUrl = new URL(config.realtimeApiUrl)
     this._realtimeAuthorizationToken = `${this._apiKey}##${this._jwtToken}`
+    this._keyPairsMap = config.keyPairsMap
+    this._userKeyPair = config.userKeyPair
     this._parentConfig = config
-    this._mapKeyPairs = []
     this._connectionParams = {
       Authorization: null,
       host: null,
@@ -473,41 +474,41 @@ export class Engine extends HTTPClient implements IEngine {
   }
 
   addKeyPairItem(newItem: KeyPairItem): KeyPairItem[] {
-    if (!this._mapKeyPairs) this._mapKeyPairs = []
+    if (!this._keyPairsMap) this._keyPairsMap = []
 
-    const index = this._mapKeyPairs.findIndex((keypair: KeyPairItem) => {
+    const index = this._keyPairsMap.findIndex((keypair: KeyPairItem) => {
       return keypair.id.toLowerCase() === newItem.id.toLowerCase()
     })
 
-    if (index === -1) this._mapKeyPairs.push(newItem)
+    if (index === -1) this._keyPairsMap.push(newItem)
 
-    return this._mapKeyPairs
+    return this._keyPairsMap
   }
 
   removeKeyPairItem(id: string): KeyPairItem[] {
-    if (!this._mapKeyPairs) this._mapKeyPairs = []
+    if (!this._keyPairsMap) this._keyPairsMap = []
 
-    const index = this._mapKeyPairs.findIndex((keypair: KeyPairItem) => {
+    const index = this._keyPairsMap.findIndex((keypair: KeyPairItem) => {
       return keypair.id.toLowerCase() === id.toLowerCase()
     })
 
-    if (index > -1) this._mapKeyPairs = this._mapKeyPairs.splice(index, 1)
+    if (index > -1) this._keyPairsMap = this._keyPairsMap.splice(index, 1)
 
-    return this._mapKeyPairs
+    return this._keyPairsMap
   }
 
   getKeyPairMap(): KeyPairItem[] {
-    return this._mapKeyPairs!
+    return this._keyPairsMap!
   }
 
   setKeyPairMap(map: KeyPairItem[]): void {
-    this._mapKeyPairs = map
+    this._keyPairsMap = map
   }
 
   findPublicKeyById(id: string): Maybe<forge.pki.rsa.PublicKey> {
-    if (!this._mapKeyPairs) return null
+    if (!this._keyPairsMap) return null
 
-    const item = this._mapKeyPairs.find((k: KeyPairItem) => {
+    const item = this._keyPairsMap.find((k: KeyPairItem) => {
       return k.id.toLowerCase() === id.toLowerCase()
     })
 
@@ -517,9 +518,9 @@ export class Engine extends HTTPClient implements IEngine {
   }
 
   findPrivateKeyById(id: string): Maybe<forge.pki.rsa.PrivateKey> {
-    if (!this._mapKeyPairs) return null
+    if (!this._keyPairsMap) return null
 
-    const item = this._mapKeyPairs.find((k: KeyPairItem) => {
+    const item = this._keyPairsMap.find((k: KeyPairItem) => {
       return k.id.toLowerCase() === id.toLowerCase()
     })
 
@@ -529,14 +530,22 @@ export class Engine extends HTTPClient implements IEngine {
   }
 
   findKeyPairById(id: string): Maybe<forge.pki.rsa.KeyPair> {
-    if (!this._mapKeyPairs) return null
+    if (!this._keyPairsMap) return null
 
-    const item = this._mapKeyPairs.find((k: KeyPairItem) => {
+    const item = this._keyPairsMap.find((k: KeyPairItem) => {
       return k.id.toLowerCase() === id.toLowerCase()
     })
 
     if (!item) return null
 
     return item.keypair
+  }
+
+  setUserKeyPair(userKeyPair: forge.pki.rsa.KeyPair): void {
+    this._userKeyPair = userKeyPair
+  }
+
+  getUserKeyPair(): Maybe<forge.pki.rsa.KeyPair> {
+    return this._userKeyPair
   }
 }

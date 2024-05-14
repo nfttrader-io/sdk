@@ -22,6 +22,8 @@ export class ConversationMember
       apiKey: config.apiKey,
       apiUrl: config.apiUrl,
       realtimeApiUrl: config.realtimeApiUrl,
+      userKeyPair: config.userKeyPair,
+      keyPairsMap: config.keyPairsMap,
     })
 
     this.id = config.id

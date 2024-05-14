@@ -10,6 +10,7 @@ import { ConversationTradingPool } from "./conversationtradingpool"
 import { User } from "./user"
 import { MessageImportant } from "./messageimportant"
 import { ConversationPin } from "./conversationpin"
+import { Crypto } from "./crypto"
 
 export {
   BlacklistUserEntry,
@@ -24,6 +25,7 @@ export {
   ConversationMember,
   MessageImportant,
   ConversationPin,
+  Crypto,
 }
 
 export default {
@@ -39,4 +41,5 @@ export default {
   ConversationMember,
   MessageImportant,
   ConversationPin,
+  Crypto,
 }

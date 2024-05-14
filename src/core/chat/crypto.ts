@@ -1,7 +1,7 @@
 import forge = require("node-forge")
 import Maybe from "../../types/general/maybe"
 
-export default class Crypto {
+export class Crypto {
   static verifyKeys(
     publicKey: forge.pki.rsa.PublicKey,
     privateKey: forge.pki.rsa.PrivateKey

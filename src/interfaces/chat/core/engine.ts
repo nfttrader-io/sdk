@@ -24,4 +24,6 @@ export interface Engine {
   findPublicKeyById(id: string): Maybe<forge.pki.rsa.PublicKey>
   findPrivateKeyById(id: string): Maybe<forge.pki.rsa.PrivateKey>
   findKeyPairById(id: string): Maybe<forge.pki.rsa.KeyPair>
+  setUserKeyPair(userKeyPair: forge.pki.rsa.KeyPair): void
+  getUserKeyPair(): Maybe<forge.pki.rsa.KeyPair>
 }
