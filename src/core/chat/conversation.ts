@@ -55,6 +55,10 @@ import { Message } from "./message"
 import { QIError } from "./qierror"
 import { User } from "./user"
 import { Crypto } from "./crypto"
+import {
+  getMembersFromConversationById,
+  getOwnerFromConversationById,
+} from "../../constants/chat/queries"
 
 export class Conversation
   extends Engine
@@ -858,22 +862,146 @@ export class Conversation
   }
 
   async owner(): Promise<User | QIError> {
-    return new Promise(() => {})
+    const response = await this._query<
+      null,
+      {
+        getConversationById: ConversationGraphQL
+      },
+      ConversationGraphQL
+    >(
+      "getConversationById",
+      getOwnerFromConversationById,
+      "_query() -> owner()",
+      null
+    )
+
+    if (response instanceof QIError) return response
+
+    return new User({
+      ...this._parentConfig!,
+      id: response.owner!.id,
+      username: response.owner!.username ? response.owner!.username : null,
+      address: response.owner!.address,
+      email: response.owner!.email ? response.owner!.email : null,
+      bio: response.owner!.bio ? response.owner!.bio : null,
+      avatarUrl: response.owner!.avatarUrl
+        ? new URL(response.owner!.avatarUrl)
+        : null,
+      isVerified: response.owner!.isVerified
+        ? response.owner!.isVerified
+        : false,
+      isNft: response.owner!.isNft ? response.owner!.isNft : false,
+      blacklistIds: response.owner!.blacklistIds
+        ? response.owner!.blacklistIds
+        : null,
+      allowNotification: response.owner!.allowNotification
+        ? response.owner!.allowNotification
+        : false,
+      allowNotificationSound: response.owner!.allowNotificationSound
+        ? response.owner!.allowNotificationSound
+        : false,
+      visibility: response.owner!.visibility
+        ? response.owner!.visibility
+        : false,
+      onlineStatus: response.owner!.onlineStatus
+        ? response.owner!.onlineStatus
+        : null,
+      allowReadReceipt: response.owner!.allowReadReceipt
+        ? response.owner!.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.owner!.allowReceiveMessageFrom
+        ? response.owner!.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.owner!.allowAddToGroupsFrom
+        ? response.owner!.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.owner!.allowGroupsSuggestion
+        ? response.owner!.allowGroupsSuggestion
+        : false,
+      encryptedPrivateKey: response.owner!.encryptedPrivateKey
+        ? response.owner!.encryptedPrivateKey
+        : null,
+      publicKey: response.owner!.publicKey ? response.owner!.publicKey : null,
+      createdAt: new Date(response.owner!.createdAt),
+      updatedAt: response.owner!.updatedAt
+        ? new Date(response.owner!.updatedAt)
+        : null,
+      client: this._client!,
+    })
   }
 
-  async members(): Promise<QIError> {
-    return new Promise(() => {})
+  async members(): Promise<ConversationMember[] | QIError> {
+    const response = await this._query<
+      null,
+      {
+        getConversationById: ConversationGraphQL
+      },
+      ConversationGraphQL
+    >(
+      "getConversationById",
+      getMembersFromConversationById,
+      "_query() -> members()",
+      null
+    )
+
+    if (response instanceof QIError) return response
+
+    const listConversationMembers: Array<ConversationMember> =
+      response.members!.map((item) => {
+        return new ConversationMember({
+          ...this._parentConfig!,
+          id: item!.id,
+          conversationId: item!.conversationId ? item!.conversationId : null,
+          userId: item!.userId,
+          type: item!.type,
+          encryptedConversationPublicKey: item!.encryptedConversationPublicKey,
+          encryptedConversationPrivateKey:
+            item!.encryptedConversationPrivateKey,
+          createdAt: item!.createdAt ? item!.createdAt : null,
+          client: this._client!,
+        })
+      })
+
+    return listConversationMembers
   }
 
-  async reports(): Promise<QIError> {
-    return new Promise(() => {})
-  }
+  async messages(): Promise<Message[] | QIError> {
+    const response = await this._query<
+      null,
+      {
+        getConversationById: ConversationGraphQL
+      },
+      ConversationGraphQL
+    >(
+      "getConversationById",
+      getMembersFromConversationById,
+      "_query() -> members()",
+      null
+    )
 
-  async mutedBy(): Promise<QIError> {
-    return new Promise(() => {})
-  }
+    if (response instanceof QIError) return response
 
-  async messages(): Promise<QIError> {
-    return new Promise(() => {})
+    const listMessages: Array<Message> = response.messages!.map((item) => {
+      return new Message({
+        ...this._parentConfig!,
+        id: response.id,
+        content: Crypto.decryptStringOrFail(
+          this.findPrivateKeyById(item!.conversationId),
+          item!.content
+        ),
+        conversationId: item!.conversationId,
+        userId: item!.userId ? item!.userId : null,
+        messageRootId: item!.messageRootId ? item!.messageRootId : null,
+        type: item!.type
+          ? (item!.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
+          : null,
+        createdAt: item!.createdAt,
+        updatedAt: item!.updatedAt ? item!.updatedAt : null,
+        deletedAt: item!.deletedAt ? item!.deletedAt : null,
+        client: this._client!,
+      })
+    })
+
+    return listMessages
   }
 }

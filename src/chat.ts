@@ -308,7 +308,7 @@ export default class Chat
 
     if (response instanceof QIError) return response
 
-    const listConversations: {
+    const listConversationMembers: {
       conversationId: string
       items: Array<ConversationMember>
     } = {
@@ -328,7 +328,7 @@ export default class Chat
       }),
     }
 
-    return listConversations
+    return listConversationMembers
   }
 
   async pinMessage(): Promise<Message | QIError>
