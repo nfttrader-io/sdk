@@ -9,12 +9,15 @@ import {
 import Maybe from "../../../../types/general/maybe"
 import {
   FindUsersByUsernameOrAddressArgs,
+  ListAllActiveUserConversationIdsArgs,
   ListMessagesByConversationIdArgs,
   ListMessagesImportantByUserConversationIdArgs,
 } from "../../schema/args"
 
 export interface UAQueryEngine {
-  listAllActiveUserConversationIds(nextToken?: string): Promise<
+  listAllActiveUserConversationIds(
+    args: ListAllActiveUserConversationIdsArgs
+  ): Promise<
     | {
         items: Array<string>
         nextToken?: String

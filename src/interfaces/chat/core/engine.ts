@@ -1,6 +1,7 @@
-import E2E from "../../../e2e"
+import { KeyPairItem } from "../../../types/chat/keypairitem"
 import { SubscriptionGarbage } from "../../../types/chat/subscriptiongarbage"
 import Maybe from "../../../types/general/maybe"
+import forge = require("node-forge")
 
 /**
  * Interface for an Engine that defines methods for connecting, reconnecting, collecting garbage,
@@ -16,4 +17,11 @@ export interface Engine {
   getApiKey(): Maybe<string>
   getApiURL(): Maybe<string>
   getRealtimeApiURL(): Maybe<string>
+  addKeyPairItem(newItem: KeyPairItem): Array<KeyPairItem>
+  removeKeyPairItem(id: string): Array<KeyPairItem>
+  setKeyPairMap(map: Array<KeyPairItem>): void
+  getKeyPairMap(): Array<KeyPairItem>
+  findPublicKeyById(id: string): Maybe<forge.pki.rsa.PublicKey>
+  findPrivateKeyById(id: string): Maybe<forge.pki.rsa.PrivateKey>
+  findKeyPairById(id: string): Maybe<forge.pki.rsa.KeyPair>
 }

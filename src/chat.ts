@@ -162,6 +162,7 @@ import {
   DeleteBatchConversationMessagesArgs,
   EditMessageArgs,
   FindUsersByUsernameOrAddressArgs,
+  ListAllActiveUserConversationIdsArgs,
   ListMessagesByConversationIdArgs,
   ListMessagesImportantByUserConversationIdArgs,
   MuteConversationArgs,
@@ -200,6 +201,8 @@ import {
 } from "./constants/chat/subscriptions"
 import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
+import Crypto from "./core/chat/crypto"
+import { KeyPairItem } from "./types/chat/keypairitem"
 
 export default class Chat
   extends Engine
@@ -350,8 +353,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -378,7 +384,7 @@ export default class Chat
       {
         input: {
           messageId: args.messageId,
-          reactionContent: this._e2e.encrypt(args.reaction),
+          reactionContent: args.reaction,
         },
       }
     )
@@ -388,8 +394,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -491,15 +500,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -543,7 +568,10 @@ export default class Chat
 
   async createConversationGroup(
     args: CreateConversationGroupArgs
-  ): Promise<Conversation | QIError> {
+  ): Promise<
+    { keypairItem: KeyPairItem; conversation: Conversation } | QIError
+  > {
+    const keypair = await Crypto.generateKeys("HIGH")
     const response = await this._mutation<
       MutationCreateConversationGroupArgs,
       { createConversationGroup: ConversationGraphQL },
@@ -554,46 +582,68 @@ export default class Chat
       "_mutation() -> createConversationGroup()",
       {
         input: {
-          name: this._e2e.encrypt(args.name),
-          description: this._e2e.encrypt(args.description),
-          bannerImageURL: this._e2e.encrypt(args.bannerImageURL),
-          imageURL: this._e2e.encrypt(args.imageURL),
+          name: Crypto.encrypt(keypair.publicKey, args.name),
+          description: Crypto.encrypt(keypair.publicKey, args.description),
+          bannerImageURL: Crypto.encrypt(
+            keypair.publicKey,
+            args.bannerImageURL
+          ),
+          imageURL: Crypto.encrypt(keypair.publicKey, args.imageURL),
         },
       }
     )
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
-      ...this._parentConfig!,
+    this.addKeyPairItem({
       id: response.id,
-      name: this._e2e.decrypt(response.name),
-      description: response.description
-        ? this._e2e.decrypt(response.description)
-        : null,
-      imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
-        : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
-      client: this._client!,
+      keypair,
     })
+
+    const conversationGroup: {
+      keypairItem: KeyPairItem
+      conversation: Conversation
+    } = {
+      keypairItem: {
+        id: response.id,
+        keypair,
+      },
+      conversation: new Conversation({
+        ...this._parentConfig!,
+        id: response.id,
+        name: Crypto.decrypt(keypair.privateKey, response.name),
+        description: response.description
+          ? Crypto.decrypt(keypair.privateKey, response.description)
+          : null,
+        imageURL: response.imageURL
+          ? new URL(Crypto.decrypt(keypair.privateKey, response.imageURL))
+          : null,
+        bannerImageURL: response.bannerImageURL
+          ? new URL(Crypto.decrypt(keypair.privateKey, response.bannerImageURL))
+          : null,
+        settings: response.settings ? JSON.parse(response.settings) : null,
+        membersIds: response.membersIds ? response.membersIds : null,
+        type: response.type,
+        lastMessageSentAt: response.lastMessageSentAt
+          ? response.lastMessageSentAt
+          : null,
+        ownerId: response.ownerId ? response.ownerId : null,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt ? response.updatedAt : null,
+        deletedAt: response.deletedAt ? response.deletedAt : null,
+        client: this._client!,
+      }),
+    }
+
+    return conversationGroup
   }
 
   async createConversationOneToOne(
     args: CreateConversationOneToOneArgs
-  ): Promise<QIError | Conversation> {
+  ): Promise<
+    QIError | { keypairItem: KeyPairItem; conversation: Conversation }
+  > {
+    const keypair = await Crypto.generateKeys("HIGH")
     const response = await this._mutation<
       MutationCreateConversationOneToOneArgs,
       { createConversationOneToOne: ConversationGraphQL },
@@ -604,41 +654,55 @@ export default class Chat
       "_mutation() -> createConversationOneToOne()",
       {
         input: {
-          name: this._e2e.encrypt(args.name),
-          description: this._e2e.encrypt(args.description),
-          bannerImageURL: this._e2e.encrypt(args.bannerImageURL),
-          imageURL: this._e2e.encrypt(args.imageURL),
+          name: Crypto.encrypt(keypair.publicKey, args.name),
+          description: Crypto.encrypt(keypair.publicKey, args.description),
+          bannerImageURL: Crypto.encrypt(
+            keypair.publicKey,
+            args.bannerImageURL
+          ),
+          imageURL: Crypto.encrypt(keypair.publicKey, args.imageURL),
         },
       }
     )
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
-      ...this._parentConfig!,
-      id: response.id,
-      name: this._e2e.encrypt(response.name),
-      description: response.description
-        ? this._e2e.encrypt(response.description)
-        : null,
-      imageURL: response.imageURL
-        ? new URL(this._e2e.encrypt(response.imageURL))
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.encrypt(response.bannerImageURL))
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
-        : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
-      client: this._client!,
-    })
+    const conversationItem: {
+      keypairItem: KeyPairItem
+      conversation: Conversation
+    } = {
+      keypairItem: {
+        id: response.id,
+        keypair: keypair,
+      },
+      conversation: new Conversation({
+        ...this._parentConfig!,
+        id: response.id,
+        name: Crypto.encrypt(keypair.publicKey, response.name),
+        description: response.description
+          ? Crypto.encrypt(keypair.publicKey, response.description)
+          : null,
+        imageURL: response.imageURL
+          ? new URL(Crypto.encrypt(keypair.publicKey, response.imageURL))
+          : null,
+        bannerImageURL: response.bannerImageURL
+          ? new URL(Crypto.encrypt(keypair.publicKey, response.bannerImageURL))
+          : null,
+        settings: response.settings ? JSON.parse(response.settings) : null,
+        membersIds: response.membersIds ? response.membersIds : null,
+        type: response.type,
+        lastMessageSentAt: response.lastMessageSentAt
+          ? response.lastMessageSentAt
+          : null,
+        ownerId: response.ownerId ? response.ownerId : null,
+        createdAt: response.createdAt,
+        updatedAt: response.updatedAt ? response.updatedAt : null,
+        deletedAt: response.deletedAt ? response.deletedAt : null,
+        client: this._client!,
+      }),
+    }
+
+    return conversationItem
   }
 
   async deleteBatchConversationMessages(
@@ -686,8 +750,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -728,7 +795,12 @@ export default class Chat
         ? response.initializatorsIds
         : null,
       operation: response.operation
-        ? JSON.parse(this._e2e.decrypt(response.operation))
+        ? JSON.parse(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.conversationId!),
+              response.operation
+            )
+          )
         : null,
       status: response.status ? response.status : null,
       type: response.type ? response.type : null,
@@ -747,7 +819,7 @@ export default class Chat
     >("editMessage", editMessage, "_mutation() -> editMessage()", {
       input: {
         messageId: args.id,
-        content: this._e2e.encrypt(args.content),
+        content: args.content,
       },
     })
 
@@ -756,8 +828,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -787,15 +862,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -869,15 +960,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -918,15 +1025,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1029,8 +1152,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -1056,7 +1182,7 @@ export default class Chat
       "_mutation() -> removeReactionFromMessage()",
       {
         input: {
-          reactionContent: this._e2e.encrypt(args.reaction),
+          reactionContent: args.reaction,
           messageId: args.messageId,
         },
       }
@@ -1067,8 +1193,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -1093,7 +1222,10 @@ export default class Chat
         creatorsIds: args.creatorsIds,
         initializatorIds: args.initializatorIds,
         conversationId: args.conversationId,
-        operation: this._e2e.encrypt(JSON.stringify(args.operation)),
+        operation: Crypto.encryptStringOrFail(
+          this.findPublicKeyById(args.conversationId),
+          JSON.stringify(args.operation)
+        ),
       },
     })
 
@@ -1109,7 +1241,12 @@ export default class Chat
         ? response.initializatorsIds
         : null,
       operation: response.operation
-        ? JSON.parse(this._e2e.decrypt(response.operation))
+        ? JSON.parse(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.conversationId!),
+              response.operation
+            )
+          )
         : null,
       status: response.status ? response.status : null,
       type: response.type ? response.type : null,
@@ -1127,7 +1264,10 @@ export default class Chat
       MessageGraphQL
     >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
       input: {
-        content: this._e2e.encrypt((args as SendMessageArgs).content),
+        content: Crypto.encryptStringOrFail(
+          this.findPublicKeyById((args as SendMessageArgs).conversationId),
+          (args as SendMessageArgs).content
+        ),
         conversationId: (args as SendMessageArgs).conversationId,
         type: (args as SendMessageArgs).type,
       },
@@ -1138,8 +1278,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.decrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -1179,15 +1322,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1256,15 +1415,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1294,12 +1469,22 @@ export default class Chat
       {
         input: {
           conversationId: args.conversationId,
-          description: this._e2e.encrypt(args.description),
-          imageURL: this._e2e.encrypt(new URL(args.imageURL).toString()),
-          bannerImageURL: this._e2e.encrypt(
+          description: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            args.description
+          ),
+          imageURL: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            new URL(args.imageURL).toString()
+          ),
+          bannerImageURL: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
             new URL(args.bannerImageURL).toString()
           ),
-          name: this._e2e.encrypt(args.name),
+          name: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            args.name
+          ),
           settings: JSON.stringify(args.settings),
         },
       }
@@ -1310,15 +1495,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1424,8 +1625,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.encrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -1465,8 +1669,11 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: this._e2e.encrypt(response.content),
-      conversationId: response.conversation ? response.conversationId : null,
+      content: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.conversationId),
+        response.content
+      ),
+      conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
@@ -1506,15 +1713,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1557,15 +1780,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1586,7 +1825,7 @@ export default class Chat
   */
 
   async listAllActiveUserConversationIds(
-    nextToken?: string | undefined
+    args: ListAllActiveUserConversationIdsArgs
   ): Promise<QIError | { items: string[]; nextToken?: String | undefined }> {
     const response = await this._query<
       QueryListAllActiveUserConversationIdsArgs,
@@ -1599,7 +1838,10 @@ export default class Chat
       listAllActiveUserConversationIds,
       "_query() -> listAllActiveUserConversationIds()",
       {
-        nextToken: nextToken,
+        input: {
+          type: args.type,
+          nextToken: args.nextToken,
+        },
       }
     )
 
@@ -1642,15 +1884,31 @@ export default class Chat
         return new Conversation({
           ...this._parentConfig!,
           id: item.id,
-          name: this._e2e.decrypt(item.name),
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(item.id),
+            item.name
+          ),
           description: item.description
-            ? this._e2e.decrypt(item.description)
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(item.id),
+                item.description
+              )
             : null,
           imageURL: item.imageURL
-            ? new URL(this._e2e.decrypt(item.imageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(item.id),
+                  item.imageURL
+                )
+              )
             : null,
           bannerImageURL: item.bannerImageURL
-            ? new URL(this._e2e.decrypt(item.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(item.id),
+                  item.bannerImageURL
+                )
+              )
             : null,
           settings: item.settings ? JSON.parse(item.settings) : null,
           membersIds: item.membersIds ? item.membersIds : null,
@@ -1702,8 +1960,11 @@ export default class Chat
         return new Message({
           ...this._parentConfig!,
           id: item.id,
-          content: this._e2e.decrypt(item.content),
-          conversationId: item.conversation ? item.conversationId : null,
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(item.conversationId),
+            item.content
+          ),
+          conversationId: item.conversationId,
           userId: item.userId ? item.userId : null,
           messageRootId: item.messageRootId ? item.messageRootId : null,
           type: item.type
@@ -1763,7 +2024,10 @@ export default class Chat
           message: new Message({
             ...this._parentConfig!,
             id: item.message!.id,
-            content: this._e2e.decrypt(item.message!.content),
+            content: Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(item.message!.conversationId),
+              item.message!.content
+            ),
             conversationId: item.message!.conversation
               ? item.message!.conversationId
               : null,
@@ -1830,15 +2094,31 @@ export default class Chat
           conversation: new Conversation({
             ...this._parentConfig!,
             id: item.conversation!.id,
-            name: this._e2e.decrypt(item.conversation!.name),
+            name: Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(item.conversation!.id),
+              item.conversation!.name
+            ),
             description: item.conversation!.description
-              ? this._e2e.decrypt(item.conversation!.description)
+              ? Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(item.conversation!.id),
+                  item.conversation!.description
+                )
               : null,
             imageURL: item.conversation!.imageURL
-              ? new URL(this._e2e.decrypt(item.conversation!.imageURL))
+              ? new URL(
+                  Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(item.conversation!.id),
+                    item.conversation!.imageURL
+                  )
+                )
               : null,
             bannerImageURL: item.conversation!.bannerImageURL
-              ? new URL(this._e2e.decrypt(item.conversation!.bannerImageURL))
+              ? new URL(
+                  Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(item.conversation!.id),
+                    item.conversation!.bannerImageURL
+                  )
+                )
               : null,
             settings: item.conversation!.settings
               ? JSON.parse(item.conversation!.settings)
@@ -2016,15 +2296,31 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: this._e2e.decrypt(response.name),
+      name: Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(response.id),
+        response.name
+      ),
       description: response.description
-        ? this._e2e.decrypt(response.description)
+        ? Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(response.id),
+            response.description
+          )
         : null,
       imageURL: response.imageURL
-        ? new URL(this._e2e.decrypt(response.imageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.imageURL
+            )
+          )
         : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(this._e2e.decrypt(response.bannerImageURL))
+        ? new URL(
+            Crypto.decryptStringOrFail(
+              this.findPrivateKeyById(response.id),
+              response.bannerImageURL
+            )
+          )
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -2083,8 +2379,11 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
-          conversationId: r.conversation ? r.conversationId : null,
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
+          conversationId: r.conversationId,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
           type: r.type
@@ -2137,7 +2436,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2191,7 +2493,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2245,7 +2550,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2299,7 +2607,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2353,7 +2664,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2407,7 +2721,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2461,7 +2778,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2515,7 +2835,10 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: this._e2e.decrypt(r.content),
+          content: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.conversationId),
+            r.content
+          ),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2569,11 +2892,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2627,11 +2970,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2685,11 +3048,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2743,11 +3126,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2801,11 +3204,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2859,11 +3282,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2917,11 +3360,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -2975,11 +3438,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -3033,11 +3516,31 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: this._e2e.decrypt(r.name),
-          description: r.description ? this._e2e.decrypt(r.description) : null,
-          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          name: Crypto.decryptStringOrFail(
+            this.findPrivateKeyById(r.id),
+            r.name
+          ),
+          description: r.description
+            ? Crypto.decryptStringOrFail(
+                this.findPrivateKeyById(r.id),
+                r.description
+              )
+            : null,
+          imageURL: r.imageURL
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.imageURL
+                )
+              )
+            : null,
           bannerImageURL: r.bannerImageURL
-            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            ? new URL(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.bannerImageURL
+                )
+              )
             : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
@@ -3229,7 +3732,12 @@ export default class Chat
           creatorsIds: r.creatorsIds ? r.creatorsIds : null,
           initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
           operation: r.operation
-            ? JSON.parse(this._e2e.decrypt(r.operation))
+            ? JSON.parse(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.operation
+                )
+              )
             : null,
           status: r.status ? r.status : null,
           type: r.type ? r.type : null,
@@ -3285,7 +3793,12 @@ export default class Chat
           creatorsIds: r.creatorsIds ? r.creatorsIds : null,
           initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
           operation: r.operation
-            ? JSON.parse(this._e2e.decrypt(r.operation))
+            ? JSON.parse(
+                Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(r.id),
+                  r.operation
+                )
+              )
             : null,
           status: r.status ? r.status : null,
           type: r.type ? r.type : null,

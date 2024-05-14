@@ -14,7 +14,6 @@ export class Reaction extends Engine implements ReactionSchema {
       apiKey: config.apiKey,
       apiUrl: config.apiUrl,
       realtimeApiUrl: config.realtimeApiUrl,
-      e2e: config.e2e,
     })
     this.content = config.content
     this.createdAt = config.createdAt

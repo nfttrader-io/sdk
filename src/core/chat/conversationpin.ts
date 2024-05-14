@@ -17,7 +17,6 @@ export class ConversationPin extends Engine implements ConversationPinSchema {
       apiKey: config.apiKey,
       apiUrl: config.apiUrl,
       realtimeApiUrl: config.realtimeApiUrl,
-      e2e: config.e2e,
     })
 
     this.id = config.id

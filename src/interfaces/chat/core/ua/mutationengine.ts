@@ -1,4 +1,5 @@
 import { Conversation, QIError, User } from "../../../../core/chat"
+import { KeyPairItem } from "../../../../types/chat/keypairitem"
 import {
   CreateConversationGroupArgs,
   CreateConversationOneToOneArgs,
@@ -14,10 +15,10 @@ export interface UAMutationEngine {
   >
   createConversationGroup(
     args: CreateConversationGroupArgs
-  ): Promise<Conversation | QIError>
+  ): Promise<{ keypairItem: KeyPairItem; conversation: Conversation } | QIError>
   createConversationOneToOne(
     args: CreateConversationOneToOneArgs
-  ): Promise<Conversation | QIError>
+  ): Promise<{ keypairItem: KeyPairItem; conversation: Conversation } | QIError>
   deleteBatchConversationMessages(
     args: DeleteBatchConversationMessagesArgs
   ): Promise<Boolean | QIError>

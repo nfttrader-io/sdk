@@ -21,7 +21,6 @@ export class BlacklistUserEntry
       apiKey: config.apiKey,
       apiUrl: config.apiUrl,
       realtimeApiUrl: config.realtimeApiUrl,
-      e2e: config.e2e,
     })
     this.id = config.id
     this.createdAt = config.createdAt

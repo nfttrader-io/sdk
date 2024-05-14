@@ -16,6 +16,7 @@ import { ListMessagesByConversationIdArgs } from "./listmessagesbyconversationid
 import { FindUsersByUsernameOrAddressArgs } from "./findusersbyusernameoraddress"
 import { RemoveReactionFromMessageArgs } from "./removereactionfrommessage"
 import { ListMessagesImportantByUserConversationIdArgs } from "./listmessagesimportantbyconversationid"
+import { ListAllActiveUserConversationIdsArgs } from "./listallactiveuserconversationids"
 
 export {
   AddMembersToConversationArgs,
@@ -36,4 +37,5 @@ export {
   FindUsersByUsernameOrAddressArgs,
   RemoveReactionFromMessageArgs,
   ListMessagesImportantByUserConversationIdArgs,
+  ListAllActiveUserConversationIdsArgs,
 }
