@@ -17,6 +17,7 @@ import UUIDSubscriptionClient from "./uuidsubscriptionclient"
 import { Observable } from "subscriptions-transport-ws"
 import { v4 as uuid4 } from "uuid"
 import { SubscriptionGarbage } from "../../types/chat/subscriptiongarbage"
+import E2E from "../../e2e"
 
 /**
  * Represents an Engine class that extends HTTPClient and implements IEngine interface.
@@ -34,6 +35,7 @@ export class Engine extends HTTPClient implements IEngine {
   protected _parentConfig: Maybe<EngineInitConfig> = null
   protected _client: Maybe<Client> = null
   protected _realtimeClient: Maybe<UUIDSubscriptionClient> = null
+  protected _e2e: E2E
 
   private _connectCallback: Maybe<Function> = null
   private _connectionParams: Maybe<RealTimeWebSocketConnectionParams> = null
@@ -51,6 +53,7 @@ export class Engine extends HTTPClient implements IEngine {
     this._realtimeApiUrl = new URL(config.realtimeApiUrl)
     this._realtimeAuthorizationToken = `${this._apiKey}##${this._jwtToken}`
     this._parentConfig = config
+    this._e2e = config.e2e
     this._connectionParams = {
       Authorization: null,
       host: null,

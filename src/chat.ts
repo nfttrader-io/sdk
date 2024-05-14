@@ -350,7 +350,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -378,7 +378,7 @@ export default class Chat
       {
         input: {
           messageId: args.messageId,
-          reactionContent: args.reaction,
+          reactionContent: this._e2e.encrypt(args.reaction),
         },
       }
     )
@@ -388,7 +388,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -491,11 +491,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -550,10 +554,10 @@ export default class Chat
       "_mutation() -> createConversationGroup()",
       {
         input: {
-          name: args.name,
-          description: args.description,
-          bannerImageURL: args.bannerImageURL,
-          imageURL: args.imageURL,
+          name: this._e2e.encrypt(args.name),
+          description: this._e2e.encrypt(args.description),
+          bannerImageURL: this._e2e.encrypt(args.bannerImageURL),
+          imageURL: this._e2e.encrypt(args.imageURL),
         },
       }
     )
@@ -563,11 +567,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -596,10 +604,10 @@ export default class Chat
       "_mutation() -> createConversationOneToOne()",
       {
         input: {
-          name: args.name,
-          description: args.description,
-          bannerImageURL: args.bannerImageURL,
-          imageURL: args.imageURL,
+          name: this._e2e.encrypt(args.name),
+          description: this._e2e.encrypt(args.description),
+          bannerImageURL: this._e2e.encrypt(args.bannerImageURL),
+          imageURL: this._e2e.encrypt(args.imageURL),
         },
       }
     )
@@ -609,11 +617,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.encrypt(response.name),
+      description: response.description
+        ? this._e2e.encrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.encrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.encrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -674,7 +686,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -715,7 +727,9 @@ export default class Chat
       initializatorsIds: response.initializatorsIds
         ? response.initializatorsIds
         : null,
-      operation: response.operation ? JSON.parse(response.operation) : null,
+      operation: response.operation
+        ? JSON.parse(this._e2e.decrypt(response.operation))
+        : null,
       status: response.status ? response.status : null,
       type: response.type ? response.type : null,
       createdAt: response.createdAt ? response.createdAt : null,
@@ -733,7 +747,7 @@ export default class Chat
     >("editMessage", editMessage, "_mutation() -> editMessage()", {
       input: {
         messageId: args.id,
-        content: args.content,
+        content: this._e2e.encrypt(args.content),
       },
     })
 
@@ -742,7 +756,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -773,11 +787,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -851,11 +869,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -896,11 +918,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1003,7 +1029,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1030,7 +1056,7 @@ export default class Chat
       "_mutation() -> removeReactionFromMessage()",
       {
         input: {
-          reactionContent: args.reaction,
+          reactionContent: this._e2e.encrypt(args.reaction),
           messageId: args.messageId,
         },
       }
@@ -1041,7 +1067,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1067,7 +1093,7 @@ export default class Chat
         creatorsIds: args.creatorsIds,
         initializatorIds: args.initializatorIds,
         conversationId: args.conversationId,
-        operation: JSON.stringify(args.operation),
+        operation: this._e2e.encrypt(JSON.stringify(args.operation)),
       },
     })
 
@@ -1082,7 +1108,9 @@ export default class Chat
       initializatorsIds: response.initializatorsIds
         ? response.initializatorsIds
         : null,
-      operation: response.operation ? JSON.parse(response.operation) : null,
+      operation: response.operation
+        ? JSON.parse(this._e2e.decrypt(response.operation))
+        : null,
       status: response.status ? response.status : null,
       type: response.type ? response.type : null,
       createdAt: response.createdAt ? response.createdAt : null,
@@ -1099,7 +1127,7 @@ export default class Chat
       MessageGraphQL
     >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
       input: {
-        content: (args as SendMessageArgs).content,
+        content: this._e2e.encrypt((args as SendMessageArgs).content),
         conversationId: (args as SendMessageArgs).conversationId,
         type: (args as SendMessageArgs).type,
       },
@@ -1110,7 +1138,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.decrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1151,11 +1179,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1224,11 +1256,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1258,10 +1294,12 @@ export default class Chat
       {
         input: {
           conversationId: args.conversationId,
-          description: args.description,
-          imageURL: new URL(args.imageURL).toString(),
-          bannerImageURL: new URL(args.bannerImageURL).toString(),
-          name: args.name,
+          description: this._e2e.encrypt(args.description),
+          imageURL: this._e2e.encrypt(new URL(args.imageURL).toString()),
+          bannerImageURL: this._e2e.encrypt(
+            new URL(args.bannerImageURL).toString()
+          ),
+          name: this._e2e.encrypt(args.name),
           settings: JSON.stringify(args.settings),
         },
       }
@@ -1272,11 +1310,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1382,7 +1424,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.encrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1423,7 +1465,7 @@ export default class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: response.content,
+      content: this._e2e.encrypt(response.content),
       conversationId: response.conversation ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1464,11 +1506,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1511,11 +1557,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -1592,11 +1642,15 @@ export default class Chat
         return new Conversation({
           ...this._parentConfig!,
           id: item.id,
-          name: item.name,
-          description: item.description ? item.description : null,
-          imageURL: item.imageURL ? new URL(item.imageURL) : null,
+          name: this._e2e.decrypt(item.name),
+          description: item.description
+            ? this._e2e.decrypt(item.description)
+            : null,
+          imageURL: item.imageURL
+            ? new URL(this._e2e.decrypt(item.imageURL))
+            : null,
           bannerImageURL: item.bannerImageURL
-            ? new URL(item.bannerImageURL)
+            ? new URL(this._e2e.decrypt(item.bannerImageURL))
             : null,
           settings: item.settings ? JSON.parse(item.settings) : null,
           membersIds: item.membersIds ? item.membersIds : null,
@@ -1648,7 +1702,7 @@ export default class Chat
         return new Message({
           ...this._parentConfig!,
           id: item.id,
-          content: item.content,
+          content: this._e2e.decrypt(item.content),
           conversationId: item.conversation ? item.conversationId : null,
           userId: item.userId ? item.userId : null,
           messageRootId: item.messageRootId ? item.messageRootId : null,
@@ -1709,7 +1763,7 @@ export default class Chat
           message: new Message({
             ...this._parentConfig!,
             id: item.message!.id,
-            content: item.message!.content,
+            content: this._e2e.decrypt(item.message!.content),
             conversationId: item.message!.conversation
               ? item.message!.conversationId
               : null,
@@ -1776,15 +1830,15 @@ export default class Chat
           conversation: new Conversation({
             ...this._parentConfig!,
             id: item.conversation!.id,
-            name: item.conversation!.name,
+            name: this._e2e.decrypt(item.conversation!.name),
             description: item.conversation!.description
-              ? item.conversation!.description
+              ? this._e2e.decrypt(item.conversation!.description)
               : null,
             imageURL: item.conversation!.imageURL
-              ? new URL(item.conversation!.imageURL)
+              ? new URL(this._e2e.decrypt(item.conversation!.imageURL))
               : null,
             bannerImageURL: item.conversation!.bannerImageURL
-              ? new URL(item.conversation!.bannerImageURL)
+              ? new URL(this._e2e.decrypt(item.conversation!.bannerImageURL))
               : null,
             settings: item.conversation!.settings
               ? JSON.parse(item.conversation!.settings)
@@ -1962,11 +2016,15 @@ export default class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? new URL(response.imageURL) : null,
+      name: this._e2e.decrypt(response.name),
+      description: response.description
+        ? this._e2e.decrypt(response.description)
+        : null,
+      imageURL: response.imageURL
+        ? new URL(this._e2e.decrypt(response.imageURL))
+        : null,
       bannerImageURL: response.bannerImageURL
-        ? new URL(response.bannerImageURL)
+        ? new URL(this._e2e.decrypt(response.bannerImageURL))
         : null,
       settings: response.settings ? JSON.parse(response.settings) : null,
       membersIds: response.membersIds ? response.membersIds : null,
@@ -2025,7 +2083,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2079,7 +2137,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2133,7 +2191,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2187,7 +2245,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2241,7 +2299,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2295,7 +2353,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2349,7 +2407,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2403,7 +2461,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2457,7 +2515,7 @@ export default class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: r.content,
+          content: this._e2e.decrypt(r.content),
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2511,10 +2569,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2567,10 +2627,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2623,10 +2685,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2679,10 +2743,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2735,10 +2801,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2791,10 +2859,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2847,10 +2917,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2903,10 +2975,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -2959,10 +3033,12 @@ export default class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? new URL(r.imageURL) : null,
-          bannerImageURL: r.bannerImageURL ? new URL(r.bannerImageURL) : null,
+          name: this._e2e.decrypt(r.name),
+          description: r.description ? this._e2e.decrypt(r.description) : null,
+          imageURL: r.imageURL ? new URL(this._e2e.decrypt(r.imageURL)) : null,
+          bannerImageURL: r.bannerImageURL
+            ? new URL(this._e2e.decrypt(r.bannerImageURL))
+            : null,
           settings: r.settings ? JSON.parse(r.settings) : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
@@ -3152,7 +3228,9 @@ export default class Chat
           userId: r.userId ? r.userId : null,
           creatorsIds: r.creatorsIds ? r.creatorsIds : null,
           initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
-          operation: r.operation ? JSON.parse(r.operation) : null,
+          operation: r.operation
+            ? JSON.parse(this._e2e.decrypt(r.operation))
+            : null,
           status: r.status ? r.status : null,
           type: r.type ? r.type : null,
           createdAt: r.createdAt ? r.createdAt : null,
@@ -3206,7 +3284,9 @@ export default class Chat
           userId: r.userId ? r.userId : null,
           creatorsIds: r.creatorsIds ? r.creatorsIds : null,
           initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
-          operation: r.operation ? JSON.parse(r.operation) : null,
+          operation: r.operation
+            ? JSON.parse(this._e2e.decrypt(r.operation))
+            : null,
           status: r.status ? r.status : null,
           type: r.type ? r.type : null,
           createdAt: r.createdAt ? r.createdAt : null,

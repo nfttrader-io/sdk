@@ -1,3 +1,4 @@
+import E2E from "../../../e2e"
 import { SubscriptionGarbage } from "../../../types/chat/subscriptiongarbage"
 import Maybe from "../../../types/general/maybe"
 
