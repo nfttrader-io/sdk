@@ -384,7 +384,11 @@ export default class Chat
       {
         input: {
           messageId: args.messageId,
-          reactionContent: args.reaction,
+          reactionContent: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            args.reaction
+          ),
+          conversationId: args.conversationId,
         },
       }
     )
@@ -819,7 +823,11 @@ export default class Chat
     >("editMessage", editMessage, "_mutation() -> editMessage()", {
       input: {
         messageId: args.id,
-        content: args.content,
+        content: Crypto.encryptStringOrFail(
+          this.findPublicKeyById(args.conversationId),
+          args.content
+        ),
+        conversationId: args.conversationId,
       },
     })
 
@@ -1182,8 +1190,12 @@ export default class Chat
       "_mutation() -> removeReactionFromMessage()",
       {
         input: {
-          reactionContent: args.reaction,
+          reactionContent: Crypto.encryptStringOrFail(
+            this.findPublicKeyById(args.conversationId),
+            args.reaction
+          ),
           messageId: args.messageId,
+          conversationId: args.conversationId,
         },
       }
     )
