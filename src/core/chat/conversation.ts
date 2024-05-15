@@ -60,6 +60,13 @@ import {
   getOwnerFromConversationById,
 } from "../../constants/chat/queries"
 
+/**
+ * Represents a conversation in a chat application.
+ * @class Conversation
+ * @extends Engine
+ * @implements ConversationSchema, ConversationQueryEngine, ConversationMutationEngine
+ */
+
 export class Conversation
   extends Engine
   implements
@@ -67,20 +74,64 @@ export class Conversation
     ConversationQueryEngine,
     ConversationMutationEngine
 {
+  /**
+   * @property {string} id - The unique identifier of the chat entity.
+   */
   readonly id: string
+  /**
+   * @property {string} name - The name of the chat entity.
+   */
   readonly name: string
+  /**
+   * @property {string | null} description - The description of the chat entity, if available.
+   */
   readonly description: Maybe<string>
+  /**
+   * @property {URL | null} imageURL - The URL of the image associated with the chat entity, if available.
+   */
   readonly imageURL: Maybe<URL>
+  /**
+   * @property {URL | null} bannerImageURL - The URL of the banner image associated with the chat entity, if available.
+   */
   readonly bannerImageURL: Maybe<URL>
+  /**
+   * @property {JSON | null} settings - The settings of the chat entity, if available.
+   */
   readonly settings: Maybe<JSON>
+  /**
+   * @property {Maybe<Array<Maybe<string>>>} membersIds - An array of member IDs in the chat group.
+   */
   readonly membersIds: Maybe<Array<Maybe<string>>>
+  /**
+   * @property {"GROUP" | "ONE_TO_ONE" | "COMMUNITY"} type - The type of chat group.
+   */
   readonly type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"
+  /**
+   * @property {Maybe<Date>} lastMessageSentAt - The date when the last message was sent in the chat group.
+   */
   readonly lastMessageSentAt: Maybe<Date>
+  /**
+   * @property {Date} createdAt - The id of the creator of the group
+   */
   readonly ownerId: Maybe<string>
+  /**
+   * @property {Date} createdAt - The date when the chat group was created.
+   */
   readonly createdAt: Date
+  /**
+   * @property {Maybe<Date>} updatedAt - The date when the chat group was last updated.
+   */
   readonly updatedAt: Maybe<Date>
+  /**
+   * @property {Maybe<Date>} deletedAt -The date when the chat group was last deleted.
+   */
   readonly deletedAt: Maybe<Date>
 
+  /**
+   * Constructor for creating a Conversation object with the provided configuration.
+   * @param {ConversationInitConfig & EngineInitConfig} config - The configuration object containing conversation and engine initialization settings.
+   * @returns None
+   */
   constructor(config: ConversationInitConfig & EngineInitConfig) {
     super({
       jwtToken: config.jwtToken,
@@ -108,6 +159,11 @@ export class Conversation
     this._client = config.client
   }
 
+  /**
+   * Ejects a member from the conversation based on the provided userId.
+   * @param {Pick<EjectMemberArgs, "userId">} args - An object containing the userId of the member to eject.
+   * @returns {Promise<Conversation | QIError>} - A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   */
   async ejectMember(
     args: Pick<EjectMemberArgs, "userId">
   ): Promise<Conversation | QIError> {
@@ -167,6 +223,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Asynchronously adds members to a conversation.
+   * @param {Pick<AddMembersToConversationArgs, "membersIds">} args - An object containing the member IDs to add to the conversation.
+   * @returns {Promise<QIError | { conversationId: string; items: ConversationMember[] }>} A promise that resolves to either a QIError object if there was an error, or an object containing the conversation ID and an array of ConversationMember objects.
+   */
   async addMembersToConversation(
     args: Pick<AddMembersToConversationArgs, "membersIds">
   ): Promise<
@@ -213,6 +274,11 @@ export class Conversation
     return listConversations
   }
 
+  /**
+   * Adds a report to the conversation with the provided description.
+   * @param {Pick<AddReportToConversationArgs, "description">} args - An object containing the description of the report.
+   * @returns {Promise<QIError | ConversationReport>} A promise that resolves to either a QIError if there was an error, or a ConversationReport object.
+   */
   async addReportToConversation(
     args: Pick<AddReportToConversationArgs, "description">
   ): Promise<QIError | ConversationReport> {
@@ -244,6 +310,13 @@ export class Conversation
     })
   }
 
+  /**
+   * Archives a conversation by calling the archiveConversation mutation.
+   * If an id is provided, it throws an error.
+   * If no id is provided, it archives the conversation associated with the current instance.
+   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful,
+   * or a QIError object if an error occurs.
+   */
   async archiveConversation(): Promise<Conversation | QIError>
   async archiveConversation(id: string): Promise<Conversation | QIError>
   async archiveConversation(id?: unknown): Promise<Conversation | QIError> {
@@ -310,6 +383,12 @@ export class Conversation
     })
   }
 
+  /**
+   * Deletes a message with the given ID from the conversation.
+   * @param {string} id - The ID of the message to delete.
+   * @returns {Promise<QIError | Message>} A promise that resolves to either a QIError if the deletion fails,
+   * or a Message object representing the deleted message.
+   */
   async deleteMessage(id: string): Promise<QIError | Message> {
     const response = await this._mutation<
       MutationDeleteConversationMessageArgs,
@@ -348,6 +427,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Asynchronously leaves the current conversation.
+   * If an id is provided, it throws an error.
+   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if an error occurs.
+   */
   async leaveConversation(): Promise<Conversation | QIError>
   async leaveConversation(id: string): Promise<Conversation | QIError>
   async leaveConversation(id?: unknown): Promise<Conversation | QIError> {
@@ -414,6 +498,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Mutes a conversation for a specified duration.
+   * @param {Pick<MuteConversationArgs, "duration">} args - An object containing the duration to mute the conversation for.
+   * @returns {Promise<Conversation | QIError>} - A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   */
   async muteConversation(
     args: Pick<MuteConversationArgs, "duration">
   ): Promise<Conversation | QIError> {
@@ -478,6 +567,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Sends a message with the specified content and type.
+   * @param {Pick<SendMessageArgs, "content" | "type">} args - An object containing the message content and type.
+   * @returns {Promise<QIError | Message>} A promise that resolves to either a QIError if there was an error sending the message, or a Message object if the message was sent successfully.
+   */
   async sendMessage(
     args: Pick<SendMessageArgs, "content" | "type">
   ): Promise<QIError | Message> {
@@ -518,6 +612,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Asynchronously unarchives a conversation based on the current conversation's object.
+   * If an id is provided, it throws an error.
+   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   */
   async unarchiveConversation(): Promise<Conversation | QIError>
   async unarchiveConversation(id: string): Promise<Conversation | QIError>
   async unarchiveConversation(id?: unknown): Promise<Conversation | QIError> {
@@ -581,6 +680,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Asynchronously unmutes a conversation.
+   * If an id is provided, it throws an error.
+   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   */
   async unmuteConversation(): Promise<Conversation | QIError>
   async unmuteConversation(id: string): Promise<Conversation | QIError>
   async unmuteConversation(id?: unknown): Promise<Conversation | QIError> {
@@ -642,6 +746,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Updates a conversation group with the provided arguments.
+   * @param {Pick<UpdateConversationGroupInputArgs, "bannerImageURL" | "description" | "imageURL" | "name" | "settings">} args - The arguments to update the conversation group.
+   * @returns {Promise<Conversation | QIError>} A promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   */
   async updateConversationGroup(
     args: Pick<
       UpdateConversationGroupInputArgs,
@@ -729,6 +838,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Asynchronously pins a conversation.
+   * If an id is provided, it throws an error.
+   * @returns {Promise<Conversation | QIError>} A Promise that resolves to the pinned conversation or an error.
+   */
   async pinConversation(): Promise<Conversation | QIError>
   async pinConversation(id: string): Promise<Conversation | QIError>
   async pinConversation(id?: unknown): Promise<Conversation | QIError> {
@@ -795,6 +909,11 @@ export class Conversation
     })
   }
 
+  /**
+   * Asynchronously unpins a conversation.
+   * If an id is provided, it throws an error.
+   * @returns {Promise<Conversation | QIError>} A Promise that resolves to the unpinned conversation or an error.
+   */
   async unpinConversation(): Promise<Conversation | QIError>
   async unpinConversation(id: string): Promise<Conversation | QIError>
   async unpinConversation(id?: unknown): Promise<Conversation | QIError> {
@@ -861,6 +980,10 @@ export class Conversation
     })
   }
 
+  /**
+   * Retrieves the owner information from a conversation and returns a User object.
+   * @returns A Promise that resolves to a User object if successful, or a QIError object if there was an error.
+   */
   async owner(): Promise<User | QIError> {
     const response = await this._query<
       null,
@@ -930,6 +1053,10 @@ export class Conversation
     })
   }
 
+  /**
+   * Retrieves the conversation members from the conversation by its ID.
+   * @returns A Promise that resolves to an array of ConversationMember objects or a QIError object.
+   */
   async members(): Promise<ConversationMember[] | QIError> {
     const response = await this._query<
       null,
@@ -965,6 +1092,10 @@ export class Conversation
     return listConversationMembers
   }
 
+  /**
+   * Retrieves a list of messages from a conversation.
+   * @returns A Promise that resolves to an array of Message objects or a QIError object.
+   */
   async messages(): Promise<Message[] | QIError> {
     const response = await this._query<
       null,

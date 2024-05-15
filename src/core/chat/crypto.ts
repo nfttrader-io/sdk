@@ -1,7 +1,17 @@
 import forge = require("node-forge")
 import Maybe from "../../types/general/maybe"
 
+/**
+ * A class that provides cryptographic functions using the node-forge library.
+ * @class Crypto
+ */
 export class Crypto {
+  /**
+   * Verifies that the given public and private keys can correctly encrypt and decrypt a test message.
+   * @param {forge.pki.rsa.PublicKey} publicKey - The public key used for encryption.
+   * @param {forge.pki.rsa.PrivateKey} privateKey - The private key used for decryption.
+   * @returns {boolean} True if the keys can successfully encrypt and decrypt a test message, false otherwise.
+   */
   static verifyKeys(
     publicKey: forge.pki.rsa.PublicKey,
     privateKey: forge.pki.rsa.PrivateKey
@@ -15,6 +25,12 @@ export class Crypto {
     return true
   }
 
+  /**
+   * Encrypts a message using the provided RSA public key.
+   * @param {forge.pki.rsa.PublicKey} publicKey - The RSA public key used for encryption.
+   * @param {string} message - The message to be encrypted.
+   * @returns {string} The encrypted message encoded in base64 format.
+   */
   static encrypt(publicKey: forge.pki.rsa.PublicKey, message: string): string {
     const encrypted = publicKey.encrypt(
       forge.util.encodeUtf8(message),
@@ -23,6 +39,12 @@ export class Crypto {
     return forge.util.encode64(encrypted)
   }
 
+  /**
+   * Decrypts an encrypted string using the provided private key.
+   * @param {forge.pki.rsa.PrivateKey} privateKey - The private key used for decryption.
+   * @param {string} encrypted - The encrypted string to decrypt.
+   * @returns {string} The decrypted string.
+   */
   static decrypt(
     privateKey: forge.pki.rsa.PrivateKey,
     encrypted: string
@@ -32,6 +54,11 @@ export class Crypto {
     return forge.util.decodeUtf8(decrypted)
   }
 
+  /**
+   * Generates a new RSA key pair based on the specified security level.
+   * @param {("STANDARD" | "HIGH")} security - The security level for key generation, either "STANDARD" or "HIGH".
+   * @returns {Promise<forge.pki.rsa.KeyPair>} A promise that resolves with the generated RSA key pair.
+   */
   static async generateKeys(
     security: "STANDARD" | "HIGH"
   ): Promise<forge.pki.rsa.KeyPair> {
@@ -55,6 +82,13 @@ export class Crypto {
     })
   }
 
+  /**
+   * Generates a key pair from PEM formatted public and private keys.
+   * @param {string} publicKeyPem - The PEM formatted public key.
+   * @param {string} privateKeyPem - The PEM formatted private key.
+   * @returns {Promise<Maybe<forge.pki.rsa.KeyPair>>} A promise that resolves to a key pair object
+   * or null if the keys cannot be verified.
+   */
   static async generateKeyPairFromPem(
     publicKeyPem: string,
     privateKeyPem: string
@@ -77,6 +111,13 @@ export class Crypto {
     })
   }
 
+  /**
+   * Decrypts a string using the provided private key.
+   * @param {Maybe<forge.pki.rsa.PrivateKey>} privateKey - The private key used for decryption.
+   * @param {string} content - The content to decrypt.
+   * @returns The decrypted string.
+   * @throws Error if the private key is not set up correctly.
+   */
   static decryptStringOrFail(
     privateKey: Maybe<forge.pki.rsa.PrivateKey>,
     content: string
@@ -89,6 +130,13 @@ export class Crypto {
     return Crypto.decrypt(privateKey, content)
   }
 
+  /**
+   * Encrypts a string using the provided public key or throws an error if the public key is not provided.
+   * @param {Maybe<forge.pki.rsa.PublicKey>} publicKey - The public key used for encryption.
+   * @param {string} content - The content to be encrypted.
+   * @returns The encrypted content.
+   * @throws Error if the public key is not provided.
+   */
   static encryptStringOrFail(
     publicKey: Maybe<forge.pki.rsa.PublicKey>,
     content: string
