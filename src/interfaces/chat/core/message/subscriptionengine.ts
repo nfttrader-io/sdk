@@ -14,6 +14,10 @@ import {
 } from "../../../../graphql/generated/graphql"
 import { Message as MessageGraphQL } from "../../../../graphql/generated/graphql"
 
+/**
+ * Interface for a Message Subscription Engine that provides methods to subscribe to various message-related events.
+ * @interface MessageSubscriptionEngine
+ */
 export interface MessageSubscriptionEngine {
   onSendMessage(
     conversationId: string,

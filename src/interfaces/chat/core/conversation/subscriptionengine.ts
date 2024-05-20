@@ -5,10 +5,8 @@ import {
   QIError,
 } from "../../../../core/chat"
 import { SubscriptionGarbage } from "../../../../types/chat/subscriptiongarbage"
-
 import {
   Conversation as ConversationGraphQL,
-  ConversationMember as ConversationMemberGraphQL,
   ListConversationMembers as ListConversationMembersGraphQL,
   SubscriptionOnAddMembersToConversationArgs,
   SubscriptionOnAddPinConversationArgs,
@@ -21,6 +19,10 @@ import {
   SubscriptionOnUpdateConversationGroupArgs,
 } from "../../../../graphql/generated/graphql"
 
+/**
+ * Interface for managing subscriptions related to conversations.
+ * @interface ConversationSubscriptionEngine
+ */
 export interface ConversationSubscriptionEngine {
   onUpdateConversationGroup(
     id: string,

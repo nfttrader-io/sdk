@@ -6,6 +6,10 @@ import {
   RemoveReactionFromMessageArgs,
 } from "../../schema/args"
 
+/**
+ * Interface for a message mutation engine that defines methods for mutating messages.
+ * @interface MessageMutationEngine
+ */
 export interface MessageMutationEngine {
   pinMessage(): Promise<Message | QIError>
   pinMessage(id: string): Promise<Message | QIError>

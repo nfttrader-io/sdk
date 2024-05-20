@@ -7,6 +7,10 @@ import {
   UpdateUserArgs,
 } from "../../schema/args"
 
+/**
+ * Interface for a User Activity Mutation Engine that defines methods for mutating conversations and users.
+ * @interface UAMutationEngine
+ */
 export interface UAMutationEngine {
   archiveConversations(
     ids: Array<string>

@@ -1,10 +1,29 @@
 import { User } from "../../../core/chat"
 import Maybe from "../../../types/general/maybe"
 
+/**
+ * Defines the schema for a Blacklist User Entry.
+ * @interface BlacklistUserEntrySchema
+ */
 export interface BlacklistUserEntrySchema {
+  /**
+   * @property {string} id - The unique identifier of the entry.
+   */
   id: string
+  /**
+   * @property {Date} createdAt - The date and time when the entry was created.
+   */
   createdAt: Date
+  /**
+   * @property {string} blockerId - The ID of the user who blocked another user.
+   */
   blockerId: string
+  /**
+   * @property {string} blockedId - The ID of the user who was blocked.
+   */
   blockedId: string
+  /**
+   * @property {Maybe<User>} blockedUser - The user who was blocked, if available.
+   */
   blockedUser: Maybe<User>
 }

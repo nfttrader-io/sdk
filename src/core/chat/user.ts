@@ -20,34 +20,109 @@ import {
 } from "../../constants/chat/mutations"
 import { getCurrentUserWithBlacklist } from "../../constants/chat/queries"
 
+/**
+ * Represents a User class that extends Engine and implements UserSchema, UserQueryEngine, and UserMutationEngine interfaces.
+ * @class User
+ * @extends Engine
+ * @implements UserSchema, UserQueryEngine, UserMutationEngine
+ */
+
 export class User
   extends Engine
   implements UserSchema, UserQueryEngine, UserMutationEngine
 {
+  /**
+   * @property id - The unique identifier of the user.
+   */
   readonly id: string
+  /**
+   * @property address - The address of the user.
+   */
   readonly address: string
+  /**
+   * @property username - The username of the user, if available.
+   */
   readonly username: Maybe<string>
+  /**
+   * @property email - The email address of the user, if available.
+   */
   readonly email: Maybe<string>
+  /**
+   * @property bio - The biography of the user, if available.
+   */
   readonly bio: Maybe<string>
+  /**
+   * @property avatarUrl - The URL of the user's avatar, if available.
+   */
   readonly avatarUrl: Maybe<URL>
+  /**
+   * @property isVerified - Indicates if the user is verified.
+   */
   readonly isVerified: boolean
+  /**
+   * @property isNft - Indicates if the user is associated with NFTs.
+   */
   readonly isNft: boolean
+  /**
+   * @property blacklistIds - An array of user IDs that are blacklisted by this user.
+   */
   readonly blacklistIds: Maybe<Array<Maybe<string>>>
+  /**
+   * @property allowNotification - Indicates if notification are allowed.
+   */
   readonly allowNotification: boolean
+  /**
+   * @property allowNotificationSound - Indicates if notification sounds are allowed.
+   */
   readonly allowNotificationSound: boolean
+  /**
+   * @property visibility - Indicates the visibility status of the user.
+   */
   readonly visibility: boolean
+  /**
+   * @property onlineStatus - Indicates the online status of the user (ONLINE, OFFLINE, BUSY).
+   */
   readonly onlineStatus: Maybe<"ONLINE" | "OFFLINE" | "BUSY">
+  /**
+   * @property allowReadReceipt - Indicates if read receipts are allowed.
+   */
   readonly allowReadReceipt: boolean
+  /**
+   * @property allowReceiveMessageFrom - Indicates who can send messages to the user (NO_ONE, ONLY_FOLLOWED, EVERYONE).
+   */
   readonly allowReceiveMessageFrom: Maybe<
     "NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE"
   >
+  /**
+   * @readonly allowAddToGroupsFrom - Indicates who can add the user to groups (ONLY_FOLLOWED, EVERYONE).
+   */
   readonly allowAddToGroupsFrom: Maybe<"ONLY_FOLLOWED" | "EVERYONE">
+  /**
+   * @readonly allowGroupsSuggestion - Indicates if the groups suggestion is allowed
+   */
   readonly allowGroupsSuggestion: boolean
+  /**
+   * @readonly encryptedPrivateKey - The encrypted private key.
+   */
   readonly encryptedPrivateKey: Maybe<string>
+  /**
+   * @readonly publicKey - The public key.
+   */
   readonly publicKey: Maybe<string>
+  /**
+   *  @readonly createdAt - The creation date of the key pair.
+   */
   readonly createdAt: Date
+  /**
+   * @readonly updatedAt - The optional date of the last update to the key pair.
+   */
   readonly updatedAt: Maybe<Date>
 
+  /**
+   * Constructor for creating a new instance of a user with the provided configuration.
+   * @param {UserInitConfig & EngineInitConfig} config - The configuration object containing user and engine initialization settings.
+   * @returns None
+   */
   constructor(config: UserInitConfig & EngineInitConfig) {
     super({
       jwtToken: config.jwtToken,
@@ -83,6 +158,11 @@ export class User
     this._client = config.client
   }
 
+  /**
+   * Blocks a user by adding them to the blocked users list.
+   * If id is provided, it throws an error.
+   * @returns {Promise<User | QIError>} A promise that resolves to the blocked user or an error.
+   */
   async blockUser(): Promise<User | QIError>
   async blockUser(id: string): Promise<User | QIError>
   async blockUser(id?: unknown): Promise<User | QIError> {
@@ -142,6 +222,11 @@ export class User
     })
   }
 
+  /**
+   * Asynchronously unlocks the current user represented by this object.
+   * If id is provided, it throws an error indicating that the id argument cannot be defined.
+   * @returns {Promise<User | QIError>} A promise that resolves to a User object if successful, or a QIError object if there was an error.
+   */
   async unlockUser(): Promise<User | QIError>
   async unlockUser(id: string): Promise<User | QIError>
   async unlockUser(id?: unknown): Promise<User | QIError> {
@@ -201,6 +286,10 @@ export class User
     })
   }
 
+  /**
+   * Retrieves the blacklist of the current user, including details of blocked users.
+   * @returns {Promise<BlacklistUserEntry[] | QIError>} - A promise that resolves to an array of BlacklistUserEntry objects if successful, or a QIError object if there was an error.
+   */
   async blacklist(): Promise<BlacklistUserEntry[] | QIError> {
     const response = await this._query<
       null,

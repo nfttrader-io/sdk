@@ -14,6 +14,10 @@ import {
   ListMessagesImportantByUserConversationIdArgs,
 } from "../../schema/args"
 
+/**
+ * Interface for a User Query Engine that provides methods to interact with user conversations and messages.
+ * @interface UAQueryEngine
+ */
 export interface UAQueryEngine {
   listAllActiveUserConversationIds(
     args: ListAllActiveUserConversationIdsArgs

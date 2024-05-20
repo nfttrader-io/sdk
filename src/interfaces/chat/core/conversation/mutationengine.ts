@@ -5,7 +5,6 @@ import {
   Message,
   QIError,
 } from "../../../../core/chat"
-import { MutedDuration } from "../../../../enums/chat"
 import {
   AddMembersToConversationArgs,
   AddReportToConversationArgs,
@@ -15,6 +14,10 @@ import {
   UpdateConversationGroupInputArgs,
 } from "../../schema/args"
 
+/**
+ * Interface for a Conversation Mutation Engine that defines methods for mutating conversations.
+ * @interface ConversationMutationEngine
+ */
 export interface ConversationMutationEngine {
   addMembersToConversation(
     args: AddMembersToConversationArgs
