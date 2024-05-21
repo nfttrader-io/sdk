@@ -14,9 +14,9 @@ type PostInstance = {
    */
   id: string
   /**
-   * @property {string | null} parentId - The identifier of the parent post, if any.
+   * @property {Maybe<string>} parentId - The identifier of the parent post, if any.
    */
-  parentId: string | null
+  parentId: Maybe<string>
   /**
    * @property {PostStatus[PostStatusName]} status - The status of the post.
    */
@@ -86,7 +86,7 @@ type PostInstance = {
    */
   numberOffersRead?: number
   /**
-   * @property {PostInstance | null} [parent] - The parent post instance, if any.
+   * @property {Maybe<PostInstance>} [parent] - The parent post instance, if any.
    */
   parent?: Maybe<PostInstance>
 }

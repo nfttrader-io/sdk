@@ -83,19 +83,19 @@ export class Conversation
    */
   readonly name: string
   /**
-   * @property {string | null} description - The description of the chat entity, if available.
+   * @property {Maybe<string>} description - The description of the chat entity, if available.
    */
   readonly description: Maybe<string>
   /**
-   * @property {URL | null} imageURL - The URL of the image associated with the chat entity, if available.
+   * @property {Maybe<URL>} imageURL - The URL of the image associated with the chat entity, if available.
    */
   readonly imageURL: Maybe<URL>
   /**
-   * @property {URL | null} bannerImageURL - The URL of the banner image associated with the chat entity, if available.
+   * @property {Maybe<URL>} bannerImageURL - The URL of the banner image associated with the chat entity, if available.
    */
   readonly bannerImageURL: Maybe<URL>
   /**
-   * @property {JSON | null} settings - The settings of the chat entity, if available.
+   * @property {Maybe<JSON>} settings - The settings of the chat entity, if available.
    */
   readonly settings: Maybe<JSON>
   /**

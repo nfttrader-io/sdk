@@ -10,7 +10,7 @@ import Maybe from "../../types/general/maybe"
 
 export class QIError extends CombinedError {
   /**
-   * @property {string | null} reason - The reason for the error.
+   * @property {Maybe<string>} reason - The reason for the error.
    */
   reason: Maybe<string> = null
   /**

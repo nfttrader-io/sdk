@@ -44,19 +44,19 @@ export interface PostAsset {
    */
   symbol: string
   /**
-   * @property {string | null} createdAt - The creation date of the NFT, if available.
+   * @property {Maybe<string>} createdAt - The creation date of the NFT, if available.
    */
   createdAt: Maybe<string>
   /**
-   * @property {string | null} tokenId - The unique identifier of the NFT, if available.
+   * @property {Maybe<string>} tokenId - The unique identifier of the NFT, if available.
    */
   tokenId: Maybe<string>
   /**
-   * @property {string | null} amount - The amount of the NFT, if available.
+   * @property {Maybe<string>} amount - The amount of the NFT, if available.
    */
   amount: Maybe<string>
   /**
-   * @property {string | null} amountHumanReadable - The human-readable amount of the NFT, if available.
+   * @property {Maybe<string>} amountHumanReadable - The human-readable amount of the NFT, if available.
    */
   amountHumanReadable: Maybe<string>
   /**

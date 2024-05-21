@@ -44,13 +44,13 @@ export default class Auth extends HTTPClient {
    */
   private _messageToSign = `Welcome to {serviceName}!\n\nClick to sign in and accept the {serviceName} Terms of Service: {tosURL}\n\nand the Privacy Policy: {privacyURL}\n\nYour nonce is: {nonce}`
   /**
-   * @property {string | null} _publicKey -
+   * @property {Maybe<string>} _publicKey -
    */
-  private _publicKey: string | null = null
+  private _publicKey: Maybe<string> = null
   /**
-   * @property {string | null} _privateKey -
+   * @property {Maybe<string>} _privateKey -
    */
-  private _privateKey: string | null = null
+  private _privateKey: Maybe<string> = null
 
   /**
    * Constructs a new instance of Auth with the provided configuration.

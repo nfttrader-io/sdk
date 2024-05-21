@@ -446,13 +446,13 @@ export default class Trade extends HTTPClient {
   /**
    * Unsubscribes a callback function from a specific event.
    * @param {EventName} eventName - The name of the event to unsubscribe from.
-   * @param {TradeEvents[EventName] | null} [callback] - The callback function to unsubscribe.
+   * @param {Maybe<TradeEvents[EventName]>} [callback] - The callback function to unsubscribe.
    * @returns None
    * @throws {Error} If the event is not supported or the callback is not a function.
    */
   off<EventName extends keyof TradeEvents>(
     eventName: EventName,
-    callback?: TradeEvents[EventName] | null
+    callback?: Maybe<TradeEvents[EventName]>
   ) {
     const event = this._eventsCollectorCallbacks.find((eventItem) => {
       return eventItem.name === eventName
@@ -695,7 +695,7 @@ export default class Trade extends HTTPClient {
    * Cancels a trade with the given trade ID.
    * @param {string} tradeId - The ID of the trade to cancel.
    * @param {number} [gasLimit=2000000] - The gas limit for the transaction.
-   * @param {string | null} [gasPrice=null] - The gas price for the transaction.
+   * @param {Maybe<string>} [gasPrice=null] - The gas price for the transaction.
    * @returns None
    */
   async cancel(

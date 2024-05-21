@@ -39,7 +39,7 @@ export interface TradeOrder {
    */
   addressTaker: string
   /**
-   *@property {string | null} usernameTaker - The username of the taker, if available.
+   *@property {Maybe<string>} usernameTaker - The username of the taker, if available.
    */
   usernameTaker: Maybe<string>
   /**

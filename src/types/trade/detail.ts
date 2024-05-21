@@ -45,7 +45,7 @@ export type Detail = {
    */
   isImg: 0 | 1
   /**
-   * @property {string | null} name - The name of the token, or null if not available.
+   * @property {Maybe<string>} name - The name of the token, or null if not available.
    */
   name: Maybe<string>
   /**
@@ -61,7 +61,7 @@ export type Detail = {
    */
   symbol: string
   /**
-   * @property {string | null} tokenId - The ID of the token, can be null.
+   * @property {Maybe<string>} tokenId - The ID of the token, can be null.
    */
   tokenId: Maybe<string>
   /**

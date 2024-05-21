@@ -67,19 +67,19 @@ export class Message
    */
   readonly content: string
   /**
-   * @property {string | null} conversationId - The ID of the conversation the message belongs to.
+   * @property {Maybe<string>} conversationId - The ID of the conversation the message belongs to.
    */
   readonly conversationId: Maybe<string>
   /**
-   *  @property {string | null} userId - The ID of the user who sent the message.
+   *  @property {Maybe<string>} userId - The ID of the user who sent the message.
    */
   readonly userId: Maybe<string>
   /**
-   * @property {string | null} messageRootId - The ID of the root message in a thread.
+   * @property {Maybe<string>} messageRootId - The ID of the root message in a thread.
    */
   readonly messageRootId: Maybe<string>
   /**
-   * @property {"TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT" | null} type - The type of the message.
+   * @property {Maybe<"TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT">} type - The type of the message.
    */
   readonly type: Maybe<"TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT">
   /**

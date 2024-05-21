@@ -10,7 +10,7 @@ export interface ConversationMemberSchema {
    */
   id: string
   /**
-   * @property {string | null} conversationId - The ID of the conversation the member belongs to, if available.
+   * @property {Maybe<string>} conversationId - The ID of the conversation the member belongs to, if available.
    */
   conversationId: Maybe<string>
   /**

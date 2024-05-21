@@ -11,23 +11,23 @@ export interface ConversationTradingPoolInitConfig {
    */
   id: string
   /**
-   * @property {string | null} conversationId - The ID of the conversation associated with the trading pool.
+   * @property {Maybe<string>} conversationId - The ID of the conversation associated with the trading pool.
    */
   conversationId: Maybe<string>
   /**
-   * @property {string | null} userId - The ID of the user associated with the trading pool.
+   * @property {Maybe<string>} userId - The ID of the user associated with the trading pool.
    */
   userId: Maybe<string>
   /**
-   * @property {Array<string> | null} creatorsIds - An array of user IDs who are creators of the trading pool.
+   * @property {Maybe<Array<string>>} creatorsIds - An array of user IDs who are creators of the trading pool.
    */
   creatorsIds: Maybe<Array<Maybe<string>>>
   /**
-   * @property {Array<string> | null} initializatorsIds - An array of user IDs who are initializers of the trading pool.
+   * @property {Maybe<Array<string>>} initializatorsIds - An array of user IDs who are initializers of the trading pool.
    */
   initializatorsIds: Maybe<Array<Maybe<string>>>
   /**
-   * @property {JSON | null} operation - The JSON object representing the operation of the trading pool.
+   * @property {Maybe<JSON>} operation - The JSON object representing the operation of the trading pool.
    */
   operation: Maybe<JSON>
   /**

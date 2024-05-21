@@ -275,9 +275,9 @@ export class Engine extends HTTPClient implements IEngine {
 
   /**
    * Creates a client for making API requests if all required parameters are set.
-   * @returns {Client | null} A client object for making API requests or null if any required parameter is missing.
+   * @returns {Maybe<Client>} A client object for making API requests or null if any required parameter is missing.
    */
-  private _makeClient(): Client | null {
+  private _makeClient(): Maybe<Client> {
     if (!this._jwtToken) return null
     if (!this._apiKey) return null
     if (!this._apiUrl) return null

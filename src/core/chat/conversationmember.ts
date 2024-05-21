@@ -20,7 +20,7 @@ export class ConversationMember
    */
   readonly id: string
   /**
-   * @property {string | null} conversationId - The identifier of the conversation, if available.
+   * @property {Maybe<string>} conversationId - The identifier of the conversation, if available.
    */
   readonly conversationId: Maybe<string>
   /**
@@ -40,7 +40,7 @@ export class ConversationMember
    */
   readonly encryptedConversationPrivateKey: string
   /**
-   * @property {Date | null} createdAt - The date and time when the conversation was
+   * @property {Maybe<Date>} createdAt - The date and time when the conversation was
    */
   readonly createdAt: Maybe<Date>
 

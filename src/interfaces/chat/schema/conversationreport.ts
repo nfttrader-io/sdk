@@ -10,11 +10,11 @@ export interface ConversationReportSchema {
    */
   id: string
   /**
-   *  @property {string | null | undefined} description - The description of the conversation report.
+   *  @property {Maybe<string>} description - The description of the conversation report.
    */
   description: Maybe<string>
   /**
-   *  @property {string | null | undefined} userId - The user ID associated with the conversation report.
+   *  @property {Maybe<string>} userId - The user ID associated with the conversation report.
    */
   userId: Maybe<string>
   /**

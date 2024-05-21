@@ -1,5 +1,5 @@
 import Maybe from "../../types/general/maybe"
-import Collection from "../post/collection"
+import { Collection } from "../post"
 
 export interface Collectible {
   contract: {

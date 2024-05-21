@@ -1,5 +1,7 @@
+import Maybe from "./maybe"
+
 export default interface HTTPRequestInit {
   method: "GET" | "POST" | "PUT" | "DELETE"
-  headers?: { [k: string]: string } | null
-  body?: { [k: string]: any } | null
+  headers?: Maybe<{ [k: string]: string }>
+  body?: Maybe<{ [k: string]: any }>
 }
