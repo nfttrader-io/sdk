@@ -2,7 +2,7 @@ import TradeDefaultInit from "./tradeDefaultInit"
 
 type TradeJsonRpcInit = {
   /**
-   * The RPC provider URL.
+   * @property {string} jsonRpcProvider - The RPC provider URL.
    */
   jsonRpcProvider: string
 } & TradeDefaultInit

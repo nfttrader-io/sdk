@@ -1,10 +1,11 @@
 import Asset from "../assetsArray/asset"
-
+/**
+ * Represents a trade asset with optional additional properties.
+ * @returns {TradeAsset<Additional>} A trade asset object with optional additional properties.
+ */
 type TradeAsset<Additional extends Record<string, any> = {}> = {
   /**
-   * The assets (NATIVE/ERC20/ERC721/ERC1155) provided.
-   *
-   * @defaultValue []
+   * @property {Array<Asset>} assets - An array of assets associated with the trade (NATIVE/ERC20/ERC721/ERC1155).
    */
   assets?: Array<Asset>
 } & Additional

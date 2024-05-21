@@ -13,7 +13,11 @@ import Network from "./types/general/network"
 import ApiKeyAuthorized from "./types/trade/apiKeyAuthorized"
 import CallbackParams from "./types/trade/callbackParams"
 import TradeAsset from "./types/trade/tradeAsset"
-import TradeEvents from "./interfaces/trade/eventsMap"
+import {
+  TradeEvents,
+  GlobalTradesListResponse,
+  UserTradesListResponse,
+} from "./interfaces/trade"
 import Fee from "./types/trade/fee"
 import MultiSigWallet from "./types/trade/multisigWallet"
 import NFTTraderFees from "./types/trade/nfttraderFees"
@@ -22,8 +26,6 @@ import { TradeDetail } from "./types/trade/tradeDetail"
 import TradeJsonRpcInit from "./types/trade/tradeJsonRpcInit"
 import TradeWeb3Init from "./types/trade/tradeWeb3Init"
 import WithAddress from "./types/trade/withAddress"
-import GlobalTradesListResponse from "./interfaces/trade/globalTradesListResponse"
-import UserTradesListResponse from "./interfaces/trade/userTradesListResponse"
 import TradeConfig from "./types/trade/tradeConfig"
 import PartialTrade from "./types/trade/partialTrade"
 import TradeDefaultInit from "./types/trade/tradeDefaultInit"

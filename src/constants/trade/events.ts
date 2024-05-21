@@ -1,4 +1,4 @@
-import TradeClientEventsMap from "../../interfaces/trade/eventsMap"
+import { TradeEvents } from "../../interfaces/trade"
 
 export default [
   "cancelTradeTransactionCreated",
@@ -9,4 +9,4 @@ export default [
   "execTradeTransactionMined",
   "execTradeTransactionError",
   "execTradeError",
-] as Array<keyof TradeClientEventsMap>
+] as Array<keyof TradeEvents>

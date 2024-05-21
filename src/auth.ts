@@ -9,17 +9,54 @@ import SignupResponse from "./types/auth/signupResponse"
 import { User } from "./types/auth/user"
 import Maybe from "./types/general/maybe"
 
+/**
+ * Represents an authentication client that interacts with a backend server for user authentication.
+ * @class Auth
+ * @extends HTTPClient
+ */
 export default class Auth extends HTTPClient {
+  /**
+   * @property {Maybe<string>} _authMode - The authentication mode.
+   */
   private _authMode: Maybe<string> = null
+  /**
+   * @property {Maybe<string>} _serviceName - The name of the service.
+   */
   private _serviceName: Maybe<string> = null
+  /**
+   * @property {Maybe<string>} _serviceTOSURL - The Terms of Service URL for the service.
+   */
   private _serviceTOSURL: Maybe<string> = null
+  /**
+   * @property {Maybe<string>} _servicePrivacyURL - The Privacy Policy URL for the service.
+   */
   private _servicePrivacyURL: Maybe<string> = null
+  /**
+   *  @property {Maybe<string>} _nonce - The nonce for authentication.
+   */
   private _nonce: Maybe<string> = null
+  /**
+   * @property {string} _BACKEND_URL - The backend URL for the service.
+   */
   private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
+  /**
+   * @property {string} _messageToSign - The message to sign for authentication.
+   */
   private _messageToSign = `Welcome to {serviceName}!\n\nClick to sign in and accept the {serviceName} Terms of Service: {tosURL}\n\nand the Privacy Policy: {privacyURL}\n\nYour nonce is: {nonce}`
+  /**
+   * @property {string | null} _publicKey -
+   */
   private _publicKey: string | null = null
+  /**
+   * @property {string | null} _privateKey -
+   */
   private _privateKey: string | null = null
 
+  /**
+   * Constructs a new instance of Auth with the provided configuration.
+   * @param {AuthConfig} config - The configuration object for authentication.
+   * @returns None
+   */
   constructor(config: AuthConfig) {
     super()
     this._authMode = config.mode
@@ -29,11 +66,11 @@ export default class Auth extends HTTPClient {
   }
 
   /**
-   * Override the basic configurations of this client
-   *
-   * @param config
+   * Updates the configuration settings for the authentication client.
+   * @param {AuthClientConfig} config - The configuration object containing the settings to update.
+   * @returns None
    */
-  public config(config: AuthClientConfig) {
+  config(config: AuthClientConfig) {
     if (config.backendURL) this._BACKEND_URL = config.backendURL
     if (config.mode) this._authMode = config.mode
     if (config.serviceName) this._serviceName = config.serviceName
@@ -42,7 +79,13 @@ export default class Auth extends HTTPClient {
       this._servicePrivacyURL = config.servicePrivacyURL
   }
 
-  public async isUserRegistered(credentials: Credentials): Promise<boolean> {
+  /**
+   * Checks if a user is registered based on the provided credentials.
+   * @param {Credentials} credentials - The user's credentials (address, email, password).
+   * @returns {Promise<boolean>} A promise that resolves to true if the user is registered, false otherwise.
+   * @throws {Error} An error is thrown if the authentication mode is not defined or if required credentials are missing.
+   */
+  async isUserRegistered(credentials: Credentials): Promise<boolean> {
     if (!this._authMode) throw new Error("An auth mode must be defined.")
 
     if (AuthMode.WALLET === this._authMode && !credentials.address)
@@ -98,7 +141,13 @@ export default class Auth extends HTTPClient {
     }
   }
 
-  public async signup(credentials: Credentials): Promise<boolean> {
+  /**
+   * Sign up a user with the provided credentials based on the authentication mode set.
+   * @param {Credentials} credentials - The user's credentials for signing up.
+   * @returns {Promise<boolean>} A promise that resolves to true if the signup is successful, false otherwise.
+   * @throws {Error} An error is thrown if the authentication mode is not defined, or if required credentials are missing based on the authentication mode.
+   */
+  async signup(credentials: Credentials): Promise<boolean> {
     if (!this._authMode) throw new Error("An auth mode must be defined.")
 
     if (AuthMode.WALLET === this._authMode && !credentials.address)
@@ -150,7 +199,15 @@ export default class Auth extends HTTPClient {
     }
   }
 
-  public async signin(
+  /**
+   * Sign in a user with the provided credentials and signature.
+   * @param {Credentials} credentials - The user's credentials for authentication.
+   * @param {string} [signature] - The signature for authentication (optional).
+   * @returns {Promise<User | boolean>} A promise that resolves to the user object if sign in is successful,
+   * or false if sign in fails.
+   * @throws {Error} An error is thrown if the authentication mode is not defined, or if required credentials are missing based on the authentication mode.
+   */
+  async signin(
     credentials: Credentials,
     signature?: string
   ): Promise<User | boolean> {
@@ -217,6 +274,11 @@ export default class Auth extends HTTPClient {
     }
   }
 
+  /**
+   * Gets the message to sign by replacing placeholders in the message template with actual values.
+   * Throws an error if any required information is missing.
+   * @returns The message to sign with placeholders replaced by actual values.
+   */
   getMessageToSign(): string {
     if (!this._serviceName) throw new Error("A service name must be provided.")
     if (!this._serviceTOSURL)

@@ -1,7 +1,17 @@
 import HTTPRequestInit from "../types/general/httpRequestInit"
 import HTTPResponse from "../types/general/httpResponse"
 
+/**
+ * Class representing an HTTP client for making HTTP requests.
+ * @class HTTPClient
+ */
 export default class HTTPClient {
+  /**
+   * Fetches data from a specified URL using XMLHttpRequest.
+   * @param {string | URL} url - The URL to fetch data from.
+   * @param {HTTPRequestInit} options - The options for the HTTP request.
+   * @returns {Promise<HTTPResponse<RT>>} A promise that resolves with the HTTP response data.
+   */
   private async _fetchJS<RT = any>(
     url: string | URL,
     options: HTTPRequestInit
@@ -49,6 +59,13 @@ export default class HTTPClient {
     })
   }
 
+  /**
+   * Fetches data from a given URL using the specified options.
+   * @param {string | URL} url - The URL to fetch data from.
+   * @param {HTTPRequestInit} options - The options for the HTTP request.
+   * @returns {Promise<HTTPResponse<ReturnType>>} A promise that resolves with the HTTP response.
+   * @throws {Error} If the URL protocol is invalid.
+   */
   private async _fetchNode<ReturnType = any>(
     url: string | URL,
     options: HTTPRequestInit
@@ -115,6 +132,12 @@ export default class HTTPClient {
     })
   }
 
+  /**
+   * Fetches data from the specified URL using either browser's fetch API or Node.js's http/https module.
+   * @param {string | URL} url - The URL to fetch data from.
+   * @param {HTTPRequestInit} [options] - The options for the HTTP request such as method, headers, and body.
+   * @returns {Promise<HTTPResponse<ReturnType>>} A promise that resolves to the HTTP response.
+   */
   protected _fetch<ReturnType = any>(
     url: string | URL,
     options: HTTPRequestInit = {
