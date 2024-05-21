@@ -10,4 +10,4 @@ type TradeAsset<Additional extends Record<string, any> = {}> = {
   assets?: Array<Asset>
 } & Additional
 
-export default TradeAsset
+export { TradeAsset }

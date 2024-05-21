@@ -9,4 +9,4 @@ type MultiSigWallet = {
   }>
 }
 
-export default MultiSigWallet
+export { MultiSigWallet }

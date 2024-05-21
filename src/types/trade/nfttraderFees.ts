@@ -12,4 +12,4 @@ type NFTTraderFees = {
   percentageFee: Array<{ basisPoints: number }>
 }
 
-export default NFTTraderFees
+export { NFTTraderFees }

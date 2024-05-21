@@ -10,4 +10,4 @@ type CallbackParams<F extends (p: any) => any> = F extends (
     : never
   : never
 
-export default CallbackParams
+export { CallbackParams }

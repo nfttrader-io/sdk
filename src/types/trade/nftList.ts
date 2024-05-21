@@ -16,4 +16,4 @@ type NFTList = {
   total: number
 }
 
-export default NFTList
+export { NFTList }

@@ -1,4 +1,4 @@
-import TradeDefaultInit from "./tradeDefaultInit"
+import { TradeDefaultInit } from "./tradedefaultinit"
 
 type TradeJsonRpcInit = {
   /**
@@ -7,4 +7,4 @@ type TradeJsonRpcInit = {
   jsonRpcProvider: string
 } & TradeDefaultInit
 
-export default TradeJsonRpcInit
+export { TradeJsonRpcInit }

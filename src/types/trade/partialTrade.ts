@@ -1,8 +1,9 @@
-import Trade from "./tradeInstance"
+import { TradeInstance } from "./tradeinstance"
 /**
  * Represents a partial trade instance without the 'hash' property.
  * @extends Trade
  */
-type PartialTrade = Omit<Trade, "hash"> & Partial<Pick<Trade, "hash">>
+type PartialTrade = Omit<TradeInstance, "hash"> &
+  Partial<Pick<TradeInstance, "hash">>
 
-export default PartialTrade
+export { PartialTrade }

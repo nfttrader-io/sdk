@@ -8,4 +8,4 @@ type WithAddress = {
   address: string
 }
 
-export default WithAddress
+export { WithAddress }

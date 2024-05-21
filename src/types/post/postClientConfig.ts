@@ -1,6 +1,9 @@
+/**
+ * Represents the configuration options for the PostClient.
+ */
 type PostClientConfig = {
   /**
-   * the backend endpoint
+   * @property {string} [backendURL] - The URL of the backend server.
    */
   backendURL?: string
 }

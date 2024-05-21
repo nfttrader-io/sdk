@@ -1,6 +1,6 @@
 import { Detail } from "./detail"
 import { Master } from "./master"
-import TradeParameters from "./tradeParameters"
+import { TradeParameters } from "./tradeparameters"
 
 /**
  * Represents a trade detail object that includes master, detail, and parameters information.

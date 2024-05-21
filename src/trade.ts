@@ -10,25 +10,27 @@ import HTTPRequestInit from "./types/general/httpRequestInit"
 import HTTPResponse from "./types/general/httpResponse"
 import Maybe from "./types/general/maybe"
 import Network from "./types/general/network"
-import ApiKeyAuthorized from "./types/trade/apiKeyAuthorized"
-import CallbackParams from "./types/trade/callbackParams"
-import TradeAsset from "./types/trade/tradeAsset"
+import {
+  ApiKeyAuthorized,
+  CallbackParams,
+  TradeAsset,
+  Fee,
+  MultiSigWallet,
+  NFTTraderFees,
+  TradeInstance,
+  TradeJsonRpcInit,
+  TradeWeb3Init,
+  WithAddress,
+  TradeConfig,
+  PartialTrade,
+  TradeDefaultInit,
+  TradeDetail,
+} from "./types/trade"
 import {
   TradeEvents,
   GlobalTradesListResponse,
   UserTradesListResponse,
 } from "./interfaces/trade"
-import Fee from "./types/trade/fee"
-import MultiSigWallet from "./types/trade/multisigWallet"
-import NFTTraderFees from "./types/trade/nfttraderFees"
-import TradeInstance from "./types/trade/tradeInstance"
-import { TradeDetail } from "./types/trade/tradeDetail"
-import TradeJsonRpcInit from "./types/trade/tradeJsonRpcInit"
-import TradeWeb3Init from "./types/trade/tradeWeb3Init"
-import WithAddress from "./types/trade/withAddress"
-import TradeConfig from "./types/trade/tradeConfig"
-import PartialTrade from "./types/trade/partialTrade"
-import TradeDefaultInit from "./types/trade/tradeDefaultInit"
 
 const {
   royaltyRegistriesEngines,

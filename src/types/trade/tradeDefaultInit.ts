@@ -8,4 +8,4 @@ type TradeDefaultInit = {
   blocksNumberConfirmationRequired?: number
 }
 
-export default TradeDefaultInit
+export { TradeDefaultInit }

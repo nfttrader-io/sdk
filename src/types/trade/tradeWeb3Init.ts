@@ -1,5 +1,5 @@
 import { ethers } from "ethers"
-import TradeDefaultInit from "./tradeDefaultInit"
+import { TradeDefaultInit } from "./tradedefaultinit"
 
 /**
  * Represents the initialization configuration for a trade using Web3.
@@ -11,4 +11,4 @@ type TradeWeb3Init = {
   web3Provider: ethers.providers.ExternalProvider
 } & TradeDefaultInit
 
-export default TradeWeb3Init
+export { TradeWeb3Init }

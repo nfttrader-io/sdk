@@ -13,4 +13,4 @@ type TradeConfig = {
   minBlocksRequired?: number
 }
 
-export default TradeConfig
+export { TradeConfig }
