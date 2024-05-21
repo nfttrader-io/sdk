@@ -1,4 +1,4 @@
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { Collector } from "./collector"
 import { ReplyPostAssets } from "./replypostassets"
 import { PostStatus } from "../../types/post/poststatus"

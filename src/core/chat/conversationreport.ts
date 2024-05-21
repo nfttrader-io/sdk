@@ -1,7 +1,7 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
 import { ConversationReportInitConfig } from "../../interfaces/chat/core/conversationreport"
 import { ConversationReportSchema } from "../../interfaces/chat/schema"
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { Engine } from "./engine"
 
 /**

@@ -28,11 +28,11 @@ export interface Collector {
    */
   networkId?: string
   /**
-   * @property {0 | 1} [isFavourite] - The network ID of the collector (optional).
+   * @property {0 | 1} [isFavourite] -
    */
   isFavourite?: 0 | 1
   /**
-   * @property {0 | 1} [isRegistered] - The network ID of the collector (optional).
+   * @property {0 | 1} [isRegistered] - Identify if the user is registered or not (optional).
    */
   isRegistered?: 0 | 1
 }

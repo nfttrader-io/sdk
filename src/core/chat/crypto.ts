@@ -1,5 +1,5 @@
 import forge = require("node-forge")
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 
 /**
  * A class that provides cryptographic functions using the node-forge library.

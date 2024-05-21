@@ -13,7 +13,7 @@ import { Maybe } from "./types/base"
  * @class Auth
  * @extends HTTPClient
  */
-export default class Auth extends HTTPClient {
+export class Auth extends HTTPClient {
   /**
    * @property {Maybe<string>} _authMode - The authentication mode.
    */

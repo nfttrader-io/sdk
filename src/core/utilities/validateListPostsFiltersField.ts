@@ -1,7 +1,14 @@
-import ListPostsFilters from "../../interfaces/post/listpostsfilters"
-import POST_STATUS from "../../constants/post/postStatus"
-import POST_TYPE from "../../constants/post/postType"
+import { ListPostsFilters } from "../../interfaces/post/listpostsfilters"
+import POST_STATUS from "../../constants/post/poststatus"
+import POST_TYPE from "../../constants/post/posttype"
 
+/**
+ * Replaces a character at a specific index in a given string with a new character.
+ * @param {string} str - The original string.
+ * @param {number} index - The index at which to replace the character.
+ * @param {string} replacement - The new character to replace at the specified index.
+ * @returns The updated string with the character replaced at the specified index.
+ */
 const replaceAt = (str: string, index: number, replacement: string) => {
   if (index < 0 || index >= str.length) {
     throw new Error("Index out of bounds")
@@ -9,7 +16,14 @@ const replaceAt = (str: string, index: number, replacement: string) => {
   return str.substring(0, index) + replacement + str.substring(index + 1)
 }
 
-export default function validateListPostsFiltersField<
+/**
+ * Validates the field and value of a specific filter in the ListPostsFilters object.
+ * @param {FilterName} field - The field name to validate.
+ * @param {ListPostsFilters[FilterName]} value - The value associated with the field.
+ * @throws {Error} Throws an error if the field or value is invalid.
+ * @returns None
+ */
+export function validateListPostsFiltersField<
   FilterName extends keyof ListPostsFilters
 >(field: FilterName, value: ListPostsFilters[FilterName]) {
   switch (field) {

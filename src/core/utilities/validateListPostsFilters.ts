@@ -1,10 +1,14 @@
-import Maybe from "../../types/general/maybe"
-import ListPostsFilters from "../../interfaces/post/listpostsfilters"
-import validateListPostsFiltersField from "./validateListPostsFiltersField"
+import { Maybe } from "../../types/base"
+import { ListPostsFilters } from "../../interfaces/post/listpostsfilters"
+import { validateListPostsFiltersField } from "./validatelistpostsfiltersfield"
 
-export default function validateListPostsFilters(
-  filters: Maybe<ListPostsFilters> | undefined
-) {
+/**
+ * Validates the list of post filters to ensure they are in the correct format.
+ * @param {Maybe<ListPostsFilters> | undefined} filters - The list of post filters to validate.
+ * @throws {Error} If the filters parameter is invalid.
+ * @returns None
+ */
+export function validateListPostsFilters(filters?: Maybe<ListPostsFilters>) {
   if (filters === null || filters === undefined) return
   if (
     filters.constructor !== new Object().constructor ||

@@ -1,5 +1,5 @@
 import { ApiKeyAuthorized } from "./apikeyauthorized"
-import { PostClientConfig } from "./postclientconfig"
+import { PostConfig } from "./postconfig"
 import { PostInstance } from "./postinstance"
 import { PostObject } from "./postobject"
 import { PostReplyObject } from "./postreplyobject"
@@ -12,7 +12,7 @@ import { PostTypeValue } from "./posttypevalue"
 
 export {
   ApiKeyAuthorized,
-  PostClientConfig,
+  PostConfig,
   PostInstance,
   PostObject,
   PostReplyObject,

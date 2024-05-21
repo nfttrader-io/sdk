@@ -42,7 +42,7 @@ const {
  * @extends HTTPClient
  */
 
-export default class Trade extends HTTPClient {
+export class Trade extends HTTPClient {
   /**
    * @property {Maybe<ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider>} _provider - The provider instance.
    */

@@ -6,7 +6,7 @@ import {
   QIError,
   User,
 } from "../../../../core/chat"
-import Maybe from "../../../../types/general/maybe"
+import { Maybe } from "../../../../types/base"
 import {
   FindUsersByUsernameOrAddressArgs,
   ListAllActiveUserConversationIdsArgs,

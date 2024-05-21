@@ -1,4 +1,4 @@
-import Asset from "../assetsArray/asset"
+import { Asset } from "../base"
 /**
  * Represents a trade asset with optional additional properties.
  * @returns {TradeAsset<Additional>} A trade asset object with optional additional properties.

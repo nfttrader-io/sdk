@@ -13,11 +13,11 @@ import {
   PostType,
   PostInstance,
   ApiKeyAuthorized,
-  PostClientConfig,
+  PostConfig,
 } from "./types/post"
-import validateListPostsFilters from "./core/utilities/validateListPostsFilters"
-import POST_STATUS from "./constants/post/postStatus"
-import POST_TYPE from "./constants/post/postType"
+import { validateListPostsFilters } from "./core/utilities"
+import { POST_STATUS } from "./constants/post/poststatus"
+import { POST_TYPE } from "./constants/post/posttype"
 import { HTTPClient } from "./core/httpclient"
 
 /**
@@ -25,7 +25,7 @@ import { HTTPClient } from "./core/httpclient"
  * @class Post
  * @extends HTTPClient
  */
-export default class Post extends HTTPClient {
+export class Post extends HTTPClient {
   /**
    * @type {Maybe<string>} _apiKey - The API key, which may be null.
    */
@@ -323,10 +323,10 @@ export default class Post extends HTTPClient {
 
   /**
    * Sets the backend URL in the configuration object.
-   * @param {PostClientConfig} config - The configuration object containing the backend URL.
+   * @param {PostConfig} config - The configuration object containing the backend URL.
    * @returns None
    */
-  config(config: PostClientConfig) {
+  config(config: PostConfig) {
     if (config.backendURL) this._BACKEND_URL = config.backendURL
   }
 }

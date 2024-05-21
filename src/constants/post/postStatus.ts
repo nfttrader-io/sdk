@@ -1,4 +1,4 @@
-import PostStatus from "../../types/post/poststatus"
+import { PostStatus } from "../../types/post"
 
 const POST_STATUS: PostStatus = {
   ACTIVE: 0,
@@ -8,4 +8,4 @@ const POST_STATUS: PostStatus = {
   RESERVED: 4,
 }
 
-export default POST_STATUS
+export { POST_STATUS }

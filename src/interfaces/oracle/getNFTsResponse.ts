@@ -2,7 +2,7 @@
  * Represents the response object when fetching NFTs.
  * @interface GetNFTsResponse
  */
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { Collectible } from "./collectible"
 
 export interface GetNFTsResponse {

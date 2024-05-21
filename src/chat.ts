@@ -203,7 +203,7 @@ import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 import { KeyPairItem } from "./types/chat/keypairitem"
 
-export default class Chat
+export class Chat
   extends Engine
   implements
     UserMutationEngine,

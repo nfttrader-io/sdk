@@ -1,76 +1,92 @@
-import Trade from "./trade"
-import { Post } from "./core/post/index"
-import { Builder as PostBuilder } from "./core/post/index"
-import Oracle from "./oracle"
-import Auth from "./auth"
-import AssetsArray from "./core/assetsarray"
-import _Network from "./types/general/network"
-import POST_TYPE from "./constants/post/postType"
-import POST_STATUS from "./constants/post/postStatus"
-
-// GENERAL
-export * as BitmapOffered from "./types/general/bitmapOffered"
-export * as BitmapWanted from "./types/general/bitmapWanted"
-export type Network = _Network
-// ASSETSARRAY
-export * as Asset from "./types/assetsArray/asset"
-export * as AssetType from "./types/assetsArray/assetType"
-export * as AssetTypeName from "./types/assetsArray/assetTypeName"
-export * as AssetTypeValue from "./types/assetsArray/assetTypeValue"
-// TRADE
-export * as CallbackParams from "./types/trade/callbackparams"
-export * as CreateTradePeer from "./types/trade/tradeasset"
-export * as WithAddress from "./types/trade/withaddress"
-export * as TradeDetail from "./types/trade/tradedetail"
-export * as DealMaster from "./types/trade/tradedetail"
-export * as DealDetail from "./types/trade/tradedetail"
-export * as Fee from "./types/trade/fee"
-export * as TradeInstance from "./types/trade/tradeinstance"
-export * as TradeParameters from "./types/trade/tradeparameters"
-export * as TradeClientJsonRpcInit from "./types/trade/tradejsonrpcinit"
-export * as TradeClientWeb3Init from "./types/trade/tradeweb3init"
-export * as TradeClientConfig from "./types/trade/tradeconfig"
-// POST
-export * as PostClientConfig from "./types/post/postclientconfig"
-export * as ListPostsFilters from "./interfaces/post/listpostsfilters"
-export * as ListPostsOrder from "./interfaces/post/listpostsorder"
-export * as ListPostsRepliesOrder from "./interfaces/post/listpostsrepliesorder"
-export * as ListPostsResponse from "./interfaces/post/listpostsresponse"
-// POSTBUILDER
-export * as LookingFor from "./enums/post/lookingfor"
-export * as Offer from "./enums/post/offer"
-export * as AssetItem from "./types/post/builder/assetitem"
-// ORACLE
-export * as AssetClientConfig from "./types/oracle/oracleconfig"
-export * as CollectionSupported from "./interfaces/oracle/collectionsupported"
-export * as CollectionsAdded from "./interfaces/oracle/collectionsadded"
-// AUTH
-export * as IsUserRegisteredResponse from "./interfaces/auth/isuserregisteredresponse"
-export * as SigninResponse from "./interfaces/auth/signinresponse"
-export * as SignupResponse from "./interfaces/auth/signupresponse"
-export * as Credentials from "./types/auth/credentials"
-export * as AuthConfig from "./enums/auth/authconfig"
-export * as AuthClientConfig from "./enums/auth/authclientconfig"
-export * as User from "./types/auth/user"
-export * as AuthMode from "./types/auth/authMode"
+import { Trade } from "./trade"
+import { Post } from "./post"
+import { Builder } from "./core/post"
+import { Oracle } from "./oracle"
+import { Auth } from "./auth"
+import { AssetsArray } from "./core/assetsarray"
+import { POST_TYPE } from "./constants/post/posttype"
+import { POST_STATUS } from "./constants/post/poststatus"
+import {
+  BitmapOffered,
+  BitmapWanted,
+  Asset,
+  AssetType,
+  Network,
+} from "./types/base"
+import {
+  CallbackParams,
+  TradeAsset,
+  WithAddress,
+  TradeDetail,
+  Master,
+  Detail,
+  Fee,
+  TradeInstance,
+  TradeParameters,
+  TradeJsonRpcInit,
+  TradeWeb3Init,
+  TradeConfig,
+} from "./types/trade"
+import { PostConfig } from "./types/post"
+import {
+  ListPostsFilters,
+  ListPostsOrder,
+  ListPostsRepliesOrder,
+  ListPostsResponse,
+} from "./interfaces/post"
+import { LookingFor, Offer } from "./enums/post"
+import { AssetItem } from "./types/post/builder"
+import { OracleConfig } from "./types/oracle"
+import { CollectionsAdded, CollectionSupported } from "./interfaces/oracle"
+import {
+  IsUserRegisteredResponse,
+  SigninResponse,
+  SignupResponse,
+} from "./interfaces/auth"
+import { Credentials, User, AuthConfig } from "./types/auth"
+import { AuthMode } from "./enums/auth"
 
 export {
   Trade,
   Post,
   AssetsArray,
-  PostBuilder,
+  Builder,
   Oracle,
   POST_TYPE,
   POST_STATUS,
   Auth,
-}
-export default {
-  Trade,
-  Post,
-  AssetsArray,
-  PostBuilder,
-  Oracle,
-  POST_TYPE,
-  POST_STATUS,
-  Auth,
+  BitmapOffered,
+  BitmapWanted,
+  Asset,
+  AssetType,
+  Network,
+  CallbackParams,
+  TradeAsset,
+  WithAddress,
+  TradeDetail,
+  Master,
+  Detail,
+  Fee,
+  TradeInstance,
+  TradeParameters,
+  TradeJsonRpcInit,
+  TradeWeb3Init,
+  TradeConfig,
+  ListPostsFilters,
+  ListPostsOrder,
+  ListPostsRepliesOrder,
+  ListPostsResponse,
+  PostConfig,
+  LookingFor,
+  Offer,
+  AssetItem,
+  OracleConfig,
+  CollectionsAdded,
+  CollectionSupported,
+  IsUserRegisteredResponse,
+  SigninResponse,
+  SignupResponse,
+  Credentials,
+  User,
+  AuthMode,
 }

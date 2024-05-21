@@ -1,5 +1,5 @@
 import { Client } from "@urql/core"
-import Maybe from "../../../../types/general/maybe"
+import { Maybe } from "../../../../types/base"
 
 /**
  * Represents the initialization configuration for a conversation member.

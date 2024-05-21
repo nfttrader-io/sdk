@@ -1,4 +1,4 @@
-import PostType from "../../types/post/posttype"
+import { PostType } from "../../types/post"
 
 const POST_TYPE: PostType = {
   A1: 0,
@@ -9,4 +9,4 @@ const POST_TYPE: PostType = {
   R1: 5,
 }
 
-export default POST_TYPE
+export { POST_TYPE }

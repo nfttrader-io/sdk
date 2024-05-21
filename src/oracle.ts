@@ -21,7 +21,7 @@ import { Maybe } from "./types/base"
  * @class Oracle
  * @extends HTTPClient
  */
-export default class Oracle extends HTTPClient {
+export class Oracle extends HTTPClient {
   /**
    * @property {Maybe<string>} _apiKey - Private property to store an API key, which may be a string or null.
    */
