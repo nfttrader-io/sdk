@@ -3,4 +3,4 @@ enum AuthMode {
   CREDENTIALS = "1",
 }
 
-export default AuthMode
+export { AuthMode }

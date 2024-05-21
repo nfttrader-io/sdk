@@ -5,7 +5,7 @@ import Asset from "../types/assetsArray/asset"
 /**
  * This class represents an array of assets.
  */
-export default class AssetsArray {
+export class AssetsArray {
   private get _assets() {
     return [...this.__assets]
   }

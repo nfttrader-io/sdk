@@ -1,11 +1,10 @@
-import HTTPRequestInit from "../types/general/httpRequestInit"
-import HTTPResponse from "../types/general/httpResponse"
+import { HTTPRequestInit, HTTPResponse } from "../interfaces/base"
 
 /**
  * Class representing an HTTP client for making HTTP requests.
  * @class HTTPClient
  */
-export default class HTTPClient {
+export class HTTPClient {
   /**
    * Fetches data from a specified URL using XMLHttpRequest.
    * @param {string | URL} url - The URL to fetch data from.

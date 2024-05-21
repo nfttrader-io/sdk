@@ -1,3 +1,6 @@
+/**
+ * Represents a network type with specific values.
+ */
 type Network =
   | "1"
   | "5"
@@ -17,4 +20,4 @@ type Network =
   | "1261120"
   | "11155111"
 
-export default Network
+export { Network }

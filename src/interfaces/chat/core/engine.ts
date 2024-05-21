@@ -1,6 +1,6 @@
 import { KeyPairItem } from "../../../types/chat/keypairitem"
 import { SubscriptionGarbage } from "../../../types/chat/subscriptiongarbage"
-import Maybe from "../../../types/general/maybe"
+import { Maybe } from "../../../types/base"
 import forge = require("node-forge")
 
 /**

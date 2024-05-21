@@ -1,8 +1,11 @@
-type AssetClientConfig = {
+/**
+ * Defines the configuration options for the AssetClient.
+ */
+type OracleConfig = {
   /**
-   * the backend endpoint
+   * @property {string} [backendURL] - The URL of the backend server for asset management.
    */
   backendURL?: string
 }
 
-export default AssetClientConfig
+export { OracleConfig }

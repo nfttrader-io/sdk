@@ -2,14 +2,12 @@ import { Seaport } from "@opensea/seaport-js"
 import { ItemType } from "@opensea/seaport-js/lib/constants"
 import { CreateOrderInput } from "@opensea/seaport-js/lib/types"
 import { ethers } from "ethers"
-import AssetsArray from "./core/assetsArray"
+import { AssetsArray } from "./core/assetsarray"
 import contracts from "./constants/trade/contracts"
 import events from "./constants/trade/events"
-import HTTPClient from "./core/httpClient"
-import HTTPRequestInit from "./types/general/httpRequestInit"
-import HTTPResponse from "./types/general/httpResponse"
-import Maybe from "./types/general/maybe"
-import Network from "./types/general/network"
+import { HTTPClient } from "./core/httpclient"
+import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
+import { Maybe, Network } from "./types/base"
 import {
   ApiKeyAuthorized,
   CallbackParams,

@@ -1,17 +1,20 @@
-import HTTPClient from "./core/httpClient"
-import ApiKeyAuthorized from "./types/oracle/apiKeyAuthorized"
-import OracleConfig from "./types/oracle/oracleConfig"
-import CollectionSupported from "./interfaces/oracle/collectionSupported"
-import CollectionsAdded from "./interfaces/oracle/collectionsAdded"
-import GetCollectionsResponse from "./interfaces/oracle/getCollectionsResponse"
-import GetCollectionsParamsSearch from "./types/oracle/getCollectionsParamsSearch"
-import HTTPRequestInit from "./types/general/httpRequestInit"
-import HTTPResponse from "./types/general/httpResponse"
-import Maybe from "./types/general/maybe"
-import GetNFTsParamsSearch from "./types/oracle/getNFTsParamsSearch"
-import GetNFTsResponse from "./interfaces/oracle/getNFTsResponse"
-import GetNFTParamsSearch from "./types/oracle/getNFTParamSearch"
-import GetNFTResponse from "./interfaces/oracle/getNFTResponse"
+import { HTTPClient } from "./core/httpclient"
+import {
+  ApiKeyAuthorized,
+  OracleConfig,
+  GetCollectionsParamsSearch,
+  GetNFTsParamsSearch,
+  GetNFTParamsSearch,
+} from "./types/oracle"
+import {
+  CollectionSupported,
+  CollectionsAdded,
+  GetCollectionsResponse,
+  GetNFTsResponse,
+  GetNFTResponse,
+} from "./interfaces/oracle"
+import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
+import { Maybe } from "./types/base"
 
 /**
  * Represents an Oracle class that extends HTTPClient and provides methods to interact with an Oracle API.

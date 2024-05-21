@@ -8,9 +8,9 @@ import {
   createClient,
 } from "@urql/core"
 import { Engine as IEngine, EngineInitConfig } from "../../interfaces/chat/core"
-import HTTPClient from "../httpClient"
+import { HTTPClient } from "../httpclient"
 import { QIError } from "./qierror"
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { RealTimeWebSocketConnectionParams } from "../../types/chat/realtimewebsocketconnectionparams"
 import { FetchBody } from "@urql/core/dist/urql-core-chunk"
 import UUIDSubscriptionClient from "./uuidsubscriptionclient"

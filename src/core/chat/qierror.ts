@@ -1,5 +1,5 @@
 import { CombinedError, ErrorLike } from "@urql/core"
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 
 /**
  * Custom error class that extends CombinedError from "@urql/core". QIError stands for Query Interaction Error.

@@ -1,4 +1,4 @@
-import Maybe from "../../../types/general/maybe"
+import { Maybe } from "../../../types/base"
 
 /**
  * Represents the schema for a message in a conversation.

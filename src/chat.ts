@@ -107,7 +107,6 @@ import {
   QueryListConversationsPinnedByCurrentUserArgs,
   ListConversationsPinnedByUserIdResult as ListConversationsPinnedByUserIdResultGraphQL,
 } from "./graphql/generated/graphql"
-
 import {
   addBlockedUser,
   addImportantToMessage,
@@ -175,7 +174,7 @@ import {
 } from "./interfaces/chat/schema/args"
 import { UAMutationEngine, UAQueryEngine } from "./interfaces/chat/core/ua"
 import { EjectMemberArgs } from "./interfaces/chat/schema/args/ejectmember"
-import Maybe from "./types/general/maybe"
+import { Maybe } from "./types/base"
 import {
   onDeleteMessage,
   onEditMessage,

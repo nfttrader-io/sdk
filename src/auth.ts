@@ -1,13 +1,12 @@
-import HTTPClient from "./core/httpClient"
-import { AuthClientConfig } from "./types/auth/authClientConfig"
-import { AuthConfig } from "./types/auth/authConfig"
-import AuthMode from "./types/auth/authMode"
-import { Credentials } from "./types/auth/credentials"
-import IsUserRegisteredResponse from "./types/auth/isUserRegisteredResponse"
-import SigninResponse from "./types/auth/signinResponse"
-import SignupResponse from "./types/auth/signupResponse"
-import { User } from "./types/auth/user"
-import Maybe from "./types/general/maybe"
+import { HTTPClient } from "./core/httpclient"
+import { AuthClientConfig, AuthConfig, User, Credentials } from "./types/auth"
+import { AuthMode } from "./enums/auth"
+import {
+  IsUserRegisteredResponse,
+  SigninResponse,
+  SignupResponse,
+} from "./interfaces/auth"
+import { Maybe } from "./types/base"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.

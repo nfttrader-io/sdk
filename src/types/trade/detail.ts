@@ -1,4 +1,4 @@
-import Maybe from "../general/maybe"
+import { Maybe } from "../base"
 /**
  * Represents a detailed object with various properties related to a collection.
  */

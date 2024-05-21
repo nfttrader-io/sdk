@@ -1,5 +1,5 @@
 import { Collector, PostAssets } from "../../interfaces/post"
-import Maybe from "../general/maybe"
+import { Maybe } from "../base"
 import { PostStatus } from "./poststatus"
 import { PostStatusName } from "./poststatusname"
 import { PostType } from "./posttype"

@@ -7,7 +7,7 @@ import {
 } from "../../interfaces/chat/core/user"
 import { Engine } from "./engine"
 import { EngineInitConfig } from "../../interfaces/chat/core/engineinitconfig"
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { QIError } from "./qierror"
 import {
   MutationAddBlockedUserArgs,

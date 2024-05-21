@@ -1,6 +1,5 @@
-import Maybe from "./types/general/maybe"
-import HTTPResponse from "./types/general/httpResponse"
-import HTTPRequestInit from "./types/general/httpRequestInit"
+import { Maybe } from "./types/base"
+import { HTTPResponse, HTTPRequestInit } from "./interfaces/base"
 import {
   ListPostsFilters,
   ListPostsOrder,
@@ -16,11 +15,10 @@ import {
   ApiKeyAuthorized,
   PostClientConfig,
 } from "./types/post"
-
 import validateListPostsFilters from "./core/utilities/validateListPostsFilters"
 import POST_STATUS from "./constants/post/postStatus"
 import POST_TYPE from "./constants/post/postType"
-import HTTPClient from "./core/httpClient"
+import { HTTPClient } from "./core/httpclient"
 
 /**
  * Represents a class for interacting with posts through HTTP requests.

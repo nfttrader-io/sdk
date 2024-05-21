@@ -38,7 +38,7 @@ import {
   EditMessageArgs,
   RemoveReactionFromMessageArgs,
 } from "../../interfaces/chat/schema/args"
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { Conversation } from "./conversation"
 import { Engine } from "./engine"
 import { MessageReport } from "./messagereport"

@@ -47,7 +47,7 @@ import {
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
 } from "../../interfaces/chat/schema/args"
-import Maybe from "../../types/general/maybe"
+import { Maybe } from "../../types/base"
 import { ConversationMember } from "./conversationmember"
 import { ConversationReport } from "./conversationreport"
 import { Engine } from "./engine"
