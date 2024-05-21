@@ -1,4 +1,4 @@
-import ReplyPostAssets from "../../interfaces/post/replyPostAssets"
+import { ReplyPostAssets } from "../../interfaces/post"
 
 /**
  * Represents a post reply object with the following properties:
@@ -26,4 +26,4 @@ type PostReplyObject = {
   parentId: string
 }
 
-export default PostReplyObject
+export { PostReplyObject }

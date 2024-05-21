@@ -1,4 +1,4 @@
-import Collector from "../../interfaces/post/collector"
+import { Collector } from "../../interfaces/post/collector"
 /**
  * Represents a Master object containing various properties related to a swap transaction.
  */

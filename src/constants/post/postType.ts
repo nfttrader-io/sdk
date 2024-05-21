@@ -1,4 +1,4 @@
-import PostType from "../../types/post/postType"
+import PostType from "../../types/post/posttype"
 
 const POST_TYPE: PostType = {
   A1: 0,

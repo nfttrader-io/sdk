@@ -1,5 +1,5 @@
 import Maybe from "../../types/general/maybe"
-import ListPostsFilters from "../../interfaces/post/listPostsFilters"
+import ListPostsFilters from "../../interfaces/post/listpostsfilters"
 import validateListPostsFiltersField from "./validateListPostsFiltersField"
 
 export default function validateListPostsFilters(

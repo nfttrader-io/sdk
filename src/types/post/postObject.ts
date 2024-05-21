@@ -1,6 +1,6 @@
-import CreatePostAssets from "../../interfaces/post/replyPostAssets"
-import PostType from "./postType"
-import PostTypeName from "./postTypeName"
+import { ReplyPostAssets } from "../../interfaces/post"
+import { PostType } from "./posttype"
+import { PostTypeName } from "./posttypename"
 
 /**
  * Represents a post object with the following properties:
@@ -9,7 +9,7 @@ type PostObject = {
   /**
    * @property {CreatePostAssets} assets - The assets associated with the post.
    */
-  assets: CreatePostAssets
+  assets: ReplyPostAssets
   /**
    * @property {number} expirationDate - The expiration date of the post.
    */
@@ -32,4 +32,4 @@ type PostObject = {
   creatorAddress: string
 }
 
-export default PostObject
+export { PostObject }

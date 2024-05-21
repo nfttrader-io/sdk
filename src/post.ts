@@ -1,21 +1,26 @@
 import Maybe from "./types/general/maybe"
 import HTTPResponse from "./types/general/httpResponse"
 import HTTPRequestInit from "./types/general/httpRequestInit"
-import ListPostsFilters from "./interfaces/post/listPostsFilters"
-import ListPostsOrder from "./interfaces/post/listPostsOrder"
-import ListPostsResponse from "./interfaces/post/listPostsResponse"
-import PostObject from "./types/post/postObject"
-import PostReplyObject from "./types/post/postReplyObject"
-import PostStatus from "./types/post/postStatus"
+import {
+  ListPostsFilters,
+  ListPostsOrder,
+  ListPostsResponse,
+  ListPostsRepliesOrder,
+} from "./interfaces/post"
+import {
+  PostObject,
+  PostReplyObject,
+  PostStatus,
+  PostType,
+  PostInstance,
+  ApiKeyAuthorized,
+  PostClientConfig,
+} from "./types/post"
+
 import validateListPostsFilters from "./core/utilities/validateListPostsFilters"
-import PostType from "./types/post/postType"
-import PostInstance from "./types/post/postInstance"
 import POST_STATUS from "./constants/post/postStatus"
 import POST_TYPE from "./constants/post/postType"
 import HTTPClient from "./core/httpClient"
-import ApiKeyAuthorized from "./types/post/apiKeyAuthorized"
-import PostClientConfig from "./types/post/postClientConfig"
-import ListPostsRepliesOrder from "./interfaces/post/listPostsRepliesOrder"
 
 /**
  * Represents a class for interacting with posts through HTTP requests.

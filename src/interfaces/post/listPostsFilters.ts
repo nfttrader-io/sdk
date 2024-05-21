@@ -1,12 +1,12 @@
 import BitmapOffered from "../../types/general/bitmapOffered"
 import BitmapWanted from "../../types/general/bitmapWanted"
 import Network from "../../types/general/network"
-import PostStatus from "../../types/post/postStatus"
-import PostStatusName from "../../types/post/postStatusName"
-import PostType from "../../types/post/postType"
-import PostTypeName from "../../types/post/postTypeName"
+import { PostStatus } from "../../types/post/poststatus"
+import { PostStatusName } from "../../types/post/poststatusname"
+import { PostType } from "../../types/post/posttype"
+import { PostTypeName } from "../../types/post/posttypename"
 
-export default interface ListPostsFilters {
+export interface ListPostsFilters {
   /**
    * Filter posts owned by `owner` username or address
    */

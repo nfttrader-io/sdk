@@ -1,10 +1,9 @@
-import Collector from "../../interfaces/post/collector"
-import PostAssets from "../../interfaces/post/postAssets"
+import { Collector, PostAssets } from "../../interfaces/post"
 import Maybe from "../general/maybe"
-import PostStatus from "./postStatus"
-import PostStatusName from "./postStatusName"
-import PostType from "./postType"
-import PostTypeName from "./postTypeName"
+import { PostStatus } from "./poststatus"
+import { PostStatusName } from "./poststatusname"
+import { PostType } from "./posttype"
+import { PostTypeName } from "./posttypename"
 
 /**
  * Represents a post instance with various properties.
@@ -92,4 +91,4 @@ type PostInstance = {
   parent?: Maybe<PostInstance>
 }
 
-export default PostInstance
+export { PostInstance }

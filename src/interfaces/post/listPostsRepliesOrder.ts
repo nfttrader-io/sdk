@@ -1,4 +1,4 @@
-export default interface ListPostsRepliesOrder {
+export interface ListPostsRepliesOrder {
   field: "creationDate" | "score"
   /**
    * Order direction, can be ascendent(`ASC`) or descendent(`DESC`). Defaults to `ASC`

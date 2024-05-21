@@ -1,5 +1,5 @@
 import Maybe from "../../types/general/maybe"
-import Collector from "../post/collector"
+import { Collector } from "../post"
 
 /**
  * Represents a trade order with detailed information about the trade.

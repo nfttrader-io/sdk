@@ -1,6 +1,8 @@
-import PostStatusName from "./postStatusName"
-import PostStatusValue from "./postStatusValue"
-
+import { PostStatusName } from "./poststatusname"
+import { PostStatusValue } from "./poststatusvalue"
+/**
+ * Represents a PostStatus object that consists of a mapping between PostStatusName and PostStatusValue.
+ */
 type PostStatus = Record<PostStatusName, PostStatusValue>
 
-export default PostStatus
+export { PostStatus }

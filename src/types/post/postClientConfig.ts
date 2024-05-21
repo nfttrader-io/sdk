@@ -8,4 +8,4 @@ type PostClientConfig = {
   backendURL?: string
 }
 
-export default PostClientConfig
+export { PostClientConfig }

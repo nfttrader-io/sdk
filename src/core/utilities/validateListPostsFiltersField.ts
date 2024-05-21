@@ -1,4 +1,4 @@
-import ListPostsFilters from "../../interfaces/post/listPostsFilters"
+import ListPostsFilters from "../../interfaces/post/listpostsfilters"
 import POST_STATUS from "../../constants/post/postStatus"
 import POST_TYPE from "../../constants/post/postType"
 

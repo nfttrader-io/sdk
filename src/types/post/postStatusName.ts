@@ -1,3 +1,7 @@
+/**
+ * Represents the possible status names for a post.
+ * Can be one of: "ACTIVE", "COMPLETED", "EXPIRED", "CANCELED", "RESERVED"
+ */
 type PostStatusName =
   | "ACTIVE"
   | "COMPLETED"
@@ -5,4 +9,4 @@ type PostStatusName =
   | "CANCELED"
   | "RESERVED"
 
-export default PostStatusName
+export { PostStatusName }

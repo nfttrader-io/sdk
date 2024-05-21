@@ -1,4 +1,4 @@
-import PostStatus from "../../types/post/postStatus"
+import PostStatus from "../../types/post/poststatus"
 
 const POST_STATUS: PostStatus = {
   ACTIVE: 0,
