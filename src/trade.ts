@@ -3,13 +3,16 @@ import { ItemType } from "@opensea/seaport-js/lib/constants"
 import { CreateOrderInput } from "@opensea/seaport-js/lib/types"
 import { ethers } from "ethers"
 import { AssetsArray } from "./core/assetsarray"
-import contracts from "./constants/trade/contracts"
+import {
+  royaltyRegistriesEngines,
+  seaportSmartContracts,
+  royaltyRegistryEngineAbi,
+} from "./constants/trade"
 import events from "./constants/trade/events"
 import { HTTPClient } from "./core/httpclient"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
-import { Maybe, Network } from "./types/base"
+import { ApiKeyAuthorized, Maybe, Network } from "./types/base"
 import {
-  ApiKeyAuthorized,
   CallbackParams,
   TradeAsset,
   Fee,
@@ -21,7 +24,6 @@ import {
   WithAddress,
   TradeConfig,
   PartialTrade,
-  TradeDefaultInit,
   TradeDetail,
 } from "./types/trade"
 import {
@@ -29,12 +31,6 @@ import {
   GlobalTradesListResponse,
   UserTradesListResponse,
 } from "./interfaces/trade"
-
-const {
-  royaltyRegistriesEngines,
-  seaportSmartContracts,
-  royaltyRegistryEngineAbi,
-} = contracts
 
 /**
  * Trade class that handles interactions with the OpenSea trading platform.
@@ -89,11 +85,15 @@ export class Trade extends HTTPClient {
   private _MIN_BLOCKS_REQUIRED: number = 3
 
   /**
-   * Constructor for initializing a TradeDefaultInit object with an API key.
-   * @param {ApiKeyAuthorized<TradeDefaultInit>} config - The configuration object containing the API key.
-   * @throws {Error} If blocksNumberConfirmationRequired is lower than one or if an API key is not provided.
+   * Constructor for a class that requires an API key and optionally a number of blocks for confirmation.
+   * @param {object} config - Configuration object containing API key and optional blocks number confirmation.
+   * @param {string} config.apiKey - The API key for authorization.
+   * @param {number} [config.blocksNumberConfirmationRequired] - The number of blocks required for confirmation.
+   * @throws {Error} Throws an error if blocksNumberConfirmationRequired is less than 1 or if apiKey is missing or invalid.
    */
-  constructor(config: ApiKeyAuthorized<TradeDefaultInit>) {
+  constructor(
+    config: ApiKeyAuthorized & { blocksNumberConfirmationRequired?: number }
+  ) {
     super()
 
     const { blocksNumberConfirmationRequired } = config

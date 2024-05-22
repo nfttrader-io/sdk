@@ -10,7 +10,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "codegen": "graphql-codegen"
+    "codegen": "graphql-codegen",
+    "docs:generate": "typedoc"
   },
   "publishConfig": {
     "access": "public",
@@ -51,6 +52,7 @@
     "@graphql-codegen/typescript-operations": "^4.2.0",
     "@graphql-codegen/typescript-urql": "^4.0.0",
     "@types/node-forge": "^1.3.11",
-    "@types/uuid": "^9.0.8"
+    "@types/uuid": "^9.0.8",
+    "typedoc": "^0.25.13"
   }
 }

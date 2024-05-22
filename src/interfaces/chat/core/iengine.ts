@@ -6,9 +6,9 @@ import forge = require("node-forge")
 /**
  * Interface for an Engine that defines methods for connecting, reconnecting, collecting garbage,
  * refreshing JWT token, and getting API related information.
- * @interface Engine
+ * @interface IEngine
  */
-export interface Engine {
+export interface IEngine {
   connect(callback: Function): void
   reconnect(callback: Function): void
   collect(garbage: Array<SubscriptionGarbage> | SubscriptionGarbage): void

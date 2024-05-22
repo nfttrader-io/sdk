@@ -1,3 +1,1 @@
-import { ConversationPinInitConfig } from "./conversationpininitconfig"
-
-export { ConversationPinInitConfig }
+export * from "./conversationpininitconfig"

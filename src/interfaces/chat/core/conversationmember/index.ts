@@ -1,3 +1,1 @@
-import { ConversationMemberInitConfig } from "./conversationmemberinitconfig"
-
-export { ConversationMemberInitConfig }
+export * from "./conversationmemberinitconfig"

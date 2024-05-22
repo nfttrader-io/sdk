@@ -1,4 +1,2 @@
-import { HTTPResponse } from "./httpresponse"
-import { HTTPRequestInit } from "./httprequestinit"
-
-export { HTTPRequestInit, HTTPResponse }
+export * from "./httpresponse"
+export * from "./httprequestinit"

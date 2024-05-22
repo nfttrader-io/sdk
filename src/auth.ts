@@ -1,5 +1,10 @@
 import { HTTPClient } from "./core/httpclient"
-import { AuthClientConfig, AuthConfig, User, Credentials } from "./types/auth"
+import {
+  AuthClientConfig,
+  AuthConfig,
+  Account,
+  Credentials,
+} from "./types/auth"
 import { AuthMode } from "./enums/auth"
 import {
   IsUserRegisteredResponse,
@@ -202,14 +207,14 @@ export class Auth extends HTTPClient {
    * Sign in a user with the provided credentials and signature.
    * @param {Credentials} credentials - The user's credentials for authentication.
    * @param {string} [signature] - The signature for authentication (optional).
-   * @returns {Promise<User | boolean>} A promise that resolves to the user object if sign in is successful,
+   * @returns {Promise<Account | boolean>} A promise that resolves to the user object if sign in is successful,
    * or false if sign in fails.
    * @throws {Error} An error is thrown if the authentication mode is not defined, or if required credentials are missing based on the authentication mode.
    */
   async signin(
     credentials: Credentials,
     signature?: string
-  ): Promise<User | boolean> {
+  ): Promise<Account | boolean> {
     if (!this._authMode) throw new Error("An auth mode must be defined.")
 
     if (
@@ -265,7 +270,7 @@ export class Auth extends HTTPClient {
       )
         return false
 
-      const user: User = response.data.data[0]
+      const user: Account = response.data.data[0]
 
       return user
     } catch (error) {

@@ -1,3 +1,1 @@
-import { MessageReportInitConfig } from "./messagereportinitconfig"
-
-export { MessageReportInitConfig }
+export * from "./messagereportinitconfig"

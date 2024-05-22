@@ -1,3 +1,1 @@
-import { ReactionInitConfig } from "./reactioninitconfig"
-
-export { ReactionInitConfig }
+export * from "./reactioninitconfig"

@@ -1,0 +1,5 @@
+{
+  "entryPoints": ["src/index.ts"], // Percorso al tuo file d'ingresso
+  "out": "docs/api", // Cartella di output per la documentazione
+  "tsconfig": "tsconfig.json"
+}

@@ -1,3 +1,1 @@
-import { MessageImportantInitConfig } from "./messageimportantinitconfig"
-
-export { MessageImportantInitConfig }
+export * from "./messageimportantinitconfig"

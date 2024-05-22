@@ -2,7 +2,6 @@ import { Maybe } from "../base"
 
 /**
  * Represents the parameters required for establishing a real-time WebSocket connection.
- * @interface RealTimeWebSocketConnectionParams
  */
 export type RealTimeWebSocketConnectionParams = {
   /**

@@ -1,8 +1,8 @@
+import { AuthMode } from "../../enums/auth"
+
 /**
  * Represents the configuration for authentication.
  */
-import { AuthMode } from "../../enums/auth"
-
 export type AuthConfig = {
   /**
    * @property {AuthMode} mode - The authentication mode.

@@ -1,6 +1,5 @@
 import { HTTPClient } from "./core/httpclient"
 import {
-  ApiKeyAuthorized,
   OracleConfig,
   GetCollectionsParamsSearch,
   GetNFTsParamsSearch,
@@ -14,7 +13,7 @@ import {
   GetNFTResponse,
 } from "./interfaces/oracle"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
-import { Maybe } from "./types/base"
+import { ApiKeyAuthorized, Maybe } from "./types/base"
 
 /**
  * Represents an Oracle class that extends HTTPClient and provides methods to interact with an Oracle API.

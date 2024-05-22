@@ -1,3 +1,1 @@
-import { AssetItem } from "./assetitem"
-
-export { AssetItem }
+export * from "./assetitem"

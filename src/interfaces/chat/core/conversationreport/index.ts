@@ -1,3 +1,1 @@
-import { ConversationReportInitConfig } from "./conversationreportinitconfig"
-
-export { ConversationReportInitConfig }
+export * from "./conversationreportinitconfig"

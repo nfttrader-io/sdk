@@ -1,3 +1,1 @@
-import { AuthMode } from "./authmode"
-
-export { AuthMode }
+export * from "./authmode"

@@ -1,15 +1,6 @@
-import { TradeErrorMap } from "./tradeerrormap"
-import { TradeEventError } from "./tradeeventerror"
-import { GlobalTradesListResponse } from "./globaltradelistresponse"
-import { TradeEvents } from "./tradeevents"
-import { TradeOrder } from "./tradeorder"
-import { UserTradesListResponse } from "./usertradeslistresponse"
-
-export {
-  TradeErrorMap,
-  TradeEventError,
-  GlobalTradesListResponse,
-  TradeEvents,
-  TradeOrder,
-  UserTradesListResponse,
-}
+export * from "./tradeerrormap"
+export * from "./tradeeventerror"
+export * from "./globaltradelistresponse"
+export * from "./tradeevents"
+export * from "./tradeorder"
+export * from "./usertradeslistresponse"

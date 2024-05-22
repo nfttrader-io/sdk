@@ -7,7 +7,7 @@ import {
   subscriptionExchange,
   createClient,
 } from "@urql/core"
-import { Engine as IEngine, EngineInitConfig } from "../../interfaces/chat/core"
+import { IEngine, EngineInitConfig } from "../../interfaces/chat/core"
 import { HTTPClient } from "../httpclient"
 import { QIError } from "./qierror"
 import { Maybe } from "../../types/base"

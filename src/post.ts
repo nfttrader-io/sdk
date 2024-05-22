@@ -1,4 +1,4 @@
-import { Maybe } from "./types/base"
+import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { HTTPResponse, HTTPRequestInit } from "./interfaces/base"
 import {
   ListPostsFilters,
@@ -12,7 +12,6 @@ import {
   PostStatus,
   PostType,
   PostInstance,
-  ApiKeyAuthorized,
   PostConfig,
 } from "./types/post"
 import { validateListPostsFilters } from "./core/utilities"

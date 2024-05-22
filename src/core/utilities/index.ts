@@ -1,4 +1,2 @@
-import { validateListPostsFilters } from "./validatelistpostsfilters"
-import { validateListPostsFiltersField } from "./validatelistpostsfiltersfield"
-
-export { validateListPostsFilters, validateListPostsFiltersField }
+export * from "./validatelistpostsfilters"
+export * from "./validatelistpostsfiltersfield"

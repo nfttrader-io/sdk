@@ -1,6 +1,6 @@
 import { ListPostsFilters } from "../../interfaces/post/listpostsfilters"
-import POST_STATUS from "../../constants/post/poststatus"
-import POST_TYPE from "../../constants/post/posttype"
+import { POST_STATUS } from "../../constants/post/poststatus"
+import { POST_TYPE } from "../../constants/post/posttype"
 
 /**
  * Replaces a character at a specific index in a given string with a new character.

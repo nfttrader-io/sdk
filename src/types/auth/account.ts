@@ -2,9 +2,8 @@ import { Maybe } from "../base"
 
 /**
  * Represents a user object with various properties.
- * @interface User
  */
-export type User = {
+export type Account = {
   /**
    * @property {string} nonce - The nonce of the user.
    */

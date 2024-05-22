@@ -1206,7 +1206,7 @@ const royaltyRegistryEngineAbi = [
   },
 ]
 
-export default {
+export {
   royaltyRegistriesEngines,
   contractAbi,
   erc721Abi,

@@ -1,3 +1,1 @@
-import { BlacklistUserEntryInitConfig } from "./blacklistuserentryinitconfig"
-
-export { BlacklistUserEntryInitConfig }
+export * from "./blacklistuserentryinitconfig"
