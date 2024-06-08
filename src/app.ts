@@ -1,5 +1,6 @@
 import { IndexedDBStorage, RealmStorage } from "./core/app"
 import { IStorage } from "./interfaces/app"
+import { CLIENT_DB_NAME } from "./constants/app"
 
 export class App {
   private static _instance: App
@@ -22,7 +23,32 @@ export class App {
       typeof window !== "undefined" &&
       typeof window.indexedDB !== "undefined"
     ) {
-      return IndexedDBStorage.create("myDatabase", "myStore")
+      if (!window.localStorage)
+        throw new Error(
+          "localStorage is not supported. Use a browser that provides the window.localStorage feature."
+        )
+
+      try {
+        localStorage.setItem("sdk_nfttrader_try", "")
+        localStorage.removeItem("sdk_nfttrader_try")
+      } catch (error) {
+        throw new Error(
+          "localStorage is not supported. Use a browser that provides the window.localStorage feature."
+        )
+      }
+
+      const DB_VERSION = localStorage.getItem("nfttrader_client_db_version")
+
+      try {
+        return IndexedDBStorage.create(
+          CLIENT_DB_NAME,
+          DB_VERSION ? Number(DB_VERSION) : 0
+        )
+      } catch (error) {
+        throw new Error(
+          "localStorage is not supported. Use a browser that provides the window.localStorage feature."
+        )
+      }
     } else {
       return RealmStorage.create()
     }

@@ -2,20 +2,19 @@ import { IStorage } from "../../interfaces/app"
 
 export class IndexedDBStorage implements IStorage {
   private _dbName: string
-  private _storeName: string
+  private _dbVersion: number
 
-  private constructor(dbName: string, storeName: string) {
+  private constructor(dbName: string, dbVersion: number) {
     this._dbName = dbName
-    this._storeName = storeName
+    this._dbVersion = dbVersion
   }
 
-  static async create(dbName: string, storeName: string): Promise<IStorage> {
-    const instance = new IndexedDBStorage(dbName, storeName)
-    await instance.initDB()
-    return instance
+  private _applyFilter(item: any, filter: any): boolean {
+    // Implement your filter logic here
+    return true
   }
 
-  private async initDB() {
+  private async _initDB() {
     return new Promise<void>((resolve, reject) => {
       const request = indexedDB.open(this._dbName)
 
@@ -26,17 +25,10 @@ export class IndexedDBStorage implements IStorage {
       request.onsuccess = () => {
         resolve()
       }
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBRequest).result
-        if (!db.objectStoreNames.contains(this._storeName)) {
-          db.createObjectStore(this._storeName)
-        }
-      }
     })
   }
 
-  private async getDB() {
+  private async _getDB() {
     return new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(this._dbName)
 
@@ -50,11 +42,42 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async getItem(key: string): Promise<any> {
-    const db = await this.getDB()
+  static async create(dbName: string, dbVersion: number): Promise<IStorage> {
+    const instance = new IndexedDBStorage(dbName, dbVersion)
+    await instance._initDB()
+    return instance
+  }
+
+  public async createStore(newStoreName: string): Promise<void> {
+    const currentDb = await this._getDB()
+    const newVersion = currentDb.version + 1
+
+    return new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(this._dbName, newVersion)
+
+      request.onerror = (event) => {
+        reject((event.target as IDBRequest).error)
+      }
+
+      request.onsuccess = () => {
+        this._dbVersion = newVersion
+        resolve()
+      }
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBRequest).result
+        if (!db.objectStoreNames.contains(newStoreName)) {
+          db.createObjectStore(newStoreName)
+        }
+      }
+    })
+  }
+
+  public async getItem(storeName: string, key: string): Promise<any> {
+    const db = await this._getDB()
     return new Promise<any>((resolve, reject) => {
-      const transaction = db.transaction(this._storeName, "readonly")
-      const store = transaction.objectStore(this._storeName)
+      const transaction = db.transaction(storeName, "readonly")
+      const store = transaction.objectStore(storeName)
       const request = store.get(key)
 
       request.onsuccess = () => {
@@ -67,11 +90,15 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async setItem(key: string, value: any): Promise<void> {
-    const db = await this.getDB()
+  public async setItem(
+    storeName: string,
+    key: string,
+    value: any
+  ): Promise<void> {
+    const db = await this._getDB()
     return new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(this._storeName, "readwrite")
-      const store = transaction.objectStore(this._storeName)
+      const transaction = db.transaction(storeName, "readwrite")
+      const store = transaction.objectStore(storeName)
       const request = store.put(value, key)
 
       request.onsuccess = () => {
@@ -84,11 +111,11 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async removeItem(key: string): Promise<void> {
-    const db = await this.getDB()
+  public async removeItem(storeName: string, key: string): Promise<void> {
+    const db = await this._getDB()
     return new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(this._storeName, "readwrite")
-      const store = transaction.objectStore(this._storeName)
+      const transaction = db.transaction(storeName, "readwrite")
+      const store = transaction.objectStore(storeName)
       const request = store.delete(key)
 
       request.onsuccess = () => {
@@ -101,18 +128,18 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async query(filter: any): Promise<any[]> {
-    const db = await this.getDB()
+  public async query(storeName: string, filter: any): Promise<any[]> {
+    const db = await this._getDB()
     return new Promise<any[]>((resolve, reject) => {
-      const transaction = db.transaction(this._storeName, "readonly")
-      const store = transaction.objectStore(this._storeName)
+      const transaction = db.transaction(storeName, "readonly")
+      const store = transaction.objectStore(storeName)
       const request = store.openCursor()
       const results: any[] = []
 
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result
         if (cursor) {
-          if (this.applyFilter(cursor.value, filter)) {
+          if (this._applyFilter(cursor.value, filter)) {
             results.push(cursor.value)
           }
           cursor.continue()
@@ -125,10 +152,5 @@ export class IndexedDBStorage implements IStorage {
         reject(request.error)
       }
     })
-  }
-
-  private applyFilter(item: any, filter: any): boolean {
-    // Implement your filter logic here
-    return true
   }
 }
