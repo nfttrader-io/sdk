@@ -148,4 +148,51 @@ export class Crypto {
 
     return Crypto.encrypt(publicKey, content)
   }
+
+  static generateRandomString(): string {
+    return forge.random.getBytesSync(32)
+  }
+
+  static generateBase64Key_AES256(): string {
+    const key = forge.random.getBytesSync(32) // 32 bytes = 256 bits for AES-256
+
+    return forge.util.encode64(key)
+  }
+
+  static generateBase64IV_128Bit(): string {
+    const iv = forge.random.getBytesSync(16) // 16 bytes = 128 bits
+
+    return forge.util.encode64(iv)
+  }
+
+  static encryptAES_CBC(
+    text: string,
+    base64Key: string,
+    base64IV: string
+  ): string {
+    const key = forge.util.decode64(base64Key)
+    const iv = forge.util.decode64(base64IV)
+    const cipher = forge.cipher.createCipher("AES-CBC", key)
+    cipher.start({ iv })
+    cipher.update(forge.util.createBuffer(text))
+    cipher.finish()
+    const encrypted = cipher.output.getBytes()
+
+    return forge.util.encode64(encrypted)
+  }
+
+  static decryptAES_CBC(
+    encryptedText: string,
+    base64Key: string,
+    base64IV: string
+  ): string {
+    const key = forge.util.decode64(base64Key)
+    const iv = forge.util.decode64(base64IV)
+    const decipher = forge.cipher.createDecipher("AES-CBC", key)
+    decipher.start({ iv })
+    decipher.update(forge.util.createBuffer(forge.util.decode64(encryptedText)))
+    decipher.finish()
+
+    return decipher.output.toString()
+  }
 }

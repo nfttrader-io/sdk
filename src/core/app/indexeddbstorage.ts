@@ -1,6 +1,7 @@
-import { IStorage } from "../../interfaces/app"
+import { BaseStorage } from "../../interfaces/app"
+import { CreateOrConnectIndexedDBArgs } from "../../types/app"
 
-export class IndexedDBStorage implements IStorage {
+export class IndexedDBStorage implements BaseStorage {
   private _dbName: string
   private _dbVersion: number
 
@@ -42,13 +43,16 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  static async create(dbName: string, dbVersion: number): Promise<IStorage> {
-    const instance = new IndexedDBStorage(dbName, dbVersion)
+  static async createOrConnect(
+    params: CreateOrConnectIndexedDBArgs
+  ): Promise<BaseStorage> {
+    const instance = new IndexedDBStorage(params.dbName, params.dbVersion)
     await instance._initDB()
+
     return instance
   }
 
-  public async createStore(newStoreName: string): Promise<void> {
+  async createStore(newStoreName: string): Promise<void> {
     const currentDb = await this._getDB()
     const newVersion = currentDb.version + 1
 
@@ -73,8 +77,9 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async getItem(storeName: string, key: string): Promise<any> {
+  async getItem(storeName: string, key: string): Promise<any> {
     const db = await this._getDB()
+
     return new Promise<any>((resolve, reject) => {
       const transaction = db.transaction(storeName, "readonly")
       const store = transaction.objectStore(storeName)
@@ -90,12 +95,9 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async setItem(
-    storeName: string,
-    key: string,
-    value: any
-  ): Promise<void> {
+  async setItem(storeName: string, key: string, value: any): Promise<void> {
     const db = await this._getDB()
+
     return new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(storeName, "readwrite")
       const store = transaction.objectStore(storeName)
@@ -111,8 +113,9 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async removeItem(storeName: string, key: string): Promise<void> {
+  async removeItem(storeName: string, key: string): Promise<void> {
     const db = await this._getDB()
+
     return new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(storeName, "readwrite")
       const store = transaction.objectStore(storeName)
@@ -128,8 +131,9 @@ export class IndexedDBStorage implements IStorage {
     })
   }
 
-  public async query(storeName: string, filter: any): Promise<any[]> {
+  async query(storeName: string, filter: any): Promise<any[]> {
     const db = await this._getDB()
+
     return new Promise<any[]>((resolve, reject) => {
       const transaction = db.transaction(storeName, "readonly")
       const store = transaction.objectStore(storeName)
@@ -152,5 +156,13 @@ export class IndexedDBStorage implements IStorage {
         reject(request.error)
       }
     })
+  }
+
+  getDBName(): string {
+    return this._dbName
+  }
+
+  getDBVersion(): number {
+    return this._dbVersion
   }
 }

@@ -1,5 +1,6 @@
 import { Maybe } from "../../types/base"
 import { AuthMode } from "../../enums/auth"
+import { BaseStorage } from "../../interfaces/app"
 
 /**
  * Represents the configuration options for an authentication client.
@@ -25,4 +26,6 @@ export type AuthClientConfig = {
    * @property {Maybe<string>} [servicePrivacyURL] - The Privacy Policy URL for the service.
    */
   servicePrivacyURL?: Maybe<string>
+
+  storage?: Maybe<BaseStorage>
 }

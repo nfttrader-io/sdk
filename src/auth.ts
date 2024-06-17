@@ -12,6 +12,8 @@ import {
   SignupResponse,
 } from "./interfaces/auth"
 import { Maybe } from "./types/base"
+import { BaseStorage } from "./interfaces/app"
+import { Crypto } from "./core"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -47,14 +49,8 @@ export class Auth extends HTTPClient {
    * @property {string} _messageToSign - The message to sign for authentication.
    */
   private _messageToSign = `Welcome to {serviceName}!\n\nClick to sign in and accept the {serviceName} Terms of Service: {tosURL}\n\nand the Privacy Policy: {privacyURL}\n\nYour nonce is: {nonce}`
-  /**
-   * @property {Maybe<string>} _publicKey -
-   */
-  private _publicKey: Maybe<string> = null
-  /**
-   * @property {Maybe<string>} _privateKey -
-   */
-  private _privateKey: Maybe<string> = null
+
+  private _storage: Maybe<BaseStorage> = null
 
   /**
    * Constructs a new instance of Auth with the provided configuration.
@@ -67,6 +63,13 @@ export class Auth extends HTTPClient {
     this._serviceName = config.serviceName
     this._servicePrivacyURL = config.servicePrivacyURL
     this._serviceTOSURL = config.serviceTOSURL
+    this._storage = config.storage
+  }
+
+  private _generatePersonalKey() {
+    const originalKey = Crypto.generateRandomString()
+    const base64Key = Crypto.generateBase64Key_AES256()
+    const base64IV = Crypto.generateBase64IV_128Bit()
   }
 
   /**
@@ -81,6 +84,7 @@ export class Auth extends HTTPClient {
     if (config.serviceTOSURL) this._serviceTOSURL = config.serviceTOSURL
     if (config.servicePrivacyURL)
       this._servicePrivacyURL = config.servicePrivacyURL
+    if (config.storage) this._storage = config.storage
   }
 
   /**

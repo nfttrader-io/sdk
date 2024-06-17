@@ -1,4 +1,5 @@
 import { AuthMode } from "../../enums/auth"
+import { BaseStorage } from "../../interfaces/app"
 
 /**
  * Represents the configuration for authentication.
@@ -20,4 +21,6 @@ export type AuthConfig = {
    * @property {string} servicePrivacyURL - The Privacy Policy URL for the authentication service.
    */
   servicePrivacyURL: string
+
+  storage: BaseStorage
 }

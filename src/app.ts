@@ -1,24 +1,16 @@
 import { IndexedDBStorage, RealmStorage } from "./core/app"
-import { IStorage } from "./interfaces/app"
+import { BaseStorage } from "./interfaces/app"
 import { CLIENT_DB_NAME } from "./constants/app"
 
 export class App {
   private static _instance: App
-  private _storage: IStorage
+  private _storage: BaseStorage
 
-  private constructor(storage: IStorage) {
+  private constructor(storage: BaseStorage) {
     this._storage = storage
   }
 
-  public static async getInstance(): Promise<App> {
-    if (!App._instance) {
-      const storage = await App.createStorage()
-      App._instance = new App(storage)
-    }
-    return App._instance
-  }
-
-  private static async createStorage(): Promise<IStorage> {
+  private static async createOrConnectToStorage(): Promise<BaseStorage> {
     if (
       typeof window !== "undefined" &&
       typeof window.indexedDB !== "undefined"
@@ -40,21 +32,31 @@ export class App {
       const DB_VERSION = localStorage.getItem("nfttrader_client_db_version")
 
       try {
-        return IndexedDBStorage.create(
-          CLIENT_DB_NAME,
-          DB_VERSION ? Number(DB_VERSION) : 0
-        )
+        return IndexedDBStorage.createOrConnect({
+          dbName: CLIENT_DB_NAME,
+          dbVersion: DB_VERSION ? Number(DB_VERSION) : 0,
+        })
       } catch (error) {
+        console.log(error)
         throw new Error(
-          "localStorage is not supported. Use a browser that provides the window.localStorage feature."
+          "Error during the creation of the local database. See the console for more info."
         )
       }
     } else {
-      return RealmStorage.create()
+      return RealmStorage.createOrConnect()
     }
   }
 
-  public getStorage(): IStorage {
+  static async getInstance(): Promise<App> {
+    if (!App._instance) {
+      const storage = await App.createOrConnectToStorage()
+      App._instance = new App(storage)
+    }
+
+    return App._instance
+  }
+
+  getStorage(): BaseStorage {
     return this._storage
   }
 }
