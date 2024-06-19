@@ -61,19 +61,16 @@ export class Crypto {
    */
   static async generateKeys(
     security: "STANDARD" | "HIGH"
-  ): Promise<forge.pki.rsa.KeyPair> {
+  ): Promise<Maybe<forge.pki.rsa.KeyPair>> {
     return new Promise((resolve, reject) => {
-      if (security !== "STANDARD" && security !== "HIGH")
-        reject("please provide a valid security argument")
+      if (security !== "STANDARD" && security !== "HIGH") reject(null)
 
       forge.pki.rsa.generateKeyPair(
         { bits: security === "HIGH" ? 4096 : 2048, workers: -1 },
         (err, keyPair: forge.pki.rsa.KeyPair) => {
           if (err) {
             console.error(err)
-            reject(
-              "E2E: An exception occured during the generation of the key pairs. See the console to have more info about the error."
-            )
+            reject(null)
           } else {
             resolve(keyPair)
           }
@@ -165,6 +162,10 @@ export class Crypto {
     return forge.util.encode64(iv)
   }
 
+  static generateString_128Bit(): string {
+    return forge.random.getBytesSync(16) // 16 bytes = 128 bits
+  }
+
   static encryptAES_CBC(
     text: string,
     base64Key: string,
@@ -194,5 +195,47 @@ export class Crypto {
     decipher.finish()
 
     return decipher.output.toString()
+  }
+
+  static encryptSHA256_IV(
+    text: string,
+    hash256Key: string,
+    base64IV: string
+  ): string {
+    const cipher = forge.cipher.createCipher("AES-CBC", hash256Key)
+    cipher.start({ iv: forge.util.decode64(base64IV) })
+    cipher.update(forge.util.createBuffer(text))
+    cipher.finish()
+
+    return forge.util.encode64(cipher.output.getBytes())
+  }
+
+  static decryptSHA256_IV(
+    encryptedText: string,
+    hash256Key: string,
+    base64IV: string
+  ): string {
+    const decipher = forge.cipher.createDecipher("AES-CBC", hash256Key)
+    decipher.start({ iv: forge.util.decode64(base64IV) })
+    decipher.update(forge.util.createBuffer(forge.util.decode64(encryptedText)))
+    decipher.finish()
+
+    return decipher.output.toString()
+  }
+
+  static convertRSAPublicKeyToPem(publicKey: forge.pki.rsa.PublicKey): string {
+    return forge.pki.publicKeyToPem(publicKey)
+  }
+
+  static convertRSAPrivateKeyToPem(
+    privateKey: forge.pki.rsa.PrivateKey
+  ): string {
+    return forge.pki.privateKeyToPem(privateKey)
+  }
+
+  static generateSHA256Hash(text: string): string {
+    const md = forge.md.sha256.create()
+    md.update(text)
+    return md.digest().getBytes()
   }
 }

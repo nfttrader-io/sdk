@@ -5,4 +5,5 @@ export interface BaseStorage {
   query(storeName: string, filter: any): Promise<any[]>
   getDBName(): string
   getDBVersion(): number
+  typeOf(): string
 }

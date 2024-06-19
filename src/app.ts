@@ -10,7 +10,9 @@ export class App {
     this._storage = storage
   }
 
-  private static async createOrConnectToStorage(): Promise<BaseStorage> {
+  private static async createOrConnectToStorage(): Promise<
+    IndexedDBStorage | RealmStorage
+  > {
     if (
       typeof window !== "undefined" &&
       typeof window.indexedDB !== "undefined"

@@ -45,14 +45,14 @@ export class IndexedDBStorage implements BaseStorage {
 
   static async createOrConnect(
     params: CreateOrConnectIndexedDBArgs
-  ): Promise<BaseStorage> {
+  ): Promise<IndexedDBStorage> {
     const instance = new IndexedDBStorage(params.dbName, params.dbVersion)
     await instance._initDB()
 
     return instance
   }
 
-  async createStore(newStoreName: string): Promise<void> {
+  async createStoreIfNotExists(newStoreName: string): Promise<void> {
     const currentDb = await this._getDB()
     const newVersion = currentDb.version + 1
 
@@ -164,5 +164,9 @@ export class IndexedDBStorage implements BaseStorage {
 
   getDBVersion(): number {
     return this._dbVersion
+  }
+
+  typeOf(): string {
+    return this.constructor.name
   }
 }

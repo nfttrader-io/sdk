@@ -1,5 +1,5 @@
+import { IndexedDBStorage, RealmStorage } from "../../core/app"
 import { AuthMode } from "../../enums/auth"
-import { BaseStorage } from "../../interfaces/app"
 
 /**
  * Represents the configuration for authentication.
@@ -22,5 +22,5 @@ export type AuthConfig = {
    */
   servicePrivacyURL: string
 
-  storage: BaseStorage
+  storage: IndexedDBStorage | RealmStorage
 }

@@ -1,6 +1,6 @@
 enum AuthMode {
   WALLET = "0",
-  CREDENTIALS = "1",
+  MAGIC_LINK = "1",
 }
 
 export { AuthMode }

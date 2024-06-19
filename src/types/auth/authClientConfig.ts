@@ -1,6 +1,6 @@
 import { Maybe } from "../../types/base"
 import { AuthMode } from "../../enums/auth"
-import { BaseStorage } from "../../interfaces/app"
+import { IndexedDBStorage, RealmStorage } from "../../core/app"
 
 /**
  * Represents the configuration options for an authentication client.
@@ -27,5 +27,5 @@ export type AuthClientConfig = {
    */
   servicePrivacyURL?: Maybe<string>
 
-  storage?: Maybe<BaseStorage>
+  storage?: Maybe<IndexedDBStorage | RealmStorage>
 }

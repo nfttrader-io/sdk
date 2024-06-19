@@ -12,8 +12,9 @@ import {
   SignupResponse,
 } from "./interfaces/auth"
 import { Maybe } from "./types/base"
-import { BaseStorage } from "./interfaces/app"
 import { Crypto } from "./core"
+import { IndexedDBStorage, RealmStorage } from "./core/app"
+import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -50,7 +51,7 @@ export class Auth extends HTTPClient {
    */
   private _messageToSign = `Welcome to {serviceName}!\n\nClick to sign in and accept the {serviceName} Terms of Service: {tosURL}\n\nand the Privacy Policy: {privacyURL}\n\nYour nonce is: {nonce}`
 
-  private _storage: Maybe<BaseStorage> = null
+  private _storage: Maybe<IndexedDBStorage | RealmStorage> = null
 
   /**
    * Constructs a new instance of Auth with the provided configuration.
@@ -66,10 +67,135 @@ export class Auth extends HTTPClient {
     this._storage = config.storage
   }
 
-  private _generatePersonalKey() {
-    const originalKey = Crypto.generateRandomString()
-    const base64Key = Crypto.generateBase64Key_AES256()
-    const base64IV = Crypto.generateBase64IV_128Bit()
+  /**
+   * 
+   * 
+   * a) Generates a pair of public and private keys K(pub) and K(priv).
+     b) Generates an encryption key and a secret (Y and S).
+     c) Using the encryption key Y, the client encrypts the private key K(priv) and obtains YK(priv).
+     d) The encryption key Y is encrypted with the secret S, yielding Y(S), and saved in the DB.
+     e) The secret S is then encrypted with Y(S). From Y(S) we calculate a hash called H. From H we encrypt S. resulting in H(S). We store H on the DB.
+     f) K(pub), YK(priv) and H(S) are sent to the server and stored in the database.
+   * 
+   */
+
+  private async _generateKeys(): Promise<
+    Maybe<{
+      local: {
+        KpubPem: string
+        YS: string
+        HString: string
+      }
+      server: {
+        KpubPem: string
+        YKPriv: string
+        HS: string
+      }
+    }>
+  > {
+    let keyPair = await Crypto.generateKeys("HIGH")
+
+    if (keyPair) {
+      let KpubPem: Maybe<string> = Crypto.convertRSAPublicKeyToPem(
+        keyPair.publicKey
+      )
+      let KprivPem: Maybe<string> = Crypto.convertRSAPrivateKeyToPem(
+        keyPair.privateKey
+      )
+      keyPair = null
+
+      //b)
+      let Y: Maybe<{ base64YKey: string; base64YIV: string }> = {
+        base64YKey: Crypto.generateBase64Key_AES256(),
+        base64YIV: Crypto.generateBase64IV_128Bit(),
+      }
+      let S: Maybe<{ base64SKey: string; base64SIV: string }> = {
+        base64SKey: Crypto.generateBase64Key_AES256(),
+        base64SIV: Crypto.generateBase64IV_128Bit(),
+      }
+
+      //c)
+      let YKPriv = Crypto.encryptAES_CBC(KprivPem, Y.base64YKey, Y.base64YIV)
+      KprivPem = null
+
+      //d)
+      let YString: Maybe<string> = JSON.stringify(Y)
+      Y = null
+      let YS = Crypto.encryptAES_CBC(YString, S.base64SKey, S.base64SIV)
+      YString = null
+
+      //e)
+      let SString = JSON.stringify(S)
+      S = null
+      let H: Maybe<{ HKey: string; base64HIV: string }> = {
+        HKey: Crypto.generateSHA256Hash(YS),
+        base64HIV: Crypto.generateBase64IV_128Bit(),
+      }
+      let HS = Crypto.encryptSHA256_IV(SString, H.HKey, H.base64HIV)
+      let HString = JSON.stringify(H)
+      H = null
+
+      return {
+        local: {
+          KpubPem,
+          YS,
+          HString,
+        },
+        server: {
+          KpubPem,
+          YKPriv,
+          HS,
+        },
+      }
+    }
+
+    return null
+  }
+
+  private async _handleIndexedDB(): Promise<{
+    KpubPem: string
+    YKPriv: string
+    HS: string
+  }> {
+    const storage = this._storage as IndexedDBStorage
+    try {
+      await storage.createStoreIfNotExists(CLIENT_STORE_NAME_LOCAL_KEYS)
+      let keys = await this._generateKeys()
+      if (!keys) throw new Error("Keys generation error.")
+      await storage.setItem(
+        CLIENT_STORE_NAME_LOCAL_KEYS,
+        "KpubPem",
+        keys.local.KpubPem
+      )
+      await storage.setItem(CLIENT_STORE_NAME_LOCAL_KEYS, "YS", keys.local.YS)
+      await storage.setItem(
+        CLIENT_STORE_NAME_LOCAL_KEYS,
+        "HString",
+        keys.local.HString
+      )
+
+      return {
+        ...keys.server,
+      }
+    } catch (error) {
+      console.log(error)
+      throw new Error(
+        "Error during setup of the local keys. Check the console to have more information."
+      )
+    }
+  }
+
+  private async _handleRealm(): Promise<{
+    KpubPem: string
+    YKPriv: string
+    HS: string
+  }> {
+    let keys = await this._generateKeys()
+    if (!keys) throw new Error("Keys generation error.")
+
+    return {
+      ...keys.server,
+    }
   }
 
   /**
@@ -89,7 +215,7 @@ export class Auth extends HTTPClient {
 
   /**
    * Checks if a user is registered based on the provided credentials.
-   * @param {Credentials} credentials - The user's credentials (address, email, password).
+   * @param {Credentials} credentials - The user's credentials (address, email).
    * @returns {Promise<boolean>} A promise that resolves to true if the user is registered, false otherwise.
    * @throws {Error} An error is thrown if the authentication mode is not defined or if required credentials are missing.
    */
@@ -101,12 +227,9 @@ export class Auth extends HTTPClient {
         "Auth mode is setup to WALLET. An address must be provided."
       )
 
-    if (
-      AuthMode.CREDENTIALS === this._authMode &&
-      (!credentials.email || !credentials.password)
-    )
+    if (AuthMode.MAGIC_LINK === this._authMode && !credentials.email)
       throw new Error(
-        "Auth mode is setup to CREDENTIALS. An email and password must be provided."
+        "Auth mode is setup to MAGIC_LINK. An email must be provided."
       )
 
     try {
@@ -114,12 +237,8 @@ export class Auth extends HTTPClient {
         address:
           this._authMode === AuthMode.WALLET ? credentials.address : undefined,
         email:
-          this._authMode === AuthMode.CREDENTIALS
+          this._authMode === AuthMode.MAGIC_LINK
             ? credentials.email
-            : undefined,
-        password:
-          this._authMode === AuthMode.CREDENTIALS
-            ? credentials.password
             : undefined,
       }
 
@@ -157,34 +276,44 @@ export class Auth extends HTTPClient {
    */
   async signup(credentials: Credentials): Promise<boolean> {
     if (!this._authMode) throw new Error("An auth mode must be defined.")
+    if (!this._storage) throw new Error("A storage must be defined.")
 
     if (AuthMode.WALLET === this._authMode && !credentials.address)
       throw new Error(
         "Auth mode is setup to WALLET. An address must be provided."
       )
 
-    if (
-      AuthMode.CREDENTIALS === this._authMode &&
-      (!credentials.email || !credentials.password)
-    )
+    if (AuthMode.MAGIC_LINK === this._authMode && !credentials.email)
       throw new Error(
-        "Auth mode is setup to CREDENTIALS. An email and password must be provided."
+        "Auth mode is setup to MAGIC_LINK. An email must be provided."
       )
 
-    try {
-      const body = {
-        address:
-          this._authMode === AuthMode.WALLET ? credentials.address : undefined,
-        email:
-          this._authMode === AuthMode.CREDENTIALS
-            ? credentials.email
-            : undefined,
-        password:
-          this._authMode === AuthMode.CREDENTIALS
-            ? credentials.password
-            : undefined,
-      }
+    const body: {
+      address?: Maybe<string>
+      email?: Maybe<string>
+      KpubPem: Maybe<string>
+      YKPriv: Maybe<string>
+      HS: Maybe<string>
+    } = {
+      address:
+        this._authMode === AuthMode.WALLET ? credentials.address : undefined,
+      email:
+        this._authMode === AuthMode.MAGIC_LINK ? credentials.email : undefined,
+      KpubPem: null,
+      YKPriv: null,
+      HS: null,
+    }
 
+    if (this._storage.typeOf() === "IndexedDBStorage") {
+      let { KpubPem, YKPriv, HS } = await this._handleIndexedDB()
+
+      body.KpubPem = KpubPem
+      body.YKPriv = YKPriv
+      body.HS = HS
+    } else if (this._storage.typeOf() === "RealmStorage")
+      await this._handleRealm()
+
+    try {
       const response = await this._fetch<SignupResponse>(
         `${this._BACKEND_URL}/auth/userSignup`,
         {
@@ -229,12 +358,9 @@ export class Auth extends HTTPClient {
         "Auth mode is setup to WALLET. An address and a signature must be provided."
       )
 
-    if (
-      AuthMode.CREDENTIALS === this._authMode &&
-      (!credentials.email || !credentials.password)
-    )
+    if (AuthMode.MAGIC_LINK === this._authMode && !credentials.email)
       throw new Error(
-        "Auth mode is setup to CREDENTIALS. An email and password must be provided."
+        "Auth mode is setup to MAGIC_LINK. An email must be provided."
       )
 
     try {
@@ -243,12 +369,8 @@ export class Auth extends HTTPClient {
           this._authMode === AuthMode.WALLET ? credentials.address : undefined,
         signature: this._authMode === AuthMode.WALLET ? signature : undefined,
         email:
-          this._authMode === AuthMode.CREDENTIALS
+          this._authMode === AuthMode.MAGIC_LINK
             ? credentials.email
-            : undefined,
-        password:
-          this._authMode === AuthMode.CREDENTIALS
-            ? credentials.password
             : undefined,
         serviceName:
           this._authMode === AuthMode.WALLET ? this._serviceName : undefined,
