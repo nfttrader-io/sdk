@@ -2,7 +2,6 @@ import { BlacklistUserEntry } from "./blacklistuserentry"
 import { UserSchema } from "../../interfaces/chat/schema"
 import {
   UserQueryEngine,
-  UserInitConfig,
   UserMutationEngine,
 } from "../../interfaces/chat/core/user"
 import { Engine } from "./engine"
@@ -19,6 +18,7 @@ import {
   removeBlockedUser,
 } from "../../constants/chat/mutations"
 import { getCurrentUserWithBlacklist } from "../../constants/chat/queries"
+import { UserInitConfig } from "../../types/chat/core/user"
 
 /**
  * Represents a User class that extends Engine and implements UserSchema, UserQueryEngine, and UserMutationEngine interfaces.

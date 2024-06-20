@@ -1,5 +1,5 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import { ConversationTradingPoolInitConfig } from "../../interfaces/chat/core/conversationtradingpool"
+import { ConversationTradingPoolInitConfig } from "../../types"
 import { ConversationTradingPoolSchema } from "../../interfaces/chat/schema"
 import { Maybe } from "../../types/base"
 import { Engine } from "./engine"

@@ -1,5 +1,5 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import { ReactionInitConfig } from "../../interfaces/chat/core/reaction"
+import { ReactionInitConfig } from "../../types/chat/core/reaction"
 import { ReactionSchema } from "../../interfaces/chat/schema/reaction"
 import { Engine } from "./engine"
 

@@ -1,5 +1,5 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import { MessageImportantInitConfig } from "../../interfaces/chat/core/messageimportant"
+import { MessageImportantInitConfig } from "../../types/chat/core/messageimportant"
 import { MessageImportantSchema } from "../../interfaces/chat/schema"
 import { Engine } from "./engine"
 import { Message } from "./message"

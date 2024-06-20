@@ -1,5 +1,5 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import { ConversationMemberInitConfig } from "../../interfaces/chat/core/conversationmember"
+import { ConversationMemberInitConfig } from "../../types/chat/core/conversationmember"
 import { ConversationMemberSchema } from "../../interfaces/chat/schema"
 import { Maybe } from "../../types/base"
 import { Engine } from "./engine"

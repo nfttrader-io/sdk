@@ -1,19 +1,10 @@
 import { HTTPClient } from "./core/httpclient"
-import {
-  AuthClientConfig,
-  AuthConfig,
-  Account,
-  Credentials,
-} from "./types/auth"
+import { AuthClientConfig, AuthConfig, Credentials } from "./types/auth"
 import { AuthMode } from "./enums/auth"
-import {
-  IsUserRegisteredResponse,
-  SigninResponse,
-  SignupResponse,
-} from "./interfaces/auth"
+import { ApiResponse } from "./types/base/apiresponse"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { Crypto } from "./core"
-import { IndexedDBStorage, RealmStorage } from "./core/app"
+import { Account, IndexedDBStorage, RealmStorage } from "./core/app"
 import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces"
 
@@ -268,13 +259,12 @@ export class Auth extends HTTPClient {
             : undefined,
       }
 
-      const response = await this._fetchWithAuth<IsUserRegisteredResponse>(
-        `${this._BACKEND_URL}/auth/userNonce`,
-        {
-          method: "POST",
-          body,
-        }
-      )
+      const response = await this._fetchWithAuth<
+        ApiResponse<{ nonce: string }>
+      >(`${this._BACKEND_URL}/auth/userNonce`, {
+        method: "POST",
+        body,
+      })
       if (
         !response.data ||
         !response.data.data ||
@@ -340,13 +330,12 @@ export class Auth extends HTTPClient {
       await this._handleRealm()
 
     try {
-      const response = await this._fetchWithAuth<SignupResponse>(
-        `${this._BACKEND_URL}/auth/userSignup`,
-        {
-          method: "POST",
-          body,
-        }
-      )
+      const response = await this._fetchWithAuth<
+        ApiResponse<{ nonce: string }>
+      >(`${this._BACKEND_URL}/auth/userSignup`, {
+        method: "POST",
+        body,
+      })
       if (
         !response.data ||
         !response.data.data ||
@@ -408,7 +397,7 @@ export class Auth extends HTTPClient {
             : undefined,
       }
 
-      const response = await this._fetchWithAuth<SigninResponse>(
+      const response = await this._fetchWithAuth<ApiResponse<Account>>(
         `${this._BACKEND_URL}/auth/userSignin`,
         {
           method: "POST",
@@ -422,9 +411,7 @@ export class Auth extends HTTPClient {
       )
         return false
 
-      const user: Account = response.data.data[0]
-
-      return user
+      return response.data.data[0]
     } catch (error) {
       return false
     }

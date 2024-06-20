@@ -151,7 +151,6 @@ import {
   listMessagesByConversationId,
   listMessagesImportantByUserConversationId,
 } from "./constants/chat/queries"
-import { AddMembersToConversationArgs } from "./interfaces/chat/schema/args/addmemberstoconversation"
 import { ConversationMember } from "./core/chat/conversationmember"
 import {
   AddReactionToMessageArgs,
@@ -171,9 +170,10 @@ import {
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
   UpdateUserArgs,
-} from "./interfaces/chat/schema/args"
+  AddMembersToConversationArgs,
+  EjectMemberArgs,
+} from "./types/chat/schema/args"
 import { UAMutationEngine, UAQueryEngine } from "./interfaces/chat/core/ua"
-import { EjectMemberArgs } from "./interfaces/chat/schema/args/ejectmember"
 import { Maybe } from "./types/base"
 import {
   onDeleteMessage,

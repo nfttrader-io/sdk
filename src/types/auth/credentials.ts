@@ -13,8 +13,4 @@ export type Credentials = {
    * @property {Maybe<string>} email - the email used to sign in/up
    */
   email: Maybe<string>
-  /**
-   * @property {Maybe<string>} password - the password used to sign in/up
-   */
-  password: Maybe<string>
 }

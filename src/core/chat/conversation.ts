@@ -37,7 +37,7 @@ import {
   ConversationMutationEngine,
   ConversationQueryEngine,
 } from "../../interfaces/chat/core/conversation"
-import { ConversationInitConfig } from "../../interfaces/chat/core/conversation/conversationinitconfig"
+import { ConversationInitConfig } from "../../types/chat/core/conversation"
 import { ConversationSchema } from "../../interfaces/chat/schema"
 import {
   AddMembersToConversationArgs,
@@ -46,7 +46,7 @@ import {
   MuteConversationArgs,
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
-} from "../../interfaces/chat/schema/args"
+} from "../../types/chat/schema/args"
 import { Maybe } from "../../types/base"
 import { ConversationMember } from "./conversationmember"
 import { ConversationReport } from "./conversationreport"

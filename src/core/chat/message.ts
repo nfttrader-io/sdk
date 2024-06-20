@@ -27,17 +27,15 @@ import {
   MutationRemoveImportantFromMessageArgs,
 } from "../../graphql/generated/graphql"
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import {
-  MessageInitConfig,
-  MessageMutationEngine,
-} from "../../interfaces/chat/core/message"
+import { MessageMutationEngine } from "../../interfaces/chat/core/message"
+import { MessageInitConfig } from "../../types"
 import { MessageSchema } from "../../interfaces/chat/schema"
 import {
   AddReactionToMessageArgs,
   AddReportToMessageArgs,
   EditMessageArgs,
   RemoveReactionFromMessageArgs,
-} from "../../interfaces/chat/schema/args"
+} from "../../types/chat/schema/args"
 import { Maybe } from "../../types/base"
 import { Conversation } from "./conversation"
 import { Engine } from "./engine"

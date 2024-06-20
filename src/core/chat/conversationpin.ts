@@ -1,5 +1,5 @@
 import { EngineInitConfig } from "../../interfaces/chat/core"
-import { ConversationPinInitConfig } from "../../interfaces/chat/core/conversationpin"
+import { ConversationPinInitConfig } from "../../types/chat/core/conversationpin"
 import { ConversationPinSchema } from "../../interfaces/chat/schema"
 import { Conversation } from "./conversation"
 import { Engine } from "./engine"
