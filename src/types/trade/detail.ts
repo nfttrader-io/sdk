@@ -28,9 +28,9 @@ export type Detail = {
    */
   collectionLogo: string
   /**
-   * @property {0 | 1} creator - The creator identifier.
+   * @property {boolean} creator - The creator identifier.
    */
-  creator: 0 | 1
+  creator: boolean
   /**
    * Represents a token with the following properties:
    * @property {string} networkId - The network ID of the token.
@@ -41,9 +41,9 @@ export type Detail = {
    */
   imageUrl: string
   /**
-   * @property {0 | 1} isImg - Indicates whether the token has an image (0 for no, 1 for yes).
+   * @property {boolean} isImg - Indicates whether the token has an image (0 for no, 1 for yes).
    */
-  isImg: 0 | 1
+  isImg: boolean
   /**
    * @property {Maybe<string>} name - The name of the token, or null if not available.
    */

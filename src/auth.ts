@@ -11,10 +11,11 @@ import {
   SigninResponse,
   SignupResponse,
 } from "./interfaces/auth"
-import { Maybe } from "./types/base"
+import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { Crypto } from "./core"
 import { IndexedDBStorage, RealmStorage } from "./core/app"
 import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
+import { HTTPRequestInit, HTTPResponse } from "./interfaces"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -53,18 +54,43 @@ export class Auth extends HTTPClient {
 
   private _storage: Maybe<IndexedDBStorage | RealmStorage> = null
 
+  private _apiKey: Maybe<string> = null
+
   /**
    * Constructs a new instance of Auth with the provided configuration.
    * @param {AuthConfig} config - The configuration object for authentication.
    * @returns None
    */
-  constructor(config: AuthConfig) {
+  constructor(config: AuthConfig & ApiKeyAuthorized) {
     super()
     this._authMode = config.mode
     this._serviceName = config.serviceName
     this._servicePrivacyURL = config.servicePrivacyURL
     this._serviceTOSURL = config.serviceTOSURL
     this._storage = config.storage
+    this._apiKey = config.apiKey
+  }
+
+  /**
+   * Makes a fetch request with authentication headers.
+   * @param {string | URL} url - The URL to fetch data from.
+   * @param {HTTPRequestInit} [options] - The options for the fetch request.
+   * @returns {Promise<HTTPResponse<ReturnType>>} A promise that resolves to the HTTP response.
+   */
+  private _fetchWithAuth<ReturnType = any>(
+    url: string | URL,
+    options: HTTPRequestInit = {
+      method: "GET",
+      headers: undefined,
+      body: undefined,
+    }
+  ): Promise<HTTPResponse<ReturnType>> {
+    options.headers = {
+      ...options.headers,
+      "x-api-key": `${this._apiKey}`,
+    }
+
+    return this._fetch(url, options)
   }
 
   /**
@@ -242,7 +268,7 @@ export class Auth extends HTTPClient {
             : undefined,
       }
 
-      const response = await this._fetch<IsUserRegisteredResponse>(
+      const response = await this._fetchWithAuth<IsUserRegisteredResponse>(
         `${this._BACKEND_URL}/auth/userNonce`,
         {
           method: "POST",
@@ -314,7 +340,7 @@ export class Auth extends HTTPClient {
       await this._handleRealm()
 
     try {
-      const response = await this._fetch<SignupResponse>(
+      const response = await this._fetchWithAuth<SignupResponse>(
         `${this._BACKEND_URL}/auth/userSignup`,
         {
           method: "POST",
@@ -382,7 +408,7 @@ export class Auth extends HTTPClient {
             : undefined,
       }
 
-      const response = await this._fetch<SigninResponse>(
+      const response = await this._fetchWithAuth<SigninResponse>(
         `${this._BACKEND_URL}/auth/userSignin`,
         {
           method: "POST",

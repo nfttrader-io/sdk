@@ -709,6 +709,9 @@ export class Message
         ? response.user!.encryptedPrivateKey
         : null,
       publicKey: response.user!.publicKey ? response.user!.publicKey : null,
+      encryptedSecret: response.user!.encryptedSecret
+        ? response.user!.encryptedSecret
+        : null,
       createdAt: new Date(response.user!.createdAt),
       updatedAt: response.user!.updatedAt
         ? new Date(response.user!.updatedAt)

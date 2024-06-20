@@ -30,21 +30,21 @@ export interface SigninResponse {
      */
     bio: Maybe<string>
     /**
-     * @property {Maybe<0 | 1>} data.firstLogin - Indicates if the user is logging in for the first time.
+     * @property {Maybe<boolean>} data.firstLogin - Indicates if the user is logging in for the first time.
      */
-    firstLogin: Maybe<0 | 1>
+    firstLogin: Maybe<boolean>
     /**
      * @property {Maybe<string>} avatarUrl - The URL of the user's avatar.
      */
     avatarUrl: Maybe<string>
     /**
-     * @property {Maybe<0 | 1>} isVerified - Indicates if the user is verified (0 - not verified, 1 - verified).
+     * @property {Maybe<boolean>} isVerified - Indicates if the user is verified (false - not verified, true - verified).
      */
-    isVerified: Maybe<0 | 1>
+    isVerified: Maybe<boolean>
     /**
-     * @property {Maybe<0 | 1>} isNft - Indicates if the user is associated with an NFT (0 - not associated, 1 - associated).
+     * @property {Maybe<boolean>} isNft - Indicates if the user is associated with an NFT (false - not associated, true - associated).
      */
-    isNft: Maybe<0 | 1>
+    isNft: Maybe<boolean>
     /**
      * @property {Maybe<string>} tokenId - The token ID associated with the user.
      */

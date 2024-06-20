@@ -278,6 +278,9 @@ export class Chat
         ? response.encryptedPrivateKey
         : null,
       publicKey: response.publicKey ? response.publicKey : null,
+      encryptedSecret: response.encryptedSecret
+        ? response.encryptedSecret
+        : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -585,13 +588,13 @@ export class Chat
       "_mutation() -> createConversationGroup()",
       {
         input: {
-          name: Crypto.encrypt(keypair.publicKey, args.name),
-          description: Crypto.encrypt(keypair.publicKey, args.description),
+          name: Crypto.encrypt(keypair!.publicKey, args.name),
+          description: Crypto.encrypt(keypair!.publicKey, args.description),
           bannerImageURL: Crypto.encrypt(
-            keypair.publicKey,
+            keypair!.publicKey,
             args.bannerImageURL
           ),
-          imageURL: Crypto.encrypt(keypair.publicKey, args.imageURL),
+          imageURL: Crypto.encrypt(keypair!.publicKey, args.imageURL),
         },
       }
     )
@@ -600,7 +603,7 @@ export class Chat
 
     this.addKeyPairItem({
       id: response.id,
-      keypair,
+      keypair: keypair!,
     })
 
     const conversationGroup: {
@@ -609,20 +612,22 @@ export class Chat
     } = {
       keypairItem: {
         id: response.id,
-        keypair,
+        keypair: keypair!,
       },
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.decrypt(keypair.privateKey, response.name),
+        name: Crypto.decrypt(keypair!.privateKey, response.name),
         description: response.description
-          ? Crypto.decrypt(keypair.privateKey, response.description)
+          ? Crypto.decrypt(keypair!.privateKey, response.description)
           : null,
         imageURL: response.imageURL
-          ? new URL(Crypto.decrypt(keypair.privateKey, response.imageURL))
+          ? new URL(Crypto.decrypt(keypair!.privateKey, response.imageURL))
           : null,
         bannerImageURL: response.bannerImageURL
-          ? new URL(Crypto.decrypt(keypair.privateKey, response.bannerImageURL))
+          ? new URL(
+              Crypto.decrypt(keypair!.privateKey, response.bannerImageURL)
+            )
           : null,
         settings: response.settings ? JSON.parse(response.settings) : null,
         membersIds: response.membersIds ? response.membersIds : null,
@@ -657,13 +662,13 @@ export class Chat
       "_mutation() -> createConversationOneToOne()",
       {
         input: {
-          name: Crypto.encrypt(keypair.publicKey, args.name),
-          description: Crypto.encrypt(keypair.publicKey, args.description),
+          name: Crypto.encrypt(keypair!.publicKey, args.name),
+          description: Crypto.encrypt(keypair!.publicKey, args.description),
           bannerImageURL: Crypto.encrypt(
-            keypair.publicKey,
+            keypair!.publicKey,
             args.bannerImageURL
           ),
-          imageURL: Crypto.encrypt(keypair.publicKey, args.imageURL),
+          imageURL: Crypto.encrypt(keypair!.publicKey, args.imageURL),
         },
       }
     )
@@ -676,20 +681,20 @@ export class Chat
     } = {
       keypairItem: {
         id: response.id,
-        keypair: keypair,
+        keypair: keypair!,
       },
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.encrypt(keypair.publicKey, response.name),
+        name: Crypto.encrypt(keypair!.publicKey, response.name),
         description: response.description
-          ? Crypto.encrypt(keypair.publicKey, response.description)
+          ? Crypto.encrypt(keypair!.publicKey, response.description)
           : null,
         imageURL: response.imageURL
-          ? new URL(Crypto.encrypt(keypair.publicKey, response.imageURL))
+          ? new URL(Crypto.encrypt(keypair!.publicKey, response.imageURL))
           : null,
         bannerImageURL: response.bannerImageURL
-          ? new URL(Crypto.encrypt(keypair.publicKey, response.bannerImageURL))
+          ? new URL(Crypto.encrypt(keypair!.publicKey, response.bannerImageURL))
           : null,
         settings: response.settings ? JSON.parse(response.settings) : null,
         membersIds: response.membersIds ? response.membersIds : null,
@@ -1126,6 +1131,9 @@ export class Chat
         ? response.encryptedPrivateKey
         : null,
       publicKey: response.publicKey ? response.publicKey : null,
+      encryptedSecret: response.encryptedSecret
+        ? response.encryptedSecret
+        : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -1603,6 +1611,9 @@ export class Chat
         ? response.encryptedPrivateKey
         : null,
       publicKey: response.publicKey ? response.publicKey : null,
+      encryptedSecret: response.encryptedSecret
+        ? response.encryptedSecret
+        : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -2226,6 +2237,7 @@ export class Chat
             ? item.encryptedPrivateKey
             : null,
           publicKey: item.publicKey ? item.publicKey : null,
+          encryptedSecret: item.encryptedSecret ? item.encryptedSecret : null,
           createdAt: new Date(item.createdAt),
           updatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
           client: this._client!,
@@ -2282,6 +2294,9 @@ export class Chat
         ? response.encryptedPrivateKey
         : null,
       publicKey: response.publicKey ? response.publicKey : null,
+      encryptedSecret: response.encryptedSecret
+        ? response.encryptedSecret
+        : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -3692,6 +3707,7 @@ export class Chat
             ? r.encryptedPrivateKey
             : null,
           publicKey: r.publicKey ? r.publicKey : null,
+          encryptedSecret: r.encryptedSecret ? r.encryptedSecret : null,
           createdAt: new Date(r.createdAt),
           updatedAt: r.updatedAt ? new Date(r.updatedAt) : null,
           client: this._client!,

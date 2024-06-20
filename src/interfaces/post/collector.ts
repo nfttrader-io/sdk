@@ -16,23 +16,23 @@ export interface Collector {
    */
   imageUrl: string
   /**
-   * @property {0 | 1} isVerified - Indicates if the collector is verified (0 for false, 1 for true).
+   * @property {boolean} isVerified - Indicates if the collector is verified (0 for false, 1 for true).
    */
-  isVerified: 0 | 1
+  isVerified: boolean
   /**
-   * @property {0 | 1} isNft - Indicates if the collector is an NFT collector (0 for false, 1 for true).
+   * @property {boolean} isNft - Indicates if the collector is an NFT collector (0 for false, 1 for true).
    */
-  isNft: 0 | 1
+  isNft: boolean
   /**
    * @property {string} [networkId] - The network ID of the collector (optional).
    */
   networkId?: string
   /**
-   * @property {0 | 1} [isFavourite] -
+   * @property {boolean} [isFavourite] -
    */
-  isFavourite?: 0 | 1
+  isFavourite?: boolean
   /**
-   * @property {0 | 1} [isRegistered] - Identify if the user is registered or not (optional).
+   * @property {boolean} [isRegistered] - Identify if the user is registered or not (optional).
    */
-  isRegistered?: 0 | 1
+  isRegistered?: boolean
 }

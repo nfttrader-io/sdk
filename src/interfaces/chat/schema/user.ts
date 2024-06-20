@@ -82,6 +82,10 @@ export interface UserSchema {
    */
   publicKey: Maybe<string>
   /**
+   * @property {Maybe<string>} encryptedSecret - The secret key of the user.
+   */
+  encryptedSecret: Maybe<string>
+  /**
    * @property {Date} createdAt - The date when the user settings were created.
    */
   createdAt: Date

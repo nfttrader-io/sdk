@@ -80,9 +80,9 @@ export type Master = {
    */
   collections: Array<{
     /**
-     * @property {0 | 1} creator - Identify the creator of the swap.
+     * @property {boolean} creator - Identify the creator of the swap.
      */
-    creator: 0 | 1
+    creator: boolean
     /**
      * @property {string} networkId - The network ID of the collection.
      */

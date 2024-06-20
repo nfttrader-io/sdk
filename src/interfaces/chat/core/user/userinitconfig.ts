@@ -83,6 +83,10 @@ export interface UserInitConfig {
    */
   publicKey: Maybe<string>
   /**
+   * @property {Maybe<string>} encryptedSecret - The secret key of the user.
+   */
+  encryptedSecret: Maybe<string>
+  /**
    * @property {Date} createdAt - Indicates the creation date
    */
   createdAt: Date

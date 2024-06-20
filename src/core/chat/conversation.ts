@@ -1045,6 +1045,9 @@ export class Conversation
         ? response.owner!.encryptedPrivateKey
         : null,
       publicKey: response.owner!.publicKey ? response.owner!.publicKey : null,
+      encryptedSecret: response.owner!.encryptedSecret
+        ? response.owner!.encryptedSecret
+        : null,
       createdAt: new Date(response.owner!.createdAt),
       updatedAt: response.owner!.updatedAt
         ? new Date(response.owner!.updatedAt)

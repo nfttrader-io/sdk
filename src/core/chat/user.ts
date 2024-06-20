@@ -110,6 +110,10 @@ export class User
    */
   readonly publicKey: Maybe<string>
   /**
+   * @readonly encryptedSecret - The secret key.
+   */
+  readonly encryptedSecret: Maybe<string>
+  /**
    *  @readonly createdAt - The creation date of the key pair.
    */
   readonly createdAt: Date
@@ -152,6 +156,7 @@ export class User
     this.allowGroupsSuggestion = config.allowGroupsSuggestion
     this.encryptedPrivateKey = config.encryptedPrivateKey
     this.publicKey = config.publicKey
+    this.encryptedSecret = config.encryptedSecret
     this.createdAt = config.createdAt
     this.updatedAt = config.updatedAt
 
@@ -216,6 +221,9 @@ export class User
         ? response.encryptedPrivateKey
         : null,
       publicKey: response.publicKey ? response.publicKey : null,
+      encryptedSecret: response.encryptedSecret
+        ? response.encryptedSecret
+        : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -280,6 +288,9 @@ export class User
         ? response.encryptedPrivateKey
         : null,
       publicKey: response.publicKey ? response.publicKey : null,
+      encryptedSecret: response.encryptedSecret
+        ? response.encryptedSecret
+        : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -364,6 +375,9 @@ export class User
                 : null,
               publicKey: item.blockedUser.publicKey
                 ? item.blockedUser.publicKey
+                : null,
+              encryptedSecret: item.blockedUser.encryptedSecret
+                ? item.blockedUser.encryptedSecret
                 : null,
               createdAt: new Date(item.blockedUser.createdAt),
               updatedAt: item.blockedUser.updatedAt

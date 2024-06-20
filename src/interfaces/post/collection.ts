@@ -42,9 +42,9 @@ export interface Collection {
    */
   createdAt: Maybe<string>
   /**
-   * @property {0 | 1} isFavourite - Identifies if the collection is placed in the favourite list of the current user.
+   * @property {boolean} isFavourite - Identifies if the collection is placed in the favourite list of the current user.
    */
-  isFavourite?: 0 | 1
+  isFavourite?: boolean
   /**
    * @property {boolean} notification - Identifies if the collection is in the notification list of the current user.
    */

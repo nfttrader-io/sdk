@@ -1,9 +1,9 @@
-import { Maybe } from "../base"
+import { Maybe } from "../../../types"
 
 /**
  * Represents a user object with various properties.
  */
-export type Account = {
+export interface AccountSchema {
   /**
    * @property {string} nonce - The nonce of the user.
    */
@@ -25,7 +25,7 @@ export type Account = {
    */
   bio: Maybe<string>
   /**
-   * @property {Maybe<boolean>} firstLogin - Indicates if it's the user's first login.
+   * @property {boolean | null} firstLogin - Indicates if it's the user's first login.
    */
   firstLogin: Maybe<boolean>
   /**
