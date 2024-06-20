@@ -257,6 +257,7 @@ export class Auth extends HTTPClient {
           this._authMode === AuthMode.MAGIC_LINK
             ? credentials.email
             : undefined,
+        authMode: this._authMode === AuthMode.WALLET ? "WALLET" : "MAGIC_LINK",
       }
 
       const response = await this._fetchWithAuth<
@@ -307,6 +308,7 @@ export class Auth extends HTTPClient {
     const body: {
       address?: Maybe<string>
       email?: Maybe<string>
+      authMode: string
       KpubPem: Maybe<string>
       YKPriv: Maybe<string>
       HS: Maybe<string>
@@ -315,6 +317,7 @@ export class Auth extends HTTPClient {
         this._authMode === AuthMode.WALLET ? credentials.address : undefined,
       email:
         this._authMode === AuthMode.MAGIC_LINK ? credentials.email : undefined,
+      authMode: this._authMode === AuthMode.WALLET ? "WALLET" : "MAGIC_LINK",
       KpubPem: null,
       YKPriv: null,
       HS: null,
@@ -364,6 +367,7 @@ export class Auth extends HTTPClient {
     signature?: string
   ): Promise<Account | boolean> {
     if (!this._authMode) throw new Error("An auth mode must be defined.")
+    if (!this._storage) throw new Error("A storage must be defined.")
 
     if (
       AuthMode.WALLET === this._authMode &&
@@ -387,6 +391,7 @@ export class Auth extends HTTPClient {
           this._authMode === AuthMode.MAGIC_LINK
             ? credentials.email
             : undefined,
+        authMode: this._authMode === AuthMode.WALLET ? "WALLET" : "MAGIC_LINK",
         serviceName:
           this._authMode === AuthMode.WALLET ? this._serviceName : undefined,
         serviceTOSURL:
@@ -411,8 +416,39 @@ export class Auth extends HTTPClient {
       )
         return false
 
+      const account = response.data.data[0]
+
+      if (
+        !account.publicKey &&
+        !account.encryptedPrivateKey &&
+        !account.encryptedSecret
+      ) {
+        let { KpubPem, YKPriv, HS } =
+          this._storage.typeOf() === "IndexedDBStorage"
+            ? await this._handleIndexedDB()
+            : await this._handleRealm()
+
+        let response = await this._fetchWithAuth<
+          ApiResponse<{ keyUpdated: boolean }>
+        >(`${this._BACKEND_URL}/auth/userUpdateKeys`, {
+          method: "POST",
+          body: {
+            KpubPem,
+            YKPriv,
+            HS,
+          },
+          headers: {
+            Authorization: `Bearer ${account.jwt}`,
+          },
+        })
+
+        if (!response.data?.data[0].keyUpdated)
+          throw new Error("Keys not updated.")
+      }
+
       return response.data.data[0]
     } catch (error) {
+      console.log(error)
       return false
     }
   }

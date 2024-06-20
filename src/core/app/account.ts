@@ -16,6 +16,9 @@ export class Account implements AccountSchema {
   readonly collectionAddress: Maybe<string>
   readonly createdAt: Maybe<string>
   readonly updatedAt: Maybe<string>
+  readonly publicKey?: Maybe<string>
+  readonly encryptedPrivateKey?: Maybe<string>
+  readonly encryptedSecret?: Maybe<string>
 
   constructor(config: AccountInitConfig) {
     this.nonce = config.nonce
@@ -31,5 +34,8 @@ export class Account implements AccountSchema {
     this.collectionAddress = config.collectionAddress
     this.createdAt = config.createdAt
     this.updatedAt = config.updatedAt
+    this.publicKey = config.publicKey
+    this.encryptedPrivateKey = config.encryptedPrivateKey
+    this.encryptedSecret = config.encryptedSecret
   }
 }

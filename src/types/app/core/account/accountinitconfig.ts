@@ -53,4 +53,16 @@ export type AccountInitConfig = {
    * @property {Maybe<string>} updatedAt - The last update date of the NFT.
    */
   updatedAt: Maybe<string>
+  /**
+   * @property {Maybe<string>} publicKey -
+   */
+  publicKey?: Maybe<string>
+  /**
+   * @property {Maybe<string>} encryptedPrivateKey -
+   */
+  encryptedPrivateKey?: Maybe<string>
+  /**
+   * @property {Maybe<string>} encryptedSecret -
+   */
+  encryptedSecret?: Maybe<string>
 }
