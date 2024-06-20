@@ -79,7 +79,7 @@ export interface TradeOrder {
    */
   taker: Array<Collector>
   /**
-   * @property {Array<{creator: 0 | 1, networkId: string, collectionAddress: string, abi: Array<any>, name: string, symbol: string, assetLogo: string, type: "ERC721" | "ERC1155" | "ERC20" | "NATIVE", statusVerification: -1 | 0 | 1 | 2}>} collections - An array of collections
+   * @property {Array<{creator: boolean, networkId: string, collectionAddress: string, abi: Array<any>, name: string, symbol: string, assetLogo: string, type: "ERC721" | "ERC1155" | "ERC20" | "NATIVE", statusVerification: -1 | 0 | 1 | 2}>} collections - An array of collections
    */
   collections: Array<{
     creator: boolean
