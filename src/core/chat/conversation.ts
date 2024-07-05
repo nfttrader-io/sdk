@@ -32,7 +32,6 @@ import {
   MutationAddPinToConversationArgs,
   MutationRemovePinFromConversationArgs,
 } from "../../graphql/generated/graphql"
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import {
   ConversationMutationEngine,
   ConversationQueryEngine,
@@ -59,6 +58,7 @@ import {
   getMembersFromConversationById,
   getOwnerFromConversationById,
 } from "../../constants/chat/queries"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents a conversation in a chat application.

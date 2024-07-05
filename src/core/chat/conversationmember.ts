@@ -1,8 +1,8 @@
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import { ConversationMemberInitConfig } from "../../types/chat/core/conversationmember"
 import { ConversationMemberSchema } from "../../interfaces/chat/schema"
 import { Maybe } from "../../types/base"
 import { Engine } from "./engine"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents a conversation member in the chat system.

@@ -1,8 +1,8 @@
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import { MessageImportantInitConfig } from "../../types/chat/core/messageimportant"
 import { MessageImportantSchema } from "../../interfaces/chat/schema"
 import { Engine } from "./engine"
 import { Message } from "./message"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents an important message in the chat system.

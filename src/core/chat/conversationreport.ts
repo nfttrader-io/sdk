@@ -1,8 +1,8 @@
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import { ConversationReportInitConfig } from "../../types/chat/core/conversationreport"
 import { ConversationReportSchema } from "../../interfaces/chat/schema"
 import { Maybe } from "../../types/base"
 import { Engine } from "./engine"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents a Conversation Report that extends the Engine class and implements the ConversationReportSchema interface.

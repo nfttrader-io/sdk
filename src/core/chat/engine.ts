@@ -7,7 +7,7 @@ import {
   subscriptionExchange,
   createClient,
 } from "@urql/core"
-import { IEngine, EngineInitConfig } from "../../interfaces/chat/core"
+import { IEngine } from "../../interfaces/chat/core"
 import { HTTPClient } from "../httpclient"
 import { QIError } from "./qierror"
 import { Maybe } from "../../types/base"
@@ -19,6 +19,7 @@ import { v4 as uuid4 } from "uuid"
 import { SubscriptionGarbage } from "../../types/chat/subscriptiongarbage"
 import forge = require("node-forge")
 import { KeyPairItem } from "../../types/chat/keypairitem"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents an Engine class that extends HTTPClient and implements IEngine interface.

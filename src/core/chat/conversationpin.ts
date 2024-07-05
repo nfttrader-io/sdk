@@ -1,8 +1,8 @@
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import { ConversationPinInitConfig } from "../../types/chat/core/conversationpin"
 import { ConversationPinSchema } from "../../interfaces/chat/schema"
 import { Conversation } from "./conversation"
 import { Engine } from "./engine"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents a Conversation Pin object that extends the Engine class and implements the ConversationPinSchema interface.

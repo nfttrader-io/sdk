@@ -1,7 +1,7 @@
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import { ReactionInitConfig } from "../../types/chat/core/reaction"
 import { ReactionSchema } from "../../interfaces/chat/schema/reaction"
 import { Engine } from "./engine"
+import { EngineInitConfig } from "../../types"
 
 /**
  * Represents a Reaction object that extends the Engine class and implements the ReactionSchema interface.

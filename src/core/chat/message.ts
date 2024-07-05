@@ -26,9 +26,8 @@ import {
   MutationAddImportantToMessageArgs,
   MutationRemoveImportantFromMessageArgs,
 } from "../../graphql/generated/graphql"
-import { EngineInitConfig } from "../../interfaces/chat/core"
 import { MessageMutationEngine } from "../../interfaces/chat/core/message"
-import { MessageInitConfig } from "../../types"
+import { EngineInitConfig, MessageInitConfig } from "../../types"
 import { MessageSchema } from "../../interfaces/chat/schema"
 import {
   AddReactionToMessageArgs,
