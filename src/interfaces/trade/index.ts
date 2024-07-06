@@ -1,6 +1,4 @@
 export * from "./tradeerrormap"
 export * from "./tradeeventerror"
-export * from "./globaltradelistresponse"
 export * from "./tradeevents"
 export * from "./tradeorder"
-export * from "./usertradeslistresponse"

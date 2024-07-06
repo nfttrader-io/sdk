@@ -24,20 +24,19 @@ export class HTTPClient {
           statusText: statusMessage,
           responseText,
         } = req
-        const data = responseText.length ? JSON.parse(responseText) : null
+        const response = responseText.length ? JSON.parse(responseText) : null
 
         if (statusCode >= 400)
           reject({
             statusCode,
             statusMessage,
-            error: data,
-            isFetchError: true,
+            response,
           })
         else
           resolve({
             statusCode,
             statusMessage,
-            data,
+            response,
           })
       })
 
@@ -45,15 +44,16 @@ export class HTTPClient {
         reject({
           statusCode: req.status,
           statusMessage: req.statusText,
-          error,
-          isFetchError: false,
+          response: error,
         })
       )
 
       req.open(options.method, url)
+
       if (options.headers)
         for (const [name, value] of Object.entries(options.headers))
           req.setRequestHeader(name, value)
+
       req.send(JSON.stringify(options.body))
     })
   }
@@ -81,6 +81,7 @@ export class HTTPClient {
           ? await import("https")
           : await import("http")
         : null
+
     if (!client) throw new Error("Invalid url protocol")
 
     return new Promise((resolve, reject) => {
@@ -90,6 +91,7 @@ export class HTTPClient {
         (response) => {
           const statusCode = response.statusCode!,
             statusMessage = response.statusMessage!
+
           let result = ""
 
           response.on(
@@ -101,32 +103,31 @@ export class HTTPClient {
             reject({
               statusCode,
               statusMessage,
-              error,
-              isFetchError: false,
+              response: error,
             })
           )
 
           response.on("end", () => {
-            const data = result.length ? JSON.parse(result) : null
+            const response = result.length ? JSON.parse(result) : null
 
             if (statusCode >= 400)
               reject({
                 statusCode,
                 statusMessage,
-                error: data,
-                isFetchError: true,
+                response,
               })
             else
               resolve({
                 statusCode,
                 statusMessage,
-                data,
+                response,
               })
           })
         }
       )
 
       if (options.body) request.write(JSON.stringify(options.body))
+
       request.end()
     })
   }

@@ -25,12 +25,10 @@ import {
   TradeConfig,
   PartialTrade,
   TradeDetail,
+  TradeListResponse,
 } from "./types/trade"
-import {
-  TradeEvents,
-  GlobalTradesListResponse,
-  UserTradesListResponse,
-} from "./interfaces/trade"
+import { TradeEvents } from "./interfaces/trade"
+import { ApiResponse } from "./types/base/apiresponse"
 
 /**
  * Trade class that handles interactions with the OpenSea trading platform.
@@ -159,25 +157,25 @@ export class Trade extends HTTPClient {
 
     if (!event) throw new Error("event not found.")
 
-    for (const cb of event.callbacks) {
-      cb(params as any)
-    }
+    for (const cb of event.callbacks) cb(params as any)
   }
 
   /**
    * Asynchronously fetches the NFT Trader Gnosis multisig wallet from the backend API.
-   * @returns {Promise<Maybe<MultiSigWallet>>} A promise that resolves to the multisig wallet object if successful,
+   * @returns {Promise<Maybe<<MultiSigWallet>>>} A promise that resolves to the multisig wallet object if successful,
    * or null if there was an error or no data was returned in the response.
    */
   private async _getNFTTraderGnosis(): Promise<Maybe<MultiSigWallet>> {
     try {
-      const response = await this._fetchWithAuth<MultiSigWallet>(
-        `${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`
-      )
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<MultiSigWallet>
+      >(`${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`)
 
-      if (response.data) return response.data
+      if (!response) return null
 
-      console.warn("no data field in response")
+      const { data } = response
+
+      return data[0]
     } catch (error) {
       console.warn(error)
     }
@@ -191,13 +189,15 @@ export class Trade extends HTTPClient {
    */
   private async _getNFTTraderFees(): Promise<Maybe<NFTTraderFees>> {
     try {
-      const response = await this._fetchWithAuth<NFTTraderFees>(
-        `${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`
-      )
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<NFTTraderFees>
+      >(`${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`)
 
-      if (response.data) return response.data
+      if (!response) return null
 
-      console.warn("no data field in response")
+      const { data } = response
+
+      return data[0]
     } catch (error) {
       console.warn(error)
     }
@@ -312,8 +312,7 @@ export class Trade extends HTTPClient {
       basisPoints = 50
     }
 
-    if (nftTraderGnosis)
-      gnosisRecipient = nftTraderGnosis.multisig[0].multisigAddress
+    if (nftTraderGnosis) gnosisRecipient = nftTraderGnosis.multisigAddress
 
     if (
       this._network &&
@@ -636,18 +635,18 @@ export class Trade extends HTTPClient {
       throw new Error("initClient() must be called to initialize the client.")
     if (!this._network) throw new Error("network must be defined.")
     try {
-      const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
+      const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
       )
 
-      if (!response.data)
+      if (!response || !response.data)
         return this.__emit("execTradeError", {
           error: "response data is empty",
           typeError: "ApiError",
         })
 
-      const data: TradeDetail = response.data.data[0]
-
+      const { data: tradeDetail } = response
+      const data: TradeDetail = tradeDetail[0]
       const parameters = data.parameters.order.parameters
       const taker = data.parameters.addressTaker
       const trade: PartialTrade = {
@@ -705,17 +704,18 @@ export class Trade extends HTTPClient {
       throw new Error("initClient() must be called to initialize the client.")
     if (!this._network) throw new Error("network must be defined.")
     try {
-      const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
+      const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
       )
 
-      if (!response.data)
-        return this.__emit("cancelTradeError", {
+      if (!response || !response.data)
+        return this.__emit("execTradeError", {
           error: "response data is empty",
           typeError: "ApiError",
         })
 
-      const data: TradeDetail = response.data.data[0]
+      const { data: tradeDetail } = response
+      const data: TradeDetail = tradeDetail[0]
       const parameters = data.parameters.order.parameters
       const maker = data.parameters.addressMaker
       const txOverrides: { gasLimit?: number; gasPrice?: string } = {}
@@ -762,10 +762,15 @@ export class Trade extends HTTPClient {
    */
   async get(networkId: string, id: string): Promise<Maybe<TradeDetail>> {
     try {
-      const response = await this._fetchWithAuth<{ data: Array<TradeDetail> }>(
+      const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
         `${this._BACKEND_URL}/tradelist/getSwapDetail/${networkId}/${id}`
       )
-      if (response.data) return response.data.data[0]
+
+      if (!response) return null
+
+      const { data } = response
+
+      return data[0]
     } catch (error) {
       console.warn(error)
     }
@@ -811,32 +816,34 @@ export class Trade extends HTTPClient {
       direction: "ASC" | "DESC"
       field: string
     }
-  }): Promise<GlobalTradesListResponse> {
+  }): Promise<Maybe<TradeListResponse>> {
     try {
-      const tradesList = (
-        await this._fetchWithAuth<{ data: Array<GlobalTradesListResponse> }>(
-          `${this._BACKEND_URL}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
-          {
-            method: "POST",
-            body: {
-              collections:
-                typeof collections !== "undefined" ? collections : [],
-              search: typeof search !== "undefined" ? search : [],
-              order: typeof order !== "undefined" ? order : null,
-              from: typeof from !== "undefined" ? from : null,
-              to: typeof to !== "undefined" ? to : null,
-            },
-          }
-        )
-      ).data?.data?.[0]
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<TradeListResponse>
+      >(
+        `${this._BACKEND_URL}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
+        {
+          method: "POST",
+          body: {
+            collections: typeof collections !== "undefined" ? collections : [],
+            search: typeof search !== "undefined" ? search : [],
+            order: typeof order !== "undefined" ? order : null,
+            from: typeof from !== "undefined" ? from : null,
+            to: typeof to !== "undefined" ? to : null,
+          },
+        }
+      )
 
-      if (!tradesList) throw new Error("Internal server error")
+      if (!response || !response.data) return null
 
-      return tradesList
-    } catch (e) {
-      console.warn(e)
-      throw e
+      const { data } = response
+
+      return data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
@@ -880,37 +887,39 @@ export class Trade extends HTTPClient {
       direction: "ASC" | "DESC"
       field: string
     }
-  }): Promise<UserTradesListResponse> {
+  }): Promise<Maybe<TradeListResponse>> {
     try {
-      const tradesList = (
-        await this._fetchWithAuth<{ data: Array<UserTradesListResponse> }>(
-          `${
-            this._BACKEND_URL
-          }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
-            typeof searchAddress !== "undefined" && searchAddress !== null
-              ? `/${searchAddress}`
-              : ""
-          }`,
-          {
-            method: "POST",
-            body: {
-              collections:
-                typeof collections !== "undefined" ? collections : [],
-              order: typeof order !== "undefined" ? order : null,
-              from: typeof from !== "undefined" ? from : null,
-              to: typeof to !== "undefined" ? to : null,
-            },
-          }
-        )
-      ).data?.data?.[0]
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<TradeListResponse>
+      >(
+        `${
+          this._BACKEND_URL
+        }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
+          typeof searchAddress !== "undefined" && searchAddress !== null
+            ? `/${searchAddress}`
+            : ""
+        }`,
+        {
+          method: "POST",
+          body: {
+            collections: typeof collections !== "undefined" ? collections : [],
+            order: typeof order !== "undefined" ? order : null,
+            from: typeof from !== "undefined" ? from : null,
+            to: typeof to !== "undefined" ? to : null,
+          },
+        }
+      )
 
-      if (!tradesList) throw new Error("Internal server error")
+      if (!response || !response.data) return null
 
-      return tradesList
-    } catch (e) {
-      console.warn(e)
-      throw e
+      const { data } = response
+
+      return data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**

@@ -1,10 +1,10 @@
-import { TradeOrder } from "./tradeorder"
+import { TradeOrder } from "../../interfaces/trade/tradeorder"
 
 /**
  * Represents the response object for the global trades list.
- * @interface GlobalTradesListResponse
+ * @interface TradeListResponse
  */
-export interface GlobalTradesListResponse {
+export interface TradeListResponse {
   /**
    * @property {Array<TradeOrder>} tradeList - An array of TradeOrder objects representing the trades.
    */
