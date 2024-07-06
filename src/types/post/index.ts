@@ -1,5 +1,5 @@
 export * from "./postconfig"
-export * from "./postinstance"
+export * from "./postitem"
 export * from "./postobject"
 export * from "./postreplyobject"
 export * from "./poststatus"

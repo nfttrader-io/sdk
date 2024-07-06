@@ -11,13 +11,14 @@ import {
   PostReplyObject,
   PostStatus,
   PostType,
-  PostInstance,
   PostConfig,
+  PostItem,
 } from "./types/post"
 import { validateListPostsFilters } from "./core/utilities"
 import { POST_STATUS } from "./constants/post/poststatus"
 import { POST_TYPE } from "./constants/post/posttype"
 import { HTTPClient } from "./core/httpclient"
+import { ApiResponse } from "./types/base/apiresponse"
 
 /**
  * Represents a class for interacting with posts through HTTP requests.
@@ -99,49 +100,55 @@ export class Post extends HTTPClient {
    */
   private async _createPost<
     P extends (PostObject | PostReplyObject) &
-      Partial<Pick<PostInstance, "parentId">>
-  >(post: P, signedMessage: string): Promise<Maybe<string>> {
-    if (this._apiKey && !signedMessage)
-      throw new Error("signedMessage must be provided.")
-
+      Partial<Pick<PostItem, "parentId">>
+  >(post: P, signedMessage: string): Promise<boolean> {
     try {
-      const res = await this._fetchWithAuth<string>(
-        `${this._BACKEND_URL}/post/insert`,
-        {
-          method: "POST",
-          body: post,
-          headers: {
-            "nfttrader-signed-message": signedMessage,
-          },
-        }
-      )
+      const { response, statusCode } = await this._fetchWithAuth<
+        ApiResponse<boolean>
+      >(`${this._BACKEND_URL}/post/insert`, {
+        method: "POST",
+        body: post,
+        headers: {
+          "nfttrader-signed-message": signedMessage,
+        },
+      })
 
-      return res.data ?? null
-    } catch (e) {
-      throw e
+      if (statusCode !== 200 || !response || !response.data) return false
+
+      return true
+    } catch (error) {
+      console.warn(error)
     }
+
+    return false
   }
 
   /**
    * Retrieves a post instance with the given ID and optional creator address.
    * @param {string} id - The ID of the post instance to retrieve.
-   * @param {string} [creatorAddress] - The creator address associated with the post instance.
-   * @returns {Promise<Maybe<PostInstance>>} A promise that resolves to the retrieved post instance, or null if not found.
+   * @param {string} [creatorAddress] - The creator address associated with the post instance. If provided, the API checks if the creatorAddress is the creator of the post.
+   * @returns {Promise<Maybe<PostItem>>} A promise that resolves to the retrieved post instance, or null if not found.
    * @throws {Error} If the "id" parameter is invalid or if an error occurs during the retrieval process.
    */
-  async get(id: string, creatorAddress?: string): Promise<Maybe<PostInstance>> {
-    if (!id) throw new Error('Invalid parameter "id"')
+  async get(id: string, creatorAddress?: string): Promise<Maybe<PostItem>> {
+    if (!id) throw new Error('Invalid parameter "id".')
 
     try {
-      const { data } = await this._fetchWithAuth<PostInstance>(
+      const { response } = await this._fetchWithAuth<ApiResponse<PostItem>>(
         `${this._BACKEND_URL}/post/${id}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`
       )
 
-      return data ?? null
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      const { data } = response
+
+      return data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
@@ -160,18 +167,19 @@ export class Post extends HTTPClient {
     skip?: number,
     take?: number,
     creatorAddress?: string
-  ): Promise<ListPostsResponse> {
-    if (!id) throw new Error('Invalid parameter "id"')
+  ): Promise<Maybe<ListPostsResponse>> {
+    if (!id) throw new Error('Invalid parameter "id".')
 
     const body = {
       orderOptions,
     }
-
     const skipUrl = skip && skip >= 0 ? skip : 0
     const takeUrl = take && take > 0 ? take : 10
 
     try {
-      const { data } = await this._fetchWithAuth<ListPostsResponse>(
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<ListPostsResponse>
+      >(
         `${this._BACKEND_URL}/replies/${id}/${skipUrl}/${takeUrl}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`,
         {
@@ -180,10 +188,16 @@ export class Post extends HTTPClient {
         }
       )
 
-      return data ?? { posts: [], total: 0 }
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      const { data } = response
+
+      return data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
@@ -201,7 +215,7 @@ export class Post extends HTTPClient {
     skip?: number,
     take?: number,
     creatorAddress?: string
-  ): Promise<ListPostsResponse> {
+  ): Promise<Maybe<ListPostsResponse>> {
     const filtersInput = filtersOptions ? { ...filtersOptions } : null
 
     let filters = null
@@ -245,14 +259,15 @@ export class Post extends HTTPClient {
     const order = orderOptions ? { ...orderOptions } : null
     const skipUrl = skip && skip >= 0 ? skip : 0
     const takeUrl = take && take > 0 ? take : 10
-
     const body = {
       filters: filters ? (Object.keys(filters).length ? filters : null) : null,
       order,
     }
 
     try {
-      const { data } = await this._fetchWithAuth<ListPostsResponse>(
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<ListPostsResponse>
+      >(
         `${this._BACKEND_URL}/posts/${skipUrl}/${takeUrl}${
           creatorAddress ? `/${creatorAddress}` : ``
         }`,
@@ -262,10 +277,16 @@ export class Post extends HTTPClient {
         }
       )
 
-      return data ?? { posts: [], total: 0 }
-    } catch (e) {
-      throw e
+      if (!response || response.data) return null
+
+      const { data } = response
+
+      return data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
@@ -300,23 +321,20 @@ export class Post extends HTTPClient {
   async delete(
     id: string,
     creatorAddress: string,
-    signedMessage?: string
+    signedMessage: string
   ): Promise<void> {
     try {
-      if (this._apiKey && !signedMessage)
-        throw new Error("signedMessage must be provided.")
-
       await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
         method: "DELETE",
         headers: {
-          "nfttrader-signed-message": signedMessage!,
+          "nfttrader-signed-message": signedMessage,
         },
         body: {
           creatorAddress,
         },
       })
-    } catch (e) {
-      throw e
+    } catch (error) {
+      console.warn(error)
     }
   }
 

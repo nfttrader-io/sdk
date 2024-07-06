@@ -8,7 +8,7 @@ import { PostTypeName } from "./posttypename"
 /**
  * Represents a post instance with various properties.
  */
-type PostInstance = {
+type PostItem = {
   /**
    * @property {string} id - The unique identifier of the post.
    */
@@ -86,9 +86,9 @@ type PostInstance = {
    */
   numberOffersRead?: number
   /**
-   * @property {Maybe<PostInstance>} [parent] - The parent post instance, if any.
+   * @property {Maybe<PostItem>} [parent] - The parent post instance, if any.
    */
-  parent?: Maybe<PostInstance>
+  parent?: Maybe<PostItem>
 }
 
-export { PostInstance }
+export { PostItem }
