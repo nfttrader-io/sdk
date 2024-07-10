@@ -1,7 +1,7 @@
 /**
  * Represents the parameters for searching collections.
  */
-type GetCollectionsParamsSearch = {
+type GetCollectionsArgs = {
   /**
    * @property {string} userAddress - The address of the user performing the search.
    */
@@ -28,4 +28,4 @@ type GetCollectionsParamsSearch = {
   queryString?: string
 }
 
-export { GetCollectionsParamsSearch }
+export { GetCollectionsArgs }

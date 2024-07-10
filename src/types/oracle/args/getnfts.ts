@@ -1,9 +1,9 @@
-import { Network } from "../base"
+import { Network } from "../../base"
 
 /**
  * Defines the parameters for searching NFTs.
  */
-type GetNFTsParamsSearch = {
+type GetNFTsArgs = {
   /**
    * @property {Network} networkId - The network ID for the NFTs.
    */
@@ -26,4 +26,4 @@ type GetNFTsParamsSearch = {
   continuation?: string
 }
 
-export { GetNFTsParamsSearch }
+export { GetNFTsArgs }

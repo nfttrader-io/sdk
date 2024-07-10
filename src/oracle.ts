@@ -1,19 +1,15 @@
 import { HTTPClient } from "./core/httpclient"
 import {
+  GetCollectionsArgs,
+  GetNFTArgs,
+  GetNFTsArgs,
   OracleConfig,
-  GetCollectionsParamsSearch,
-  GetNFTsParamsSearch,
-  GetNFTParamsSearch,
 } from "./types/oracle"
-import {
-  CollectionSupported,
-  CollectionsAdded,
-  GetCollectionsResponse,
-  GetNFTsResponse,
-  GetNFTResponse,
-} from "./interfaces/oracle"
+import { Collectible } from "./interfaces/oracle"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
+import { ApiResponse } from "./types/base/apiresponse"
+import { Collection } from "realm"
 
 /**
  * Represents an Oracle class that extends HTTPClient and provides methods to interact with an Oracle API.
@@ -85,77 +81,110 @@ export class Oracle extends HTTPClient {
 
   /**
    * Retrieves collections based on the provided search parameters.
-   * @param {GetCollectionsParamsSearch} params - The search parameters for fetching collections.
-   * @returns {Promise<Maybe<GetCollectionsResponse>>} A promise that resolves to the collections response or null.
+   * @param {GetCollectionsArgs} args - The search parameters for fetching collections.
+   * @returns {Promise<Maybe<{total: number; collections: Array<Collection>}>>} A promise that resolves to the collections response or null.
    * @throws {Error} If an error occurs during the fetching process.
    */
   async getCollections(
-    params: GetCollectionsParamsSearch
-  ): Promise<Maybe<GetCollectionsResponse>> {
+    args: GetCollectionsArgs
+  ): Promise<Maybe<{ total: number; collections: Array<Collection> }>> {
     const url: string = `${this._BACKEND_URL}/collections/getCollections/${
-      params.networkId ? params.networkId : `*`
-    }/${params.userAddress}/${params.searchType}/${params.skip}/${params.take}${
-      params.queryString ? `/${params.queryString}` : ``
+      args.networkId ? args.networkId : `*`
+    }/${args.userAddress}/${args.searchType}/${args.skip}/${args.take}${
+      args.queryString ? `/${args.queryString}` : ``
     }`
 
     try {
-      const { data } = await this._fetchWithAuth<GetCollectionsResponse>(url)
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<{ total: number; collections: Array<Collection> }>
+      >(url)
 
-      return data ?? null
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      return response.data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
    * Retrieves NFTs based on the provided search parameters.
-   * @param {GetNFTsParamsSearch} params - The search parameters for fetching NFTs.
-   * @returns {Promise<Maybe<GetNFTsResponse>>} A promise that resolves to the response containing the NFTs, or null if no data is returned.
+   * @param {GetNFTsArgs} args - The search parameters for fetching NFTs.
+   * @returns {Promise<Maybe<{
+   *   nfts: Array<Collectible>
+   *   continuation: Maybe<string> | undefined
+   *   total: number
+   * }>>} A promise that resolves to the response containing the NFTs, or null if no data is returned.
    * @throws {Error} If an error occurs during the fetch operation.
    */
-  async getNFTs(params: GetNFTsParamsSearch): Promise<Maybe<GetNFTsResponse>> {
+  async getNFTs(args: GetNFTsArgs): Promise<
+    Maybe<{
+      nfts: Array<Collectible>
+      continuation: Maybe<string> | undefined
+      total: number
+    }>
+  > {
     const url: string = `${this._BACKEND_URL}/metadata/getNFTsByOwner/${
-      params.networkId
-    }/${params.address}/${params.take}${
-      params.continuation ? `/${params.continuation}` : ``
+      args.networkId
+    }/${args.address}/${args.take}${
+      args.continuation ? `/${args.continuation}` : ``
     }`
 
     try {
-      const { data } = await this._fetchWithAuth<GetNFTsResponse>(url, {
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<{
+          nfts: Array<Collectible>
+          continuation: Maybe<string> | undefined
+          total: number
+        }>
+      >(url, {
         method: "POST",
         body: {
-          collections: params.collections ? params.collections : null,
+          collections: args.collections ? args.collections : null,
         },
       })
 
-      return data ?? null
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      return response.data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
    * Retrieves NFT metadata based on the provided search parameters.
-   * @param {GetNFTParamsSearch} params - The search parameters for the NFT.
+   * @param {GetNFTArgs} args - The search parameters for the NFT.
    * @returns {Promise<Maybe<GetNFTResponse>>} A promise that resolves to the NFT metadata response, or null if no data is found.
    * @throws {Error} If an error occurs during the retrieval process.
    */
-  async getNFT(params: GetNFTParamsSearch): Promise<Maybe<GetNFTResponse>> {
+  async getNFT(args: GetNFTArgs): Promise<Maybe<Collectible>> {
     const url: string = `${this._BACKEND_URL}/metadata/getNftMetadata/${
-      params.networkId
-    }/${params.collectionAddress}/${params.tokenId}${
-      params.address ? `/${params.address}` : ``
+      args.networkId
+    }/${args.collectionAddress}/${args.tokenId}${
+      args.address ? `/${args.address}` : ``
     }`
 
     try {
-      const { data } = await this._fetchWithAuth<GetNFTResponse>(url, {
-        method: "GET",
-      })
+      const { response } = await this._fetchWithAuth<ApiResponse<Collectible>>(
+        url,
+        {
+          method: "GET",
+        }
+      )
 
-      return data ?? null
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      return response.data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
@@ -166,7 +195,7 @@ export class Oracle extends HTTPClient {
    */
   async addCollections(
     collections: Array<{ address: string; networkId: string }>
-  ): Promise<Maybe<Array<CollectionsAdded>>> {
+  ): Promise<Maybe<Array<{ added: boolean }>>> {
     this._validate(
       collections.map((c) => {
         return c.address
@@ -174,57 +203,73 @@ export class Oracle extends HTTPClient {
     )
 
     try {
-      const { data } = await this._fetchWithAuth<Array<CollectionsAdded>>(
-        `${this._BACKEND_URL}/collections/insertCollectionBulk`,
-        {
-          method: "POST",
-          body: {
-            collections,
-          },
-        }
-      )
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<{ added: boolean }>
+      >(`${this._BACKEND_URL}/collections/insertCollectionBulk`, {
+        method: "POST",
+        body: {
+          collections,
+        },
+      })
 
-      return data ?? null
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      return response.data
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
    * Checks if a collection is supported for the given address and network ID.
    * @param {string} address - The address of the collection.
    * @param {string} networkId - The network ID of the collection.
-   * @returns {Promise<Maybe<Array<CollectionSupported>>>} A promise that resolves to an array of supported collections, or null if no data is returned.
+   * @returns {Promise<Maybe<Array<{address: string
+   * networkId: string
+   * supported: boolean}>>>} A promise that resolves to an array of supported collections, or null if no data is returned.
    * @throws {Error} If an error occurs during the API call.
    */
   async isCollectionSupported(
     address: string,
     networkId: string
-  ): Promise<Maybe<Array<CollectionSupported>>> {
+  ): Promise<
+    Maybe<{ address: string; networkId: string; supported: boolean }>
+  > {
     this._validate([address])
 
     try {
-      const { data } = await this._fetchWithAuth<Array<CollectionSupported>>(
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<{ address: string; networkId: string; supported: boolean }>
+      >(
         `${this._BACKEND_URL}/collections/isCollectionSupported/${address}/${networkId}`,
         {
           method: "GET",
         }
       )
-      return data ?? null
-    } catch (e) {
-      throw e
+
+      if (!response || !response.data) return null
+
+      return response.data[0]
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**
    * Checks if the given collections are supported by the backend server.
    * @param {Array<{ address: string; networkId: string }>} collections - An array of collection objects containing address and networkId.
-   * @returns {Promise<Maybe<Array<CollectionSupported>>>} A promise that resolves to an array of supported collections or null if no data is returned.
+   * @returns {Promise<Maybe<Array<{ address: string; networkId: string; supported: boolean }>>>} A promise that resolves to an array of supported collections or null if no data is returned.
    * @throws {Error} If an error occurs during the API call.
    */
   async collectionsSupported(
     collections: Array<{ address: string; networkId: string }>
-  ): Promise<Maybe<Array<CollectionSupported>>> {
+  ): Promise<
+    Maybe<Array<{ address: string; networkId: string; supported: boolean }>>
+  > {
     this._validate(
       collections.map((c) => {
         return c.address
@@ -232,20 +277,23 @@ export class Oracle extends HTTPClient {
     )
 
     try {
-      const { data } = await this._fetchWithAuth<Array<CollectionSupported>>(
-        `${this._BACKEND_URL}/collections/isCollectionSupportedBulk`,
-        {
-          method: "POST",
-          body: {
-            collections,
-          },
-        }
-      )
+      const { response } = await this._fetchWithAuth<
+        ApiResponse<{ address: string; networkId: string; supported: boolean }>
+      >(`${this._BACKEND_URL}/collections/isCollectionSupportedBulk`, {
+        method: "POST",
+        body: {
+          collections,
+        },
+      })
 
-      return data ?? null
-    } catch (e) {
-      throw e
+      if (!response || !response.data) return null
+
+      return response.data
+    } catch (error) {
+      console.warn(error)
     }
+
+    return null
   }
 
   /**

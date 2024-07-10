@@ -97,7 +97,7 @@ export class Trade extends HTTPClient {
     const { blocksNumberConfirmationRequired } = config
 
     if (
-      blocksNumberConfirmationRequired !== undefined &&
+      typeof blocksNumberConfirmationRequired !== "undefined" &&
       blocksNumberConfirmationRequired !== null &&
       blocksNumberConfirmationRequired < 1
     )
