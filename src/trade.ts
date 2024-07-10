@@ -74,10 +74,6 @@ export class Trade extends HTTPClient {
    */
   private _apiKey: Maybe<string> = null
   /**
-   * @property {string} _BACKEND_URL - The backend string url
-   */
-  private _BACKEND_URL: string = "https://api.nfttrader.io"
-  /**
    * @property {number} _MIN_BLOCKS_REQUIRED - The minimum number of block confirmations required
    */
   private _MIN_BLOCKS_REQUIRED: number = 3
@@ -169,7 +165,7 @@ export class Trade extends HTTPClient {
     try {
       const { response } = await this._fetchWithAuth<
         ApiResponse<MultiSigWallet>
-      >(`${this._BACKEND_URL}/wallet/multisigWallet/${this._network}`)
+      >(`${this.backendUrl()}/wallet/multisigWallet/${this._network}`)
 
       if (!response) return null
 
@@ -191,7 +187,7 @@ export class Trade extends HTTPClient {
     try {
       const { response } = await this._fetchWithAuth<
         ApiResponse<NFTTraderFees>
-      >(`${this._BACKEND_URL}/fee/nftTraderFee/${this._network}`)
+      >(`${this.backendUrl()}/fee/nftTraderFee/${this._network}`)
 
       if (!response) return null
 
@@ -600,7 +596,7 @@ export class Trade extends HTTPClient {
     const orderHash = this._seaport.getOrderHash(order.parameters)
 
     try {
-      await this._fetchWithAuth(`${this._BACKEND_URL}/trade/insertTrade`, {
+      await this._fetchWithAuth(`${this.backendUrl()}/trade/insertTrade`, {
         method: "POST",
         body: {
           network: `${this._network}`,
@@ -636,7 +632,9 @@ export class Trade extends HTTPClient {
     if (!this._network) throw new Error("network must be defined.")
     try {
       const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
+        `${this.backendUrl()}/tradelist/getSwapDetail/${
+          this._network
+        }/${tradeId}`
       )
 
       if (!response || !response.data)
@@ -705,7 +703,9 @@ export class Trade extends HTTPClient {
     if (!this._network) throw new Error("network must be defined.")
     try {
       const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${this._network}/${tradeId}`
+        `${this.backendUrl()}/tradelist/getSwapDetail/${
+          this._network
+        }/${tradeId}`
       )
 
       if (!response || !response.data)
@@ -763,7 +763,7 @@ export class Trade extends HTTPClient {
   async get(networkId: string, id: string): Promise<Maybe<TradeDetail>> {
     try {
       const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
-        `${this._BACKEND_URL}/tradelist/getSwapDetail/${networkId}/${id}`
+        `${this.backendUrl()}/tradelist/getSwapDetail/${networkId}/${id}`
       )
 
       if (!response) return null
@@ -821,7 +821,7 @@ export class Trade extends HTTPClient {
       const { response } = await this._fetchWithAuth<
         ApiResponse<TradeListResponse>
       >(
-        `${this._BACKEND_URL}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
+        `${this.backendUrl()}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
         {
           method: "POST",
           body: {
@@ -892,9 +892,7 @@ export class Trade extends HTTPClient {
       const { response } = await this._fetchWithAuth<
         ApiResponse<TradeListResponse>
       >(
-        `${
-          this._BACKEND_URL
-        }/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
+        `${this.backendUrl()}/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
           typeof searchAddress !== "undefined" && searchAddress !== null
             ? `/${searchAddress}`
             : ""
@@ -928,7 +926,6 @@ export class Trade extends HTTPClient {
    * @returns None
    */
   config(config: TradeConfig) {
-    if (config.backendURL) this._BACKEND_URL = config.backendURL
     if (config.minBlocksRequired)
       this._MIN_BLOCKS_REQUIRED = config.minBlocksRequired
   }

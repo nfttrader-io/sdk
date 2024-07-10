@@ -11,7 +11,6 @@ import {
   PostReplyObject,
   PostStatus,
   PostType,
-  PostConfig,
   PostItem,
 } from "./types/post"
 import { validateListPostsFilters } from "./core/utilities"
@@ -30,10 +29,6 @@ export class Post extends HTTPClient {
    * @type {Maybe<string>} _apiKey - The API key, which may be null.
    */
   private _apiKey: Maybe<string> = null
-  /**
-   * @type {string} _BACKEND_URL - The backend URL for API requests.
-   */
-  private _BACKEND_URL: string = "https://api.nfttrader.io"
 
   /**
    * Get the POST_STATUS constant object.
@@ -105,7 +100,7 @@ export class Post extends HTTPClient {
     try {
       const { response, statusCode } = await this._fetchWithAuth<
         ApiResponse<boolean>
-      >(`${this._BACKEND_URL}/post/insert`, {
+      >(`${this.backendUrl()}/post/insert`, {
         method: "POST",
         body: post,
         headers: {
@@ -135,7 +130,7 @@ export class Post extends HTTPClient {
 
     try {
       const { response } = await this._fetchWithAuth<ApiResponse<PostItem>>(
-        `${this._BACKEND_URL}/post/${id}` +
+        `${this.backendUrl()}/post/${id}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`
       )
 
@@ -180,7 +175,7 @@ export class Post extends HTTPClient {
       const { response } = await this._fetchWithAuth<
         ApiResponse<ListPostsResponse>
       >(
-        `${this._BACKEND_URL}/replies/${id}/${skipUrl}/${takeUrl}` +
+        `${this.backendUrl()}/replies/${id}/${skipUrl}/${takeUrl}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`,
         {
           method: "POST",
@@ -268,7 +263,7 @@ export class Post extends HTTPClient {
       const { response } = await this._fetchWithAuth<
         ApiResponse<ListPostsResponse>
       >(
-        `${this._BACKEND_URL}/posts/${skipUrl}/${takeUrl}${
+        `${this.backendUrl()}/posts/${skipUrl}/${takeUrl}${
           creatorAddress ? `/${creatorAddress}` : ``
         }`,
         {
@@ -324,7 +319,7 @@ export class Post extends HTTPClient {
     signedMessage: string
   ): Promise<void> {
     try {
-      await this._fetchWithAuth(`${this._BACKEND_URL}/post/${id}/delete`, {
+      await this._fetchWithAuth(`${this.backendUrl()}/post/${id}/delete`, {
         method: "DELETE",
         headers: {
           "nfttrader-signed-message": signedMessage,
@@ -336,14 +331,5 @@ export class Post extends HTTPClient {
     } catch (error) {
       console.warn(error)
     }
-  }
-
-  /**
-   * Sets the backend URL in the configuration object.
-   * @param {PostConfig} config - The configuration object containing the backend URL.
-   * @returns None
-   */
-  config(config: PostConfig) {
-    if (config.backendURL) this._BACKEND_URL = config.backendURL
   }
 }

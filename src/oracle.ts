@@ -1,10 +1,5 @@
 import { HTTPClient } from "./core/httpclient"
-import {
-  GetCollectionsArgs,
-  GetNFTArgs,
-  GetNFTsArgs,
-  OracleConfig,
-} from "./types/oracle"
+import { GetCollectionsArgs, GetNFTArgs, GetNFTsArgs } from "./types/oracle"
 import { Collectible } from "./interfaces/oracle"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
@@ -21,10 +16,6 @@ export class Oracle extends HTTPClient {
    * @property {Maybe<string>} _apiKey - Private property to store an API key, which may be a string or null.
    */
   private _apiKey: Maybe<string> = null
-  /**
-   * @property {string} _BACKEND_URL - Private property to store an API key, which may be a string or null.
-   */
-  private _BACKEND_URL: string = "https://api.nfttrader.io"
 
   /**
    * Constructor for creating an instance of a class that requires an API key for authorization.
@@ -88,7 +79,7 @@ export class Oracle extends HTTPClient {
   async getCollections(
     args: GetCollectionsArgs
   ): Promise<Maybe<{ total: number; collections: Array<Collection> }>> {
-    const url: string = `${this._BACKEND_URL}/collections/getCollections/${
+    const url: string = `${this.backendUrl()}/collections/getCollections/${
       args.networkId ? args.networkId : `*`
     }/${args.userAddress}/${args.searchType}/${args.skip}/${args.take}${
       args.queryString ? `/${args.queryString}` : ``
@@ -126,7 +117,7 @@ export class Oracle extends HTTPClient {
       total: number
     }>
   > {
-    const url: string = `${this._BACKEND_URL}/metadata/getNFTsByOwner/${
+    const url: string = `${this.backendUrl()}/metadata/getNFTsByOwner/${
       args.networkId
     }/${args.address}/${args.take}${
       args.continuation ? `/${args.continuation}` : ``
@@ -163,7 +154,7 @@ export class Oracle extends HTTPClient {
    * @throws {Error} If an error occurs during the retrieval process.
    */
   async getNFT(args: GetNFTArgs): Promise<Maybe<Collectible>> {
-    const url: string = `${this._BACKEND_URL}/metadata/getNftMetadata/${
+    const url: string = `${this.backendUrl()}/metadata/getNftMetadata/${
       args.networkId
     }/${args.collectionAddress}/${args.tokenId}${
       args.address ? `/${args.address}` : ``
@@ -205,7 +196,7 @@ export class Oracle extends HTTPClient {
     try {
       const { response } = await this._fetchWithAuth<
         ApiResponse<{ added: boolean }>
-      >(`${this._BACKEND_URL}/collections/insertCollectionBulk`, {
+      >(`${this.backendUrl()}/collections/insertCollectionBulk`, {
         method: "POST",
         body: {
           collections,
@@ -243,7 +234,7 @@ export class Oracle extends HTTPClient {
       const { response } = await this._fetchWithAuth<
         ApiResponse<{ address: string; networkId: string; supported: boolean }>
       >(
-        `${this._BACKEND_URL}/collections/isCollectionSupported/${address}/${networkId}`,
+        `${this.backendUrl()}/collections/isCollectionSupported/${address}/${networkId}`,
         {
           method: "GET",
         }
@@ -279,7 +270,7 @@ export class Oracle extends HTTPClient {
     try {
       const { response } = await this._fetchWithAuth<
         ApiResponse<{ address: string; networkId: string; supported: boolean }>
-      >(`${this._BACKEND_URL}/collections/isCollectionSupportedBulk`, {
+      >(`${this.backendUrl()}/collections/isCollectionSupportedBulk`, {
         method: "POST",
         body: {
           collections,
@@ -294,14 +285,5 @@ export class Oracle extends HTTPClient {
     }
 
     return null
-  }
-
-  /**
-   * Sets the backend URL in the Oracle configuration.
-   * @param {OracleConfig} config - The Oracle configuration object containing the backend URL.
-   * @returns None
-   */
-  config(config: OracleConfig) {
-    if (config.backendURL) this._BACKEND_URL = config.backendURL
   }
 }

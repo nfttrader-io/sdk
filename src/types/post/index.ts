@@ -1,4 +1,3 @@
-export * from "./postconfig"
 export * from "./postitem"
 export * from "./postobject"
 export * from "./postreplyobject"

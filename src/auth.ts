@@ -6,8 +6,6 @@ import { Crypto } from "./core"
 import { Account, IndexedDBStorage, RealmStorage } from "./core/app"
 import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces"
-import React from "react"
-import ReactDOM from "react-dom"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -15,14 +13,9 @@ import ReactDOM from "react-dom"
  * @extends HTTPClient
  */
 export class Auth extends HTTPClient {
-  /**
-   * @property {string} _BACKEND_URL - The backend URL for the service.
-   */
-  private _BACKEND_URL: string = "https://api.nfttrader.io" //DO NOT EDIT THIS, use .config() instead
+  private _storage: IndexedDBStorage | RealmStorage
 
-  private _storage: Maybe<IndexedDBStorage | RealmStorage> = null
-
-  private _apiKey: Maybe<string> = null
+  private _apiKey
 
   /**
    * Constructs a new instance of Auth with the provided configuration.
@@ -31,6 +24,7 @@ export class Auth extends HTTPClient {
    */
   constructor(config: AuthConfig & ApiKeyAuthorized) {
     super()
+
     this._storage = config.storage
     this._apiKey = config.apiKey
   }

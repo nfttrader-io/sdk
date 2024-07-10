@@ -5,6 +5,8 @@ import { HTTPRequestInit, HTTPResponse } from "../interfaces/base"
  * @class HTTPClient
  */
 export class HTTPClient {
+  private _devMode: "development" | "production" = "production"
+
   /**
    * Fetches data from a specified URL using XMLHttpRequest.
    * @param {string | URL} url - The URL to fetch data from.
@@ -154,5 +156,28 @@ export class HTTPClient {
     return globalThis.document
       ? this._fetchJS<ReturnType>(url, options)
       : this._fetchNode<ReturnType>(url, options)
+  }
+
+  protected getDevMode(): string {
+    return this._devMode
+  }
+
+  protected toggleDevMode() {
+    this._devMode =
+      this._devMode === "development" ? "production" : "development"
+  }
+
+  protected isDevelopment() {
+    return this._devMode === "development"
+  }
+
+  protected isProduction() {
+    return this._devMode === "production"
+  }
+
+  protected backendUrl(): string {
+    return `https://${
+      this._devMode === "development" ? `develop.api.` : `api.`
+    }nfttrader.io`
   }
 }
