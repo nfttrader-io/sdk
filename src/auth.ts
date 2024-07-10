@@ -6,6 +6,8 @@ import { Crypto } from "./core"
 import { Account, IndexedDBStorage, RealmStorage } from "./core/app"
 import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces"
+import React from "react"
+import ReactDOM from "react-dom"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
