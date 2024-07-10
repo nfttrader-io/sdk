@@ -12,12 +12,13 @@
     "noImplicitThis": true,
     "allowUnreachableCode": true,
     "moduleResolution": "node",
-    "baseUrl": ".", // Base URL per i percorsi
+    "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"] // Alias per la directory src
+      "@src/*": ["src/*"]
     },
-    "allowSyntheticDefaultImports": true, // Aggiungi questa linea
-    "esModuleInterop": true // Aggiungi questa linea
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/test/*", "dist"]

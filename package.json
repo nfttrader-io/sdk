@@ -36,6 +36,7 @@
   "homepage": "https://github.com/nfttrader-io/sdk#readme",
   "dependencies": {
     "@opensea/seaport-js": "^2.0.3",
+    "@privy-io/react-auth": "^1.74.0",
     "@urql/core": "^4.3.0",
     "bufferutil": "^4.0.7",
     "ethers": "^5.7.2",
@@ -45,7 +46,8 @@
     "realm": "^12.9.0",
     "subscriptions-transport-ws": "^0.11.0",
     "utf-8-validate": "^5.0.10",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "viem": "^2.17.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.2",
@@ -61,6 +63,7 @@
   },
   "peerDependencies": {
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "viem": "^2.17.3"
   }
 }

@@ -1,3 +1,5 @@
 export * from "./authclientconfig"
 export * from "./authconfig"
 export * from "./credentials"
+export * from "./privyappearanceoptions"
+export * from "./privyloginoptions"
