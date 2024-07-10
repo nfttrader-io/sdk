@@ -4,7 +4,7 @@ import {
   AddReportToMessageArgs,
   EditMessageArgs,
   RemoveReactionFromMessageArgs,
-} from "../../schema/args"
+} from "../../../../types/chat/schema/args"
 
 /**
  * Interface for a message mutation engine that defines methods for mutating messages.

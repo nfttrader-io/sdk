@@ -17,7 +17,7 @@ import UUIDSubscriptionClient from "./uuidsubscriptionclient"
 import { Observable } from "subscriptions-transport-ws"
 import { v4 as uuid4 } from "uuid"
 import { SubscriptionGarbage } from "../../types/chat/subscriptiongarbage"
-import forge = require("node-forge")
+//import forge = require("node-forge")
 import { KeyPairItem } from "../../types/chat/keypairitem"
 import { EngineInitConfig } from "../../types"
 
@@ -64,7 +64,7 @@ export class Engine extends HTTPClient implements IEngine {
   /**
    * @property {Maybe<forge.pki.rsa.KeyPair>} _userKeyPair - The RSA key pair for the user.
    */
-  protected _userKeyPair: Maybe<forge.pki.rsa.KeyPair> = null
+  //protected _userKeyPair: Maybe<forge.pki.rsa.KeyPair> = null
   /**
    * @property {Maybe<Array<KeyPairItem>>} _keyPairsMap - An array of key pair items.
    */
@@ -104,7 +104,7 @@ export class Engine extends HTTPClient implements IEngine {
     this._realtimeApiUrl = new URL(config.realtimeApiUrl)
     this._realtimeAuthorizationToken = `${this._apiKey}##${this._jwtToken}`
     this._keyPairsMap = config.keyPairsMap
-    this._userKeyPair = config.userKeyPair
+    //this._userKeyPair = config.userKeyPair
     this._parentConfig = config
     this._connectionParams = {
       Authorization: null,
@@ -642,7 +642,7 @@ export class Engine extends HTTPClient implements IEngine {
    * @param {KeyPairItem} newItem - The KeyPairItem to add to the list.
    * @returns {KeyPairItem[]} - The updated list of KeyPairItems after adding the new item.
    */
-  addKeyPairItem(newItem: KeyPairItem): KeyPairItem[] {
+  /*addKeyPairItem(newItem: KeyPairItem): KeyPairItem[] {
     if (!this._keyPairsMap) this._keyPairsMap = []
 
     const index = this._keyPairsMap.findIndex((keypair: KeyPairItem) => {
@@ -652,6 +652,10 @@ export class Engine extends HTTPClient implements IEngine {
     if (index === -1) this._keyPairsMap.push(newItem)
 
     return this._keyPairsMap
+  }*/
+
+  addKeyPairItem(newItem: string) {
+    return
   }
 
   /**
@@ -693,7 +697,7 @@ export class Engine extends HTTPClient implements IEngine {
    * @param {string} id - The ID of the public key to find.
    * @returns {Maybe<forge.pki.rsa.PublicKey>} The public key associated with the given ID,
    * or null if the key pairs map is empty or if the key with the specified ID is not found.
-   */
+   
   findPublicKeyById(id: string): Maybe<forge.pki.rsa.PublicKey> {
     if (!this._keyPairsMap) return null
 
@@ -704,7 +708,7 @@ export class Engine extends HTTPClient implements IEngine {
     if (!item) return null
 
     return item.keypair.publicKey
-  }
+  }*/
 
   /**
    * Finds a private key by its ID in the key pairs map.
@@ -712,23 +716,26 @@ export class Engine extends HTTPClient implements IEngine {
    * @returns {Maybe<forge.pki.rsa.PrivateKey>} The private key associated with the given ID,
    * or null if the key is not found.
    */
-  findPrivateKeyById(id: string): Maybe<forge.pki.rsa.PrivateKey> {
-    if (!this._keyPairsMap) return null
+  findPrivateKeyById(
+    id: Maybe<string>
+  ): string /*Maybe<forge.pki.rsa.PrivateKey>*/ {
+    /*if (!this._keyPairsMap) return null
 
     const item = this._keyPairsMap.find((k: KeyPairItem) => {
       return k.id.toLowerCase() === id.toLowerCase()
     })
 
-    if (!item) return null
+    if (!item) return null*/
 
-    return item.keypair.privateKey
+    //return item.keypair.privateKey
+    return ""
   }
 
   /**
    * Finds a key pair in the key pairs map based on the provided ID.
    * @param {string} id - The ID of the key pair to find.
    * @returns {Maybe<forge.pki.rsa.KeyPair>} The key pair associated with the provided ID, or null if not found.
-   */
+   
   findKeyPairById(id: string): Maybe<forge.pki.rsa.KeyPair> {
     if (!this._keyPairsMap) return null
 
@@ -739,22 +746,22 @@ export class Engine extends HTTPClient implements IEngine {
     if (!item) return null
 
     return item.keypair
-  }
+  }*/
 
   /**
    * Sets the user key pair for encryption and decryption.
    * @param {forge.pki.rsa.KeyPair} userKeyPair - The RSA key pair for the user.
    * @returns {void}
-   */
+   
   setUserKeyPair(userKeyPair: forge.pki.rsa.KeyPair): void {
     this._userKeyPair = userKeyPair
-  }
+  }*/
 
   /**
    * Get the user's key pair.
    * @returns {Maybe<forge.pki.rsa.KeyPair>} The user's key pair, if available.
-   */
+   
   getUserKeyPair(): Maybe<forge.pki.rsa.KeyPair> {
     return this._userKeyPair
-  }
+  }*/
 }

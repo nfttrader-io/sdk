@@ -5,7 +5,7 @@ import {
   CreateConversationOneToOneArgs,
   DeleteBatchConversationMessagesArgs,
   UpdateUserArgs,
-} from "../../schema/args"
+} from "../../../../types/chat/schema/args"
 
 /**
  * Interface for a User Activity Mutation Engine that defines methods for mutating conversations and users.
@@ -17,12 +17,20 @@ export interface UAMutationEngine {
   ): Promise<
     { concatConversationIds: string; items: Array<{ id: string }> } | QIError
   >
-  createConversationGroup(
-    args: CreateConversationGroupArgs
-  ): Promise<{ keypairItem: KeyPairItem; conversation: Conversation } | QIError>
-  createConversationOneToOne(
-    args: CreateConversationOneToOneArgs
-  ): Promise<{ keypairItem: KeyPairItem; conversation: Conversation } | QIError>
+  createConversationGroup(args: CreateConversationGroupArgs): Promise<
+    | {
+        keypairItem: KeyPairItem | null
+        /* | null is to remove */ conversation: Conversation
+      }
+    | QIError
+  >
+  createConversationOneToOne(args: CreateConversationOneToOneArgs): Promise<
+    | {
+        keypairItem: KeyPairItem | null
+        /* | null is to remove */ conversation: Conversation
+      }
+    | QIError
+  >
   deleteBatchConversationMessages(
     args: DeleteBatchConversationMessagesArgs
   ): Promise<Boolean | QIError>

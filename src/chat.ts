@@ -575,7 +575,7 @@ export class Chat
   async createConversationGroup(
     args: CreateConversationGroupArgs
   ): Promise<
-    { keypairItem: KeyPairItem; conversation: Conversation } | QIError
+    { keypairItem: KeyPairItem | null; conversation: Conversation } | QIError
   > {
     const keypair = await Crypto.generateKeys("HIGH")
     const response = await this._mutation<
@@ -588,45 +588,51 @@ export class Chat
       "_mutation() -> createConversationGroup()",
       {
         input: {
-          name: Crypto.encrypt(keypair!.publicKey, args.name),
-          description: Crypto.encrypt(keypair!.publicKey, args.description),
-          bannerImageURL: Crypto.encrypt(
-            keypair!.publicKey,
-            args.bannerImageURL
-          ),
-          imageURL: Crypto.encrypt(keypair!.publicKey, args.imageURL),
+          name: "", //Crypto.encrypt(keypair!.publicKey, args.name),
+          description: "", //Crypto.encrypt(keypair!.publicKey, args.description),
+          bannerImageURL: "", // Crypto.encrypt(
+          //keypair!.publicKey,
+          //args.bannerImageURL
+          //),
+          imageURL: "", //Crypto.encrypt(keypair!.publicKey, args.imageURL),
         },
       }
     )
 
     if (response instanceof QIError) return response
 
-    this.addKeyPairItem({
+    /*this.addKeyPairItem({
       id: response.id,
       keypair: keypair!,
-    })
+    })*/
 
     const conversationGroup: {
-      keypairItem: KeyPairItem
+      keypairItem: null //KeyPairItem
       conversation: Conversation
     } = {
-      keypairItem: {
+      /*keypairItem: {
         id: response.id,
-        keypair: keypair!,
-      },
+        keypair: ""
+      },*/
+      keypairItem: null,
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.decrypt(keypair!.privateKey, response.name),
+        name: Crypto.decrypt("" /*keypair!.privateKey*/, response.name),
         description: response.description
-          ? Crypto.decrypt(keypair!.privateKey, response.description)
+          ? Crypto.decrypt("" /*keypair!.privateKey*/, response.description)
           : null,
         imageURL: response.imageURL
-          ? new URL(Crypto.decrypt(keypair!.privateKey, response.imageURL))
+          ? new URL(
+              Crypto.decrypt("" /*keypair!.privateKey*/, response.imageURL)
+            )
           : null,
         bannerImageURL: response.bannerImageURL
           ? new URL(
-              Crypto.decrypt(keypair!.privateKey, response.bannerImageURL)
+              Crypto.decrypt(
+                "" /*keypair!.privateKey*/,
+                response.bannerImageURL
+              )
             )
           : null,
         settings: response.settings ? JSON.parse(response.settings) : null,
@@ -649,7 +655,7 @@ export class Chat
   async createConversationOneToOne(
     args: CreateConversationOneToOneArgs
   ): Promise<
-    QIError | { keypairItem: KeyPairItem; conversation: Conversation }
+    QIError | { keypairItem: KeyPairItem | null; conversation: Conversation }
   > {
     const keypair = await Crypto.generateKeys("HIGH")
     const response = await this._mutation<
@@ -662,13 +668,16 @@ export class Chat
       "_mutation() -> createConversationOneToOne()",
       {
         input: {
-          name: Crypto.encrypt(keypair!.publicKey, args.name),
-          description: Crypto.encrypt(keypair!.publicKey, args.description),
+          name: Crypto.encrypt("", /*keypair!.publicKey */ args.name),
+          description: Crypto.encrypt(
+            "",
+            /*keypair!.publicKey */ args.description
+          ),
           bannerImageURL: Crypto.encrypt(
-            keypair!.publicKey,
+            "", //keypair!.publicKey,
             args.bannerImageURL
           ),
-          imageURL: Crypto.encrypt(keypair!.publicKey, args.imageURL),
+          imageURL: Crypto.encrypt("", /*keypair!.publicKey */ args.imageURL),
         },
       }
     )
@@ -676,25 +685,33 @@ export class Chat
     if (response instanceof QIError) return response
 
     const conversationItem: {
-      keypairItem: KeyPairItem
+      keypairItem: KeyPairItem | null
       conversation: Conversation
     } = {
-      keypairItem: {
+      /*keypairItem: {
         id: response.id,
         keypair: keypair!,
-      },
+      },*/
+      keypairItem: null,
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.encrypt(keypair!.publicKey, response.name),
+        name: Crypto.encrypt("", /*keypair!.publicKey */ response.name),
         description: response.description
-          ? Crypto.encrypt(keypair!.publicKey, response.description)
+          ? Crypto.encrypt("", /*keypair!.publicKey */ response.description)
           : null,
         imageURL: response.imageURL
-          ? new URL(Crypto.encrypt(keypair!.publicKey, response.imageURL))
+          ? new URL(
+              Crypto.encrypt("", /*keypair!.publicKey */ response.imageURL)
+            )
           : null,
         bannerImageURL: response.bannerImageURL
-          ? new URL(Crypto.encrypt(keypair!.publicKey, response.bannerImageURL))
+          ? new URL(
+              Crypto.encrypt(
+                "",
+                /*keypair!.publicKey */ response.bannerImageURL
+              )
+            )
           : null,
         settings: response.settings ? JSON.parse(response.settings) : null,
         membersIds: response.membersIds ? response.membersIds : null,
@@ -3839,5 +3856,9 @@ export class Chat
     })
 
     return { unsubscribe, uuid }
+  }
+
+  private findPublicKeyById(id: string): string {
+    return ""
   }
 }

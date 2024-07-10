@@ -12,7 +12,7 @@ import {
   MuteConversationArgs,
   SendMessageArgs,
   UpdateConversationGroupInputArgs,
-} from "../../schema/args"
+} from "../../../../types/chat/schema/args"
 
 /**
  * Interface for a Conversation Mutation Engine that defines methods for mutating conversations.
