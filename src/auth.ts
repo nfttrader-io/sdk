@@ -15,7 +15,7 @@ import { PrivyClientConfig } from "@privy-io/react-auth"
  * @extends HTTPClient
  */
 export class Auth extends HTTPClient {
-  private _storage: IndexedDBStorage | RealmStorage
+  private _storage?: IndexedDBStorage | RealmStorage
   private _apiKey
   private _privyAppId: string
   private _privyConfig?: PrivyClientConfig
