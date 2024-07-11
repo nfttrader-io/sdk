@@ -1,11 +1,13 @@
 import { HTTPClient } from "./core/httpclient"
-import { AuthClientConfig, AuthConfig, Credentials } from "./types/auth"
+import { AuthClientConfig, AuthConfig } from "./types/auth"
 import { ApiResponse } from "./types/base/apiresponse"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { Crypto } from "./core"
 import { Account, IndexedDBStorage, RealmStorage } from "./core/app"
 import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
 import { HTTPRequestInit, HTTPResponse } from "./interfaces"
+import { PrivyAdapter } from "./microfrontend"
+import { PrivyClientConfig } from "@privy-io/react-auth"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -14,8 +16,10 @@ import { HTTPRequestInit, HTTPResponse } from "./interfaces"
  */
 export class Auth extends HTTPClient {
   private _storage: IndexedDBStorage | RealmStorage
-
   private _apiKey
+  private _privyAppId: string
+  private _privyConfig?: PrivyClientConfig
+  private _privyAdapter: PrivyAdapter
 
   /**
    * Constructs a new instance of Auth with the provided configuration.
@@ -27,6 +31,15 @@ export class Auth extends HTTPClient {
 
     this._storage = config.storage
     this._apiKey = config.apiKey
+    this._privyAppId = config.privyAppId
+    this._privyConfig = config.privyConfig
+    this._privyAdapter = new PrivyAdapter({
+      appId: this._privyAppId,
+      device: typeof window !== "undefined" ? "desktop" : "mobile",
+      desktopOptions:
+        typeof window === "undefined" ? undefined : this._privyConfig,
+      mobileOptions: typeof window !== "undefined" ? undefined : {},
+    })
   }
 
   /**
@@ -81,23 +94,9 @@ export class Auth extends HTTPClient {
    * @returns {Promise<boolean>} A promise that resolves to true if the user is registered, false otherwise.
    * @throws {Error} An error is thrown if the authentication mode is not defined or if required credentials are missing.
    */
-  async isUserRegistered(credentials: Credentials) {}
+  async isUserRegistered() {}
 
-  /**
-   * Sign up a user with the provided credentials based on the authentication mode set.
-   * @param {Credentials} credentials - The user's credentials for signing up.
-   * @returns {Promise<boolean>} A promise that resolves to true if the signup is successful, false otherwise.
-   * @throws {Error} An error is thrown if the authentication mode is not defined, or if required credentials are missing based on the authentication mode.
-   */
-  async signup(credentials: Credentials) {}
-
-  /**
-   * Sign in a user with the provided credentials and signature.
-   * @param {Credentials} credentials - The user's credentials for authentication.
-   * @param {string} [signature] - The signature for authentication (optional).
-   * @returns {Promise<Account | boolean>} A promise that resolves to the user object if sign in is successful,
-   * or false if sign in fails.
-   * @throws {Error} An error is thrown if the authentication mode is not defined, or if required credentials are missing based on the authentication mode.
-   */
-  async signin(credentials: Credentials) {}
+  async authenticate() {
+    this._privyAdapter.render()
+  }
 }
