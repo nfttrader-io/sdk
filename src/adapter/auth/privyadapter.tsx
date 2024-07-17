@@ -1,49 +1,41 @@
+import React from "react"
 import { Maybe } from "@src/types"
 import { PrivyAdapterOptions } from "@src/types/adapter"
 import { createRoot, Root } from "react-dom/client"
 import { v4 as uuid } from "uuid"
-import {
-  PrivyClientConfig,
-  PrivyProvider,
-  usePrivy,
-} from "@privy-io/react-auth"
-import React, { useEffect } from "react"
-import { useLogin } from "@privy-io/react-auth"
+import { PrivyClientConfig, PrivyProvider } from "@privy-io/react-auth"
+import { Auth } from "@src/auth"
+import { Trade } from "@src/trade"
+import { usePrivyLogin } from "./login"
+import { usePrivyLogout } from "./logout"
+import { usePrivyLinkAccount } from "./linkaccount"
 
 interface PrivyAdapterProps {
+  auth: Auth
+  trade: Trade
   appId: string
   config: PrivyClientConfig
 }
 
-const PrivyAuth: React.FC<PrivyAdapterProps> = ({ appId, config }) => {
-  const { ready, authenticated } = usePrivy()
-  const disableLogin = !ready || (ready && authenticated)
+interface PrivyWrapperProps {
+  auth: Auth
+  trade: Trade
+}
 
-  const { login } = useLogin({
-    onComplete: (
-      user,
-      isNewUser,
-      wasAlreadyAuthenticated,
-      loginMethod,
-      linkedAccount
-    ) => {
-      console.log(
-        user,
-        isNewUser,
-        wasAlreadyAuthenticated,
-        loginMethod,
-        linkedAccount
-      )
-    },
-    onError: (error) => {
-      console.log(error)
-    },
-  })
+const PrivyWrapper: React.FC<PrivyWrapperProps> = ({ auth, trade }) => {
+  usePrivyLogin(auth)
+  usePrivyLogout(auth)
+  usePrivyLinkAccount(auth)
 
-  useEffect(() => {
-    if (ready) if (!disableLogin) login()
-  }, [ready, disableLogin])
+  return <></>
+}
 
+const PrivyContext: React.FC<PrivyAdapterProps> = ({
+  auth,
+  trade,
+  appId,
+  config,
+}) => {
   return (
     <PrivyProvider
       appId={appId}
@@ -51,7 +43,7 @@ const PrivyAuth: React.FC<PrivyAdapterProps> = ({ appId, config }) => {
         ...config,
       }}
     >
-      <></>
+      <PrivyWrapper auth={auth} trade={trade} />
     </PrivyProvider>
   )
 }
@@ -82,14 +74,19 @@ export class PrivyAdapter {
     }
   }
 
-  render() {
+  render(auth: Auth, trade: Trade) {
     if (typeof window !== "undefined") {
       if (!this._root) throw new Error("Root object must be initializated.")
       if (!this._privyConfig)
         throw new Error("Privy configuration must be setup.")
 
       this._root.render(
-        <PrivyAuth appId={this._privyAppId} config={this._privyConfig} />
+        <PrivyContext
+          auth={auth}
+          trade={trade}
+          appId={this._privyAppId}
+          config={this._privyConfig}
+        />
       )
     } else {
     }

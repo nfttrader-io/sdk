@@ -49,28 +49,6 @@ export class Oracle extends HTTPClient {
   }
 
   /**
-   * Makes a fetch request with authentication headers.
-   * @param {string | URL} url - The URL to fetch data from.
-   * @param {HTTPRequestInit} [options] - The options for the fetch request.
-   * @returns {Promise<HTTPResponse<ReturnType>>} A promise that resolves to the HTTP response.
-   */
-  private _fetchWithAuth<ReturnType = any>(
-    url: string | URL,
-    options: HTTPRequestInit = {
-      method: "GET",
-      headers: undefined,
-      body: undefined,
-    }
-  ): Promise<HTTPResponse<ReturnType>> {
-    options.headers = {
-      ...options.headers,
-      "x-api-key": `${this._apiKey}`,
-    }
-
-    return this._fetch(url, options)
-  }
-
-  /**
    * Retrieves collections based on the provided search parameters.
    * @param {GetCollectionsArgs} args - The search parameters for fetching collections.
    * @returns {Promise<Maybe<{total: number; collections: Array<Collection>}>>} A promise that resolves to the collections response or null.
@@ -86,9 +64,14 @@ export class Oracle extends HTTPClient {
     }`
 
     try {
-      const { response } = await this._fetchWithAuth<
+      const { response } = await this._fetch<
         ApiResponse<{ total: number; collections: Array<Collection> }>
-      >(url)
+      >(url, {
+        method: "GET",
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+        },
+      })
 
       if (!response || !response.data) return null
 
@@ -124,7 +107,7 @@ export class Oracle extends HTTPClient {
     }`
 
     try {
-      const { response } = await this._fetchWithAuth<
+      const { response } = await this._fetch<
         ApiResponse<{
           nfts: Array<Collectible>
           continuation: Maybe<string> | undefined
@@ -132,6 +115,9 @@ export class Oracle extends HTTPClient {
         }>
       >(url, {
         method: "POST",
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+        },
         body: {
           collections: args.collections ? args.collections : null,
         },
@@ -161,12 +147,12 @@ export class Oracle extends HTTPClient {
     }`
 
     try {
-      const { response } = await this._fetchWithAuth<ApiResponse<Collectible>>(
-        url,
-        {
-          method: "GET",
-        }
-      )
+      const { response } = await this._fetch<ApiResponse<Collectible>>(url, {
+        method: "GET",
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+        },
+      })
 
       if (!response || !response.data) return null
 
@@ -194,14 +180,18 @@ export class Oracle extends HTTPClient {
     )
 
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<{ added: boolean }>
-      >(`${this.backendUrl()}/collections/insertCollectionBulk`, {
-        method: "POST",
-        body: {
-          collections,
-        },
-      })
+      const { response } = await this._fetch<ApiResponse<{ added: boolean }>>(
+        `${this.backendUrl()}/collections/insertCollectionBulk`,
+        {
+          method: "POST",
+          body: {
+            collections,
+          },
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
+      )
 
       if (!response || !response.data) return null
 
@@ -231,12 +221,15 @@ export class Oracle extends HTTPClient {
     this._validate([address])
 
     try {
-      const { response } = await this._fetchWithAuth<
+      const { response } = await this._fetch<
         ApiResponse<{ address: string; networkId: string; supported: boolean }>
       >(
         `${this.backendUrl()}/collections/isCollectionSupported/${address}/${networkId}`,
         {
           method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
         }
       )
 
@@ -268,12 +261,15 @@ export class Oracle extends HTTPClient {
     )
 
     try {
-      const { response } = await this._fetchWithAuth<
+      const { response } = await this._fetch<
         ApiResponse<{ address: string; networkId: string; supported: boolean }>
       >(`${this.backendUrl()}/collections/isCollectionSupportedBulk`, {
         method: "POST",
         body: {
           collections,
+        },
+        headers: {
+          "x-api-key": `${this._apiKey}`,
         },
       })
 

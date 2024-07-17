@@ -85,25 +85,10 @@ export class Trade extends HTTPClient {
    * @param {number} [config.blocksNumberConfirmationRequired] - The number of blocks required for confirmation.
    * @throws {Error} Throws an error if blocksNumberConfirmationRequired is less than 1 or if apiKey is missing or invalid.
    */
-  constructor(
-    config: ApiKeyAuthorized & { blocksNumberConfirmationRequired?: number }
-  ) {
+  constructor(config: ApiKeyAuthorized) {
     super()
 
-    const { blocksNumberConfirmationRequired } = config
-
-    if (
-      typeof blocksNumberConfirmationRequired !== "undefined" &&
-      blocksNumberConfirmationRequired !== null &&
-      blocksNumberConfirmationRequired < 1
-    )
-      throw new Error(
-        "blocksNumberConfirmationRequired cannot be lower than one."
-      )
-
-    this._blocksNumberConfirmationRequired = blocksNumberConfirmationRequired
-      ? blocksNumberConfirmationRequired
-      : this._MIN_BLOCKS_REQUIRED
+    this._blocksNumberConfirmationRequired = this._MIN_BLOCKS_REQUIRED
 
     if (
       !("apiKey" in config) ||
@@ -113,28 +98,6 @@ export class Trade extends HTTPClient {
       throw new Error("an API key must be provided.")
 
     this._apiKey = config.apiKey
-  }
-
-  /**
-   * Fetches data from a URL with authentication using the provided API key.
-   * @param {string | URL} url - The URL to fetch data from.
-   * @param {HTTPRequestInit} [options] - The options for the HTTP request, default method is "GET".
-   * @returns {Promise<HTTPResponse<ReturnType>>} A promise that resolves to the HTTP response.
-   */
-  private _fetchWithAuth<ReturnType = any>(
-    url: string | URL,
-    options: HTTPRequestInit = {
-      method: "GET",
-      headers: undefined,
-      body: undefined,
-    }
-  ): Promise<HTTPResponse<ReturnType>> {
-    options.headers = {
-      ...options.headers,
-      "x-api-key": `${this._apiKey}`,
-    }
-
-    return this._fetch(url, options)
   }
 
   /**
@@ -163,9 +126,15 @@ export class Trade extends HTTPClient {
    */
   private async _getNFTTraderGnosis(): Promise<Maybe<MultiSigWallet>> {
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<MultiSigWallet>
-      >(`${this.backendUrl()}/wallet/multisigWallet/${this._network}`)
+      const { response } = await this._fetch<ApiResponse<MultiSigWallet>>(
+        `${this.backendUrl()}/wallet/multisigWallet/${this._network}`,
+        {
+          method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
+      )
 
       if (!response) return null
 
@@ -185,9 +154,15 @@ export class Trade extends HTTPClient {
    */
   private async _getNFTTraderFees(): Promise<Maybe<NFTTraderFees>> {
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<NFTTraderFees>
-      >(`${this.backendUrl()}/fee/nftTraderFee/${this._network}`)
+      const { response } = await this._fetch<ApiResponse<NFTTraderFees>>(
+        `${this.backendUrl()}/fee/nftTraderFee/${this._network}`,
+        {
+          method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
+      )
 
       if (!response) return null
 
@@ -596,7 +571,7 @@ export class Trade extends HTTPClient {
     const orderHash = this._seaport.getOrderHash(order.parameters)
 
     try {
-      await this._fetchWithAuth(`${this.backendUrl()}/trade/insertTrade`, {
+      await this._fetch(`${this.backendUrl()}/trade/insertTrade`, {
         method: "POST",
         body: {
           network: `${this._network}`,
@@ -611,6 +586,7 @@ export class Trade extends HTTPClient {
           creatorAddress: maker.address,
         },
         headers: {
+          "x-api-key": `${this._apiKey}`,
           "nfttrader-signed-message": signature,
         },
       })
@@ -631,10 +607,16 @@ export class Trade extends HTTPClient {
       throw new Error("initClient() must be called to initialize the client.")
     if (!this._network) throw new Error("network must be defined.")
     try {
-      const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
+      const { response } = await this._fetch<ApiResponse<TradeDetail>>(
         `${this.backendUrl()}/tradelist/getSwapDetail/${
           this._network
-        }/${tradeId}`
+        }/${tradeId}`,
+        {
+          method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
       )
 
       if (!response || !response.data)
@@ -702,10 +684,16 @@ export class Trade extends HTTPClient {
       throw new Error("initClient() must be called to initialize the client.")
     if (!this._network) throw new Error("network must be defined.")
     try {
-      const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
+      const { response } = await this._fetch<ApiResponse<TradeDetail>>(
         `${this.backendUrl()}/tradelist/getSwapDetail/${
           this._network
-        }/${tradeId}`
+        }/${tradeId}`,
+        {
+          method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
       )
 
       if (!response || !response.data)
@@ -762,8 +750,14 @@ export class Trade extends HTTPClient {
    */
   async get(networkId: string, id: string): Promise<Maybe<TradeDetail>> {
     try {
-      const { response } = await this._fetchWithAuth<ApiResponse<TradeDetail>>(
-        `${this.backendUrl()}/tradelist/getSwapDetail/${networkId}/${id}`
+      const { response } = await this._fetch<ApiResponse<TradeDetail>>(
+        `${this.backendUrl()}/tradelist/getSwapDetail/${networkId}/${id}`,
+        {
+          method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
       )
 
       if (!response) return null
@@ -818,11 +812,12 @@ export class Trade extends HTTPClient {
     }
   }): Promise<Maybe<TradeListResponse>> {
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<TradeListResponse>
-      >(
+      const { response } = await this._fetch<ApiResponse<TradeListResponse>>(
         `${this.backendUrl()}/tradelist/getFullList/${networkId}/${status}/${skip}/${take}`,
         {
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
           method: "POST",
           body: {
             collections: typeof collections !== "undefined" ? collections : [],
@@ -889,15 +884,16 @@ export class Trade extends HTTPClient {
     }
   }): Promise<Maybe<TradeListResponse>> {
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<TradeListResponse>
-      >(
+      const { response } = await this._fetch<ApiResponse<TradeListResponse>>(
         `${this.backendUrl()}/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
           typeof searchAddress !== "undefined" && searchAddress !== null
             ? `/${searchAddress}`
             : ""
         }`,
         {
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
           method: "POST",
           body: {
             collections: typeof collections !== "undefined" ? collections : [],

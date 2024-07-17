@@ -1,0 +1,13 @@
+export type AuthEvents =
+  | "__authenticate"
+  | "__onLoginComplete"
+  | "__onLoginError"
+  | "__onPrivyReady"
+  | "__onLogoutComplete"
+  | "__logout"
+  | "__onLinkAccountComplete"
+  | "__onLinkAccountError"
+  | "__link"
+  | "__onUnlinkAccountComplete"
+  | "__onUnlinkAccountError"
+  | "__unlink"

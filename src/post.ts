@@ -65,28 +65,6 @@ export class Post extends HTTPClient {
   }
 
   /**
-   * Makes a fetch request with authentication headers.
-   * @param {string | URL} url - The URL to fetch data from.
-   * @param {HTTPRequestInit} [options] - The options for the fetch request.
-   * @returns {Promise<HTTPResponse<ReturnType>>} A promise that resolves to the HTTP response.
-   */
-  private _fetchWithAuth<ReturnType = any>(
-    url: string | URL,
-    options: HTTPRequestInit = {
-      method: "GET",
-      headers: undefined,
-      body: undefined,
-    }
-  ): Promise<HTTPResponse<ReturnType>> {
-    options.headers = {
-      ...options.headers,
-      "x-api-key": `${this._apiKey}`,
-    }
-
-    return this._fetch(url, options)
-  }
-
-  /**
    * Creates a new post object and inserts it into the backend.
    * @param {P} post - The post object to be inserted, which can be either a PostObject or PostReplyObject.
    * @param {string} signedMessage - The signed message for authentication.
@@ -98,15 +76,17 @@ export class Post extends HTTPClient {
       Partial<Pick<PostItem, "parentId">>
   >(post: P, signedMessage: string): Promise<boolean> {
     try {
-      const { response, statusCode } = await this._fetchWithAuth<
-        ApiResponse<boolean>
-      >(`${this.backendUrl()}/post/insert`, {
-        method: "POST",
-        body: post,
-        headers: {
-          "nfttrader-signed-message": signedMessage,
-        },
-      })
+      const { response, statusCode } = await this._fetch<ApiResponse<boolean>>(
+        `${this.backendUrl()}/post/insert`,
+        {
+          method: "POST",
+          body: post,
+          headers: {
+            "nfttrader-signed-message": signedMessage,
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
+      )
 
       if (statusCode !== 200 || !response || !response.data) return false
 
@@ -129,9 +109,15 @@ export class Post extends HTTPClient {
     if (!id) throw new Error('Invalid parameter "id".')
 
     try {
-      const { response } = await this._fetchWithAuth<ApiResponse<PostItem>>(
+      const { response } = await this._fetch<ApiResponse<PostItem>>(
         `${this.backendUrl()}/post/${id}` +
-          `${creatorAddress ? `/${creatorAddress}` : ``}`
+          `${creatorAddress ? `/${creatorAddress}` : ``}`,
+        {
+          method: "GET",
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
+        }
       )
 
       if (!response || !response.data) return null
@@ -172,14 +158,15 @@ export class Post extends HTTPClient {
     const takeUrl = take && take > 0 ? take : 10
 
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<ListPostsResponse>
-      >(
+      const { response } = await this._fetch<ApiResponse<ListPostsResponse>>(
         `${this.backendUrl()}/replies/${id}/${skipUrl}/${takeUrl}` +
           `${creatorAddress ? `/${creatorAddress}` : ``}`,
         {
           method: "POST",
           body,
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
         }
       )
 
@@ -260,15 +247,16 @@ export class Post extends HTTPClient {
     }
 
     try {
-      const { response } = await this._fetchWithAuth<
-        ApiResponse<ListPostsResponse>
-      >(
+      const { response } = await this._fetch<ApiResponse<ListPostsResponse>>(
         `${this.backendUrl()}/posts/${skipUrl}/${takeUrl}${
           creatorAddress ? `/${creatorAddress}` : ``
         }`,
         {
           method: "POST",
           body,
+          headers: {
+            "x-api-key": `${this._apiKey}`,
+          },
         }
       )
 
@@ -319,10 +307,11 @@ export class Post extends HTTPClient {
     signedMessage: string
   ): Promise<void> {
     try {
-      await this._fetchWithAuth(`${this.backendUrl()}/post/${id}/delete`, {
+      await this._fetch(`${this.backendUrl()}/post/${id}/delete`, {
         method: "DELETE",
         headers: {
           "nfttrader-signed-message": signedMessage,
+          "x-api-key": `${this._apiKey}`,
         },
         body: {
           creatorAddress,

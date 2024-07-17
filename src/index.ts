@@ -18,3 +18,6 @@ export * from "./interfaces"
 export * from "./enums"
 //Costants
 export * from "./constants"
+
+//Loopz
+export * from "./loopz"

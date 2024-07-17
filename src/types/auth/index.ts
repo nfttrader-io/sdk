@@ -1,2 +1,5 @@
 export * from "./authclientconfig"
 export * from "./authconfig"
+export * from "./authevents"
+export * from "./authinfo"
+export * from "./linkaccountinfo"
