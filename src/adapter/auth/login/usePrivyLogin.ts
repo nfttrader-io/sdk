@@ -17,7 +17,7 @@ export const usePrivyLogin = (auth: Auth) => {
     ) => {
       const authToken = await getAccessToken()
 
-      //need to try farcaster and telegram
+      //need to try farcaster and telegram. LOO-37
       if (
         loginMethod === "apple" ||
         loginMethod === "discord" ||
@@ -27,7 +27,9 @@ export const usePrivyLogin = (auth: Auth) => {
         loginMethod === "linkedin" ||
         loginMethod === "spotify" ||
         loginMethod === "tiktok" ||
-        loginMethod === "twitter"
+        loginMethod === "twitter" ||
+        loginMethod === "farcaster" ||
+        loginMethod === "telegram"
       )
         //these services brings the user out of the current web page, so we should listen this event when the Auth object boots
         auth._emit("__onExternalProviderAuthenticated", {
