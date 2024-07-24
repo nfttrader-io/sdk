@@ -11,3 +11,6 @@ export type AuthEvents =
   | "__onUnlinkAccountComplete"
   | "__onUnlinkAccountError"
   | "__unlink"
+  | "__onExternalProviderAuthenticated"
+  | "auth"
+  | "onLoginError"

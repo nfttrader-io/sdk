@@ -17,14 +17,36 @@ export const usePrivyLogin = (auth: Auth) => {
     ) => {
       const authToken = await getAccessToken()
 
-      auth._emit("__onLoginComplete", {
-        user,
-        isNewUser,
-        wasAlreadyAuthenticated,
-        loginMethod,
-        linkedAccount,
-        authToken,
-      })
+      //need to try farcaster and telegram
+      if (
+        loginMethod === "apple" ||
+        loginMethod === "discord" ||
+        loginMethod === "github" ||
+        loginMethod === "google" ||
+        loginMethod === "instagram" ||
+        loginMethod === "linkedin" ||
+        loginMethod === "spotify" ||
+        loginMethod === "tiktok" ||
+        loginMethod === "twitter"
+      )
+        //these services brings the user out of the current web page, so we should listen this event when the Auth object boots
+        auth._emit("__onExternalProviderAuthenticated", {
+          user,
+          isNewUser,
+          wasAlreadyAuthenticated,
+          loginMethod,
+          linkedAccount,
+          authToken,
+        })
+      else
+        auth._emit("__onLoginComplete", {
+          user,
+          isNewUser,
+          wasAlreadyAuthenticated,
+          loginMethod,
+          linkedAccount,
+          authToken,
+        })
     },
     onError: (error) => {
       auth._emit("__onLoginError", error)

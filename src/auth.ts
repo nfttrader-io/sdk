@@ -36,6 +36,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     "__onLinkAccountComplete",
     "__onLinkAccountError",
     "__link",
+    "__onUnlinkAccountComplete",
+    "__onUnlinkAccountError",
+    "__unlink",
+    "__onExternalProviderAuthenticated",
+    "auth",
   ]
   private _eventsCallbacks: Array<{
     callbacks: Function[]
@@ -54,6 +59,16 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     this._apiKey = config.apiKey
     this._privyAppId = config.privyAppId
     this._privyConfig = config.privyConfig
+
+    this._on("__onExternalProviderAuthenticated", (authInfo: PrivyAuthInfo) => {
+      //aggiungere await per chiamata lato server per aggiornare backend
+      console.log(authInfo)
+      this._emit("auth")
+    })
+
+    this._on("__onLoginError", (error: PrivyErrorCode) => {
+      this._emit("onLoginError")
+    })
   }
 
   private async _handleIndexedDB() {
@@ -115,7 +130,6 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   async ready() {
     return new Promise((resolve, reject) => {
       try {
-        console.log("__onPrivyReady")
         this._on("__onPrivyReady", () => {
           resolve(true)
         })
@@ -228,6 +242,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     return new Promise((resolve, reject) => {
       try {
         this._on("__onUnlinkAccountComplete", (status: boolean) => {
+          //aggiungere await per chiamata lato server per aggiornare backend
           resolve(status)
         })
 
