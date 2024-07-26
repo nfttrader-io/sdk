@@ -1,7 +1,6 @@
 import { HTTPClient } from "./core/httpclient"
 import { GetCollectionsArgs, GetNFTArgs, GetNFTsArgs } from "./types/oracle"
 import { Collectible } from "./interfaces/oracle"
-import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { ApiResponse } from "./types/base/apiresponse"
 import { Collection } from "realm"
@@ -12,11 +11,6 @@ import { Collection } from "realm"
  * @extends HTTPClient
  */
 export class Oracle extends HTTPClient {
-  /**
-   * @property {Maybe<string>} _apiKey - Private property to store an API key, which may be a string or null.
-   */
-  private _apiKey: Maybe<string> = null
-
   /**
    * Constructor for creating an instance of a class that requires an API key for authorization.
    * @param {ApiKeyAuthorized} config - The configuration object containing the API key.
@@ -59,7 +53,7 @@ export class Oracle extends HTTPClient {
   ): Promise<Maybe<{ total: number; collections: Array<Collection> }>> {
     const url: string = `${this.backendUrl()}/collections/getCollections/${
       args.networkId ? args.networkId : `*`
-    }/${args.userAddress}/${args.searchType}/${args.skip}/${args.take}${
+    }/${args.userDid}/${args.searchType}/${args.skip}/${args.take}${
       args.queryString ? `/${args.queryString}` : ``
     }`
 

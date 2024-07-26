@@ -10,7 +10,6 @@ import {
 } from "./constants/trade"
 import events from "./constants/trade/events"
 import { HTTPClient } from "./core/httpclient"
-import { HTTPRequestInit, HTTPResponse } from "./interfaces/base"
 import { ApiKeyAuthorized, Maybe, Network } from "./types/base"
 import {
   CallbackParams,
@@ -69,10 +68,6 @@ export class Trade extends HTTPClient {
    * @property {number} _blocksNumberConfirmationRequired - The number of block confirmations required.
    */
   private _blocksNumberConfirmationRequired: number
-  /**
-   * @property { Maybe<string>} _apiKey - The api key.
-   */
-  private _apiKey: Maybe<string> = null
   /**
    * @property {number} _MIN_BLOCKS_REQUIRED - The minimum number of block confirmations required
    */
@@ -587,7 +582,7 @@ export class Trade extends HTTPClient {
         },
         headers: {
           "x-api-key": `${this._apiKey}`,
-          "nfttrader-signed-message": signature,
+          Authorization: `Bearer ${this._authToken}`,
         },
       })
     } catch (e) {
@@ -845,7 +840,7 @@ export class Trade extends HTTPClient {
    * Retrieves a list of user trades based on the provided parameters.
    * @param {object} options - An object containing the parameters for fetching user trades.
    * @param {Network | "*"} networkId - The network ID or "*" for all networks.
-   * @param {string} address - The user's address.
+   * @param {string} did - The user's did.
    * @param {string | "*"} status - The status of the trades or "*" for all statuses.
    * @param {number} skip - The number of trades to skip.
    * @param {number} take - The number of trades to retrieve.
@@ -859,7 +854,7 @@ export class Trade extends HTTPClient {
    */
   async getUserTradesList({
     networkId,
-    address,
+    did,
     status,
     skip,
     take,
@@ -870,7 +865,7 @@ export class Trade extends HTTPClient {
     order,
   }: {
     networkId: Network | "*"
-    address: string
+    did: string
     status: string | "*"
     skip: number
     take: number
@@ -885,7 +880,7 @@ export class Trade extends HTTPClient {
   }): Promise<Maybe<TradeListResponse>> {
     try {
       const { response } = await this._fetch<ApiResponse<TradeListResponse>>(
-        `${this.backendUrl()}/tradelist/getSwapList/${networkId}/${address}/${status}/${skip}/${take}${
+        `${this.backendUrl()}/tradelist/getSwapList/${networkId}/${did}/${status}/${skip}/${take}${
           typeof searchAddress !== "undefined" && searchAddress !== null
             ? `/${searchAddress}`
             : ""

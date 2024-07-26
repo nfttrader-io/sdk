@@ -11,6 +11,10 @@ export type UserInitConfig = {
    */
   id: string
   /**
+   * @property {string} did - The did of the user.
+   */
+  did: string
+  /**
    * @property {string} address - The address of the user.
    */
   address: string

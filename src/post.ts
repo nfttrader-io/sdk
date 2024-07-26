@@ -1,10 +1,8 @@
 import { ApiKeyAuthorized, Maybe } from "./types/base"
-import { HTTPResponse, HTTPRequestInit } from "./interfaces/base"
 import {
   ListPostsFilters,
   ListPostsOrder,
   ListPostsResponse,
-  ListPostsRepliesOrder,
 } from "./interfaces/post"
 import {
   PostObject,
@@ -25,11 +23,6 @@ import { ApiResponse } from "./types/base/apiresponse"
  * @extends HTTPClient
  */
 export class Post extends HTTPClient {
-  /**
-   * @type {Maybe<string>} _apiKey - The API key, which may be null.
-   */
-  private _apiKey: Maybe<string> = null
-
   /**
    * Get the POST_STATUS constant object.
    * @returns {PostStatus} The constant object POST_STATUS.
@@ -67,14 +60,13 @@ export class Post extends HTTPClient {
   /**
    * Creates a new post object and inserts it into the backend.
    * @param {P} post - The post object to be inserted, which can be either a PostObject or PostReplyObject.
-   * @param {string} signedMessage - The signed message for authentication.
    * @returns A Promise that resolves to a string or null.
    * @throws {Error} If signedMessage is required but not provided.
    */
   private async _createPost<
     P extends (PostObject | PostReplyObject) &
       Partial<Pick<PostItem, "parentId">>
-  >(post: P, signedMessage: string): Promise<boolean> {
+  >(post: P): Promise<boolean> {
     try {
       const { response, statusCode } = await this._fetch<ApiResponse<boolean>>(
         `${this.backendUrl()}/post/insert`,
@@ -82,8 +74,8 @@ export class Post extends HTTPClient {
           method: "POST",
           body: post,
           headers: {
-            "nfttrader-signed-message": signedMessage,
             "x-api-key": `${this._apiKey}`,
+            Authorization: `Bearer ${this._authToken}`,
           },
         }
       )
@@ -101,69 +93,18 @@ export class Post extends HTTPClient {
   /**
    * Retrieves a post instance with the given ID and optional creator address.
    * @param {string} id - The ID of the post instance to retrieve.
-   * @param {string} [creatorAddress] - The creator address associated with the post instance. If provided, the API checks if the creatorAddress is the creator of the post.
+   * @param {string} [did] - The creator address associated with the post instance. If provided, the API checks if the creatorAddress is the creator of the post.
    * @returns {Promise<Maybe<PostItem>>} A promise that resolves to the retrieved post instance, or null if not found.
    * @throws {Error} If the "id" parameter is invalid or if an error occurs during the retrieval process.
    */
-  async get(id: string, creatorAddress?: string): Promise<Maybe<PostItem>> {
+  async get(id: string, did?: string): Promise<Maybe<PostItem>> {
     if (!id) throw new Error('Invalid parameter "id".')
 
     try {
       const { response } = await this._fetch<ApiResponse<PostItem>>(
-        `${this.backendUrl()}/post/${id}` +
-          `${creatorAddress ? `/${creatorAddress}` : ``}`,
+        `${this.backendUrl()}/post/${id}` + `${did ? `/${did}` : ``}`,
         {
           method: "GET",
-          headers: {
-            "x-api-key": `${this._apiKey}`,
-          },
-        }
-      )
-
-      if (!response || !response.data) return null
-
-      const { data } = response
-
-      return data[0]
-    } catch (error) {
-      console.warn(error)
-    }
-
-    return null
-  }
-
-  /**
-   * Retrieves a list of replies for a specific post ID.
-   * @param {string} id - The ID of the post to retrieve replies for.
-   * @param {ListPostsRepliesOrder} [orderOptions] - The order options for listing replies.
-   * @param {number} [skip] - The number of replies to skip.
-   * @param {number} [take] - The number of replies to retrieve.
-   * @param {string} [creatorAddress] - The address of the creator for filtering replies.
-   * @returns {Promise<ListPostsResponse>} A promise that resolves to a ListPostsResponse object containing the list of replies.
-   * @throws {Error} If the "id" parameter is invalid or if an error
-   */
-  async listReplies(
-    id: string,
-    orderOptions?: ListPostsRepliesOrder,
-    skip?: number,
-    take?: number,
-    creatorAddress?: string
-  ): Promise<Maybe<ListPostsResponse>> {
-    if (!id) throw new Error('Invalid parameter "id".')
-
-    const body = {
-      orderOptions,
-    }
-    const skipUrl = skip && skip >= 0 ? skip : 0
-    const takeUrl = take && take > 0 ? take : 10
-
-    try {
-      const { response } = await this._fetch<ApiResponse<ListPostsResponse>>(
-        `${this.backendUrl()}/replies/${id}/${skipUrl}/${takeUrl}` +
-          `${creatorAddress ? `/${creatorAddress}` : ``}`,
-        {
-          method: "POST",
-          body,
           headers: {
             "x-api-key": `${this._apiKey}`,
           },
@@ -196,7 +137,7 @@ export class Post extends HTTPClient {
     orderOptions?: ListPostsOrder,
     skip?: number,
     take?: number,
-    creatorAddress?: string
+    did?: string
   ): Promise<Maybe<ListPostsResponse>> {
     const filtersInput = filtersOptions ? { ...filtersOptions } : null
 
@@ -249,7 +190,7 @@ export class Post extends HTTPClient {
     try {
       const { response } = await this._fetch<ApiResponse<ListPostsResponse>>(
         `${this.backendUrl()}/posts/${skipUrl}/${takeUrl}${
-          creatorAddress ? `/${creatorAddress}` : ``
+          did ? `/${did}` : ``
         }`,
         {
           method: "POST",
@@ -275,42 +216,25 @@ export class Post extends HTTPClient {
   /**
    * Creates a new post using the provided post object and signed message.
    * @param {PostObject} post - The post object containing the post data.
-   * @param {string} signedMessage - The signed message associated with the post.
    * @returns A new post created using the provided data.
    */
   async create(post: PostObject, signedMessage: string) {
-    return this._createPost(post, signedMessage)
-  }
-
-  /**
-   * Reply to a post with the given reply object and signed message.
-   * @param {PostReplyObject} reply - The reply object containing the post details.
-   * @param {string} signedMessage - The signed message for authentication.
-   * @returns A promise that resolves to the created post.
-   */
-  async reply(reply: PostReplyObject, signedMessage: string) {
-    const type: number = POST_TYPE.R1
-    return this._createPost({ ...reply, type }, signedMessage)
+    return this._createPost(post)
   }
 
   /**
    * Deletes a post with the given ID.
    * @param {string} id - The ID of the post to delete.
    * @param {string} creatorAddress - The address of the creator of the post.
-   * @param {string} [signedMessage] - The signed message for authentication.
    * @returns {Promise<void>} A promise that resolves when the post is successfully deleted.
    * @throws {Error} If the signedMessage is required but not provided.
    */
-  async delete(
-    id: string,
-    creatorAddress: string,
-    signedMessage: string
-  ): Promise<void> {
+  async delete(id: string, creatorAddress: string): Promise<void> {
     try {
       await this._fetch(`${this.backendUrl()}/post/${id}/delete`, {
         method: "DELETE",
         headers: {
-          "nfttrader-signed-message": signedMessage,
+          Authorization: `Bearer ${this._authToken}`,
           "x-api-key": `${this._apiKey}`,
         },
         body: {

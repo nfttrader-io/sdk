@@ -182,7 +182,7 @@ export class Message
         input: {
           messageId: this.id,
           reactionContent: Crypto.encryptStringOrFail(
-            this.findPublicKeyById(args.conversationId),
+            "", //this.findPublicKeyById(args.conversationId),
             args.reaction
           ),
           conversationId: args.conversationId,
@@ -264,7 +264,7 @@ export class Message
       input: {
         messageId: this.id,
         content: Crypto.encryptStringOrFail(
-          this.findPublicKeyById(args.conversationId),
+          "", //this.findPublicKeyById(args.conversationId),
           args.content
         ),
         conversationId: args.conversationId,
@@ -360,7 +360,7 @@ export class Message
       {
         input: {
           reactionContent: Crypto.encryptStringOrFail(
-            this.findPublicKeyById(args.conversationId),
+            "", //this.findPublicKeyById(args.conversationId),
             args.reaction
           ),
           messageId: this.id,
@@ -669,6 +669,7 @@ export class Message
       ...this._parentConfig!,
       id: response.user!.id,
       username: response.user!.username ? response.user!.username : null,
+      did: response.user!.did,
       address: response.user!.address,
       email: response.user!.email ? response.user!.email : null,
       bio: response.user!.bio ? response.user!.bio : null,

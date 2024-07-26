@@ -5,7 +5,7 @@ type GetCollectionsArgs = {
   /**
    * @property {string} userAddress - The address of the user performing the search.
    */
-  userAddress: string
+  userDid: string
   /**
    * @property {"NFT" | "TKN" | "ALL"} searchType - The type of search to perform ("NFT", "TKN", or "ALL").
    */

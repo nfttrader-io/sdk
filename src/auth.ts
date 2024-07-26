@@ -16,6 +16,9 @@ import { PrivyClientConfig } from "@privy-io/react-auth"
 import { AuthInternalEvents } from "./interfaces/auth/authinternalevents"
 import { PrivyErrorCode } from "@src/enums/adapter/auth/privyerrorcode"
 import { LoginMethod, PrivyAuthInfo } from "./types/adapter"
+import { Trade } from "./trade"
+import { Post } from "./post"
+import { Oracle } from "./oracle"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -24,7 +27,6 @@ import { LoginMethod, PrivyAuthInfo } from "./types/adapter"
  */
 export class Auth extends HTTPClient implements AuthInternalEvents {
   private _storage?: IndexedDBStorage | RealmStorage
-  private _apiKey: string
   private _privyAppId: string
   private _privyConfig?: PrivyClientConfig
   private _eventsMap: Array<AuthEvents> = [
@@ -47,6 +49,9 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     callbacks: Function[]
     eventName: AuthEvents
   }> = []
+  private _tradeRef: Maybe<Trade> = null
+  private _postRef: Maybe<Post> = null
+  private _oracleRef: Maybe<Oracle> = null
 
   /**
    * Constructs a new instance of Auth with the provided configuration.
@@ -278,6 +283,10 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
               reject("Access not granted")
               return
             }
+
+            this._tradeRef?.setAuthToken(authInfo.authToken)
+            this._oracleRef?.setAuthToken(authInfo.authToken)
+            this._postRef?.setAuthToken(authInfo.authToken)
 
             resolve({ isConnected: true, ...authInfo })
           } catch (error) {

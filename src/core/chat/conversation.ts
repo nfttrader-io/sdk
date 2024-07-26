@@ -582,7 +582,7 @@ export class Conversation
     >("sendMessage", sendMessage, "_mutation() -> sendMessage()", {
       input: {
         content: Crypto.encryptStringOrFail(
-          this.findPublicKeyById(this.id),
+          "", //this.findPublicKeyById(this.id),
           args.content
         ),
         conversationId: this.id,
@@ -769,23 +769,23 @@ export class Conversation
         input: {
           conversationId: this.id,
           description: Crypto.encryptStringOrFail(
-            this.findPublicKeyById(this.id),
+            "", //this.findPublicKeyById(this.id),
             args.description
           ),
           imageURL: new URL(
             Crypto.encryptStringOrFail(
-              this.findPublicKeyById(this.id),
+              "", //this.findPublicKeyById(this.id),
               args.imageURL
             )
           ).toString(),
           bannerImageURL: new URL(
             Crypto.encryptStringOrFail(
-              this.findPublicKeyById(this.id),
+              "", //this.findPublicKeyById(this.id),
               args.bannerImageURL
             )
           ).toString(),
           name: Crypto.encryptStringOrFail(
-            this.findPublicKeyById(this.id),
+            "", //this.findPublicKeyById(this.id),
             args.name
           ),
           settings: JSON.stringify(args.settings),
@@ -1004,6 +1004,7 @@ export class Conversation
       ...this._parentConfig!,
       id: response.owner!.id,
       username: response.owner!.username ? response.owner!.username : null,
+      did: response.owner!.did,
       address: response.owner!.address,
       email: response.owner!.email ? response.owner!.email : null,
       bio: response.owner!.bio ? response.owner!.bio : null,

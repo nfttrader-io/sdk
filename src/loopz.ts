@@ -48,12 +48,6 @@ export class Loopz {
       mobileOptions: typeof window !== "undefined" ? undefined : {},
     })
 
-    Loopz._auth = new Auth({
-      apiKey: config.apiKey,
-      privyAppId: config.privyAppId,
-      privyConfig: config.privyClientConfig,
-      storage: config.storage,
-    })
     Loopz._oracle = new Oracle({
       apiKey: config.apiKey,
     })
@@ -62,6 +56,16 @@ export class Loopz {
     })
     Loopz._trade = new Trade({
       apiKey: config.apiKey,
+    })
+
+    Loopz._auth = new Auth({
+      apiKey: config.apiKey,
+      privyAppId: config.privyAppId,
+      privyConfig: config.privyClientConfig,
+      oracle: Loopz._oracle,
+      post: Loopz._post,
+      trade: Loopz._trade,
+      storage: config.storage,
     })
 
     Loopz._privyAdapter.render(Loopz._auth, Loopz._trade)

@@ -1,3 +1,4 @@
+import { Maybe } from "@src/types"
 import { HTTPRequestInit, HTTPResponse } from "../interfaces/base"
 
 /**
@@ -6,6 +7,17 @@ import { HTTPRequestInit, HTTPResponse } from "../interfaces/base"
  */
 export class HTTPClient {
   private _devMode: "development" | "production" = "production"
+
+  /**
+   * @type {Maybe<string>} _apiKey - The API key, which may be null.
+   */
+  protected _apiKey: Maybe<string> = null
+
+  /**
+   * @type {Maybe<string>} _authToken - The JWT token, which may be null.
+   */
+
+  protected _authToken: Maybe<string> = null
 
   /**
    * Fetches data from a specified URL using XMLHttpRequest.
@@ -179,5 +191,9 @@ export class HTTPClient {
     return `https://${
       this._devMode === "development" ? `develop.api.` : `api.`
     }nfttrader.io`
+  }
+
+  setAuthToken(authToken: string): void {
+    this._authToken = authToken
   }
 }

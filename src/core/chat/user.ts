@@ -36,6 +36,10 @@ export class User
    */
   readonly id: string
   /**
+   * @property did - The did of the user.
+   */
+  readonly did: string
+  /**
    * @property address - The address of the user.
    */
   readonly address: string
@@ -138,6 +142,7 @@ export class User
     })
 
     this.id = config.id
+    this.did = config.did
     this.address = config.address
     this.username = config.username
     this.email = config.email
@@ -190,6 +195,7 @@ export class User
       ...this._parentConfig!,
       id: response.id,
       username: response.username ? response.username : null,
+      did: response.did,
       address: response.address,
       email: response.email ? response.email : null,
       bio: response.bio ? response.bio : null,
@@ -257,6 +263,7 @@ export class User
       ...this._parentConfig!,
       id: response.id,
       username: response.username ? response.username : null,
+      did: response.did,
       address: response.address,
       email: response.email ? response.email : null,
       bio: response.bio ? response.bio : null,
@@ -330,6 +337,7 @@ export class User
             blockedUser: new User({
               ...this._parentConfig!,
               id: item.blockedUser.id,
+              did: item.blockedUser.did,
               username: item.blockedUser.username
                 ? item.blockedUser.username
                 : null,
