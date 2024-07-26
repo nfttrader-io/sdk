@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "target": "ES5",
+    "target": "ES2015",
     "module": "ESNext",
     "declaration": true,
     "sourceMap": true,
@@ -18,7 +18,8 @@
     },
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "jsx": "react"
+    "jsx": "react",
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/test/*", "dist"]

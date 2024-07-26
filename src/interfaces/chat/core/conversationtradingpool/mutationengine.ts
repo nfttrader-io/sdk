@@ -1,5 +1,5 @@
 import { ConversationTradingPool, QIError } from "../../../../core/chat"
-import { RequestTradeArgs } from "../../schema/args"
+import { RequestTradeArgs } from "@src/types"
 
 /**
  * Interface for a Conversation Trading Pool Mutation Engine, which defines methods for
