@@ -1,0 +1,52 @@
+import { Maybe } from "../base"
+
+export type AuthParams = {
+  did: string
+  walletAddress: string
+  walletConnectorType: string
+  walletImported: boolean
+  walletRecoveryMethod: string
+  walletClientType: string
+  appleSubject: Maybe<string>
+  appleEmail: Maybe<string>
+  discordSubject: Maybe<string>
+  discordEmail: Maybe<string>
+  discordUsername: Maybe<string>
+  farcasterFid: Maybe<number>
+  farcasterDisplayName: Maybe<string>
+  farcasterOwnerAddress: Maybe<string>
+  farcasterPfp: Maybe<string>
+  farcasterSignerPublicKey: Maybe<string>
+  farcasterUrl: Maybe<string>
+  farcasterUsername: Maybe<string>
+  githubSubject: Maybe<string>
+  githubEmail: Maybe<string>
+  githubName: Maybe<string>
+  githubUsername: Maybe<string>
+  googleEmail: Maybe<string>
+  googleName: Maybe<string>
+  googleSubject: Maybe<string>
+  instagramSubject: Maybe<string>
+  instagramUsername: Maybe<string>
+  linkedinEmail: Maybe<string>
+  linkedinName: Maybe<string>
+  linkedinSubject: Maybe<string>
+  linkedinVanityName: Maybe<string>
+  spotifyEmail: Maybe<string>
+  spotifyName: Maybe<string>
+  spotifySubject: Maybe<string>
+  telegramFirstName: Maybe<string>
+  telegramLastName: Maybe<string>
+  telegramPhotoUrl: Maybe<string>
+  telegramUserId: Maybe<string>
+  telegramUsername: Maybe<string>
+  tiktokName: Maybe<string>
+  tiktokSubject: Maybe<string>
+  tiktokUsername: Maybe<string>
+  twitterName: Maybe<string>
+  twitterSubject: Maybe<string>
+  twitterProfilePictureUrl: Maybe<string>
+  twitterUsername: Maybe<string>
+  phone: Maybe<string>
+  email: Maybe<string>
+}

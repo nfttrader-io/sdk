@@ -4,6 +4,7 @@ import {
   AuthConfig,
   AuthEvents,
   AuthInfo,
+  AuthParams,
   LinkAccountInfo,
 } from "./types/auth"
 import { ApiResponse } from "./types/base/apiresponse"
@@ -86,6 +87,115 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
   private async _handleRealm() {}
 
+  private _formatAuthParams(authInfo: PrivyAuthInfo): AuthParams {
+    return {
+      did: authInfo.user.id,
+      walletAddress: authInfo.user.wallet!.address,
+      walletConnectorType: authInfo.user.wallet!.connectorType!,
+      walletImported: authInfo.user.wallet!.imported
+        ? authInfo.user.wallet!.imported
+        : false,
+      walletRecoveryMethod: authInfo.user.wallet!.recoveryMethod
+        ? authInfo.user.wallet!.recoveryMethod
+        : "",
+      walletClientType: authInfo.user.wallet!.walletClientType
+        ? authInfo.user.wallet!.walletClientType
+        : "",
+      appleSubject: authInfo.user.apple ? authInfo.user.apple.subject : null,
+      appleEmail: authInfo.user.apple ? authInfo.user.apple.email : null,
+      discordSubject: authInfo.user.discord
+        ? authInfo.user.discord.subject
+        : null,
+      discordEmail: authInfo.user.discord ? authInfo.user.discord.email : null,
+      discordUsername: authInfo.user.discord
+        ? authInfo.user.discord.username
+        : null,
+      farcasterFid: authInfo.user.farcaster
+        ? authInfo.user.farcaster.fid
+        : null,
+      farcasterDisplayName: authInfo.user.farcaster
+        ? authInfo.user.farcaster.displayName
+        : null,
+      farcasterOwnerAddress: authInfo.user.farcaster
+        ? authInfo.user.farcaster.ownerAddress
+        : null,
+      farcasterPfp: authInfo.user.farcaster
+        ? authInfo.user.farcaster.pfp
+        : null,
+      farcasterSignerPublicKey: authInfo.user.farcaster
+        ? authInfo.user.farcaster.signerPublicKey
+        : null,
+      farcasterUrl: authInfo.user.farcaster
+        ? authInfo.user.farcaster.url
+        : null,
+      farcasterUsername: authInfo.user.farcaster
+        ? authInfo.user.farcaster.username
+        : null,
+      githubSubject: authInfo.user.github ? authInfo.user.github.subject : null,
+      githubEmail: authInfo.user.github ? authInfo.user.github.email : null,
+      githubName: authInfo.user.github ? authInfo.user.github.name : null,
+      githubUsername: authInfo.user.github
+        ? authInfo.user.github.username
+        : null,
+      googleEmail: authInfo.user.google ? authInfo.user.google.email : null,
+      googleName: authInfo.user.google ? authInfo.user.google.name : null,
+      googleSubject: authInfo.user.google ? authInfo.user.google.subject : null,
+      instagramSubject: authInfo.user.instagram
+        ? authInfo.user.instagram.subject
+        : null,
+      instagramUsername: authInfo.user.instagram
+        ? authInfo.user.instagram.username
+        : null,
+      linkedinEmail: authInfo.user.linkedin
+        ? authInfo.user.linkedin.email
+        : null,
+      linkedinName: authInfo.user.linkedin ? authInfo.user.linkedin.name : null,
+      linkedinSubject: authInfo.user.linkedin
+        ? authInfo.user.linkedin.subject
+        : null,
+      linkedinVanityName: authInfo.user.linkedin
+        ? authInfo.user.linkedin.vanityName
+        : null,
+      spotifyEmail: authInfo.user.spotify ? authInfo.user.spotify.email : null,
+      spotifyName: authInfo.user.spotify ? authInfo.user.spotify.name : null,
+      spotifySubject: authInfo.user.spotify
+        ? authInfo.user.spotify.subject
+        : null,
+      telegramFirstName: authInfo.user.telegram
+        ? authInfo.user.telegram.firstName
+        : null,
+      telegramLastName: authInfo.user.telegram
+        ? authInfo.user.telegram.lastName
+        : null,
+      telegramPhotoUrl: authInfo.user.telegram
+        ? authInfo.user.telegram.photoUrl
+        : null,
+      telegramUserId: authInfo.user.telegram
+        ? authInfo.user.telegram.telegramUserId
+        : null,
+      telegramUsername: authInfo.user.telegram
+        ? authInfo.user.telegram.username
+        : null,
+      tiktokName: authInfo.user.tiktok ? authInfo.user.tiktok.name : null,
+      tiktokSubject: authInfo.user.tiktok ? authInfo.user.tiktok.subject : null,
+      tiktokUsername: authInfo.user.tiktok
+        ? authInfo.user.tiktok.username
+        : null,
+      twitterName: authInfo.user.twitter ? authInfo.user.twitter.name : null,
+      twitterSubject: authInfo.user.twitter
+        ? authInfo.user.twitter.subject
+        : null,
+      twitterProfilePictureUrl: authInfo.user.twitter
+        ? authInfo.user.twitter.profilePictureUrl
+        : null,
+      twitterUsername: authInfo.user.twitter
+        ? authInfo.user.twitter.username
+        : null,
+      phone: authInfo.user.phone ? authInfo.user.phone.number : null,
+      email: authInfo.user.email ? authInfo.user.email.address : null,
+    }
+  }
+
   _on(eventName: AuthEvents, callback: Function) {
     const index = this._eventsCallbacks.findIndex((item) => {
       return item.eventName === eventName
@@ -144,7 +254,31 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       try {
         this._on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
           try {
-            //da aggiungere chiamata a backend await ....
+            const { response } = await this._fetch<
+              ApiResponse<{ granted: boolean }>
+            >(`${this.backendUrl()}/auth`, {
+              method: "POST",
+              body: {
+                ...this._formatAuthParams(authInfo),
+              },
+              headers: {
+                "x-api-key": `${this._apiKey}`,
+                Authorization: `Bearer ${authInfo.authToken}`,
+              },
+            })
+
+            if (!response || !response.data) {
+              reject("Invalid response")
+              return
+            }
+
+            const { granted } = response.data[0]
+
+            if (!granted) {
+              reject("Access not granted")
+              return
+            }
+
             resolve({ isConnected: true, ...authInfo })
           } catch (error) {
             reject(error)

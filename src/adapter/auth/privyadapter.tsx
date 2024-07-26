@@ -40,6 +40,9 @@ const PrivyContext: React.FC<PrivyAdapterProps> = ({
     <PrivyProvider
       appId={appId}
       config={{
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets",
+        },
         ...config,
       }}
     >
