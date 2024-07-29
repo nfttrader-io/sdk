@@ -1,4 +1,4 @@
-//import forge = require("node-forge")
+import forge from "node-forge"
 
 /**
  * Represents an item containing an ID and a RSA Key Pair generated using the node-forge library.
@@ -11,5 +11,5 @@ export type KeyPairItem = {
   /**
    * @property {forge.pki.rsa.KeyPair} keypair - the key pair associated.
    */
-  keypair: [] //forge.pki.rsa.KeyPair
+  keypair: forge.pki.rsa.KeyPair
 }

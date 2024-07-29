@@ -1,7 +1,7 @@
 import { KeyPairItem } from "../../../types/chat/keypairitem"
 import { SubscriptionGarbage } from "../../../types/chat/subscriptiongarbage"
 import { Maybe } from "../../../types/base"
-//import forge = require("node-forge")
+import forge from "node-forge"
 
 /**
  * Interface for an Engine that defines methods for connecting, reconnecting, collecting garbage,
@@ -17,14 +17,13 @@ export interface IEngine {
   getApiKey(): Maybe<string>
   getApiURL(): Maybe<string>
   getRealtimeApiURL(): Maybe<string>
-  addKeyPairItem(newItem: string): void
-  //addKeyPairItem(newItem: KeyPairItem): Array<KeyPairItem>
+  addKeyPairItem(newItem: KeyPairItem): Array<KeyPairItem>
   removeKeyPairItem(id: string): Array<KeyPairItem>
   setKeyPairMap(map: Array<KeyPairItem>): void
   getKeyPairMap(): Array<KeyPairItem>
-  //findPublicKeyById(id: string): Maybe<forge.pki.rsa.PublicKey>
-  findPrivateKeyById(id: Maybe<string>): Maybe<string> //Maybe<forge.pki.rsa.PrivateKey>
-  //findKeyPairById(id: string): Maybe<forge.pki.rsa.KeyPair>
-  //setUserKeyPair(userKeyPair: forge.pki.rsa.KeyPair): void
-  //getUserKeyPair(): Maybe<forge.pki.rsa.KeyPair>
+  findPublicKeyById(id: string): Maybe<forge.pki.rsa.PublicKey>
+  findPrivateKeyById(id: Maybe<string>): Maybe<forge.pki.rsa.PrivateKey>
+  findKeyPairById(id: string): Maybe<forge.pki.rsa.KeyPair>
+  setUserKeyPair(userKeyPair: forge.pki.rsa.KeyPair): void
+  getUserKeyPair(): Maybe<forge.pki.rsa.KeyPair>
 }

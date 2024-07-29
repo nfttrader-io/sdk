@@ -589,51 +589,45 @@ export class Chat
       "_mutation() -> createConversationGroup()",
       {
         input: {
-          name: "", //Crypto.encrypt(keypair!.publicKey, args.name),
-          description: "", //Crypto.encrypt(keypair!.publicKey, args.description),
-          bannerImageURL: "", // Crypto.encrypt(
-          //keypair!.publicKey,
-          //args.bannerImageURL
-          //),
-          imageURL: "", //Crypto.encrypt(keypair!.publicKey, args.imageURL),
+          name: Crypto.encrypt(keypair!.publicKey, args.name),
+          description: Crypto.encrypt(keypair!.publicKey, args.description),
+          bannerImageURL: Crypto.encrypt(
+            keypair!.publicKey,
+            args.bannerImageURL
+          ),
+          imageURL: Crypto.encrypt(keypair!.publicKey, args.imageURL),
         },
       }
     )
 
     if (response instanceof QIError) return response
 
-    /*this.addKeyPairItem({
+    this.addKeyPairItem({
       id: response.id,
       keypair: keypair!,
-    })*/
+    })
 
     const conversationGroup: {
-      keypairItem: null //KeyPairItem
+      keypairItem: KeyPairItem
       conversation: Conversation
     } = {
-      /*keypairItem: {
+      keypairItem: {
         id: response.id,
-        keypair: ""
-      },*/
-      keypairItem: null,
+        keypair: keypair!,
+      },
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.decrypt("" /*keypair!.privateKey*/, response.name),
+        name: Crypto.decrypt(keypair!.privateKey, response.name),
         description: response.description
-          ? Crypto.decrypt("" /*keypair!.privateKey*/, response.description)
+          ? Crypto.decrypt(keypair!.privateKey, response.description)
           : null,
         imageURL: response.imageURL
-          ? new URL(
-              Crypto.decrypt("" /*keypair!.privateKey*/, response.imageURL)
-            )
+          ? new URL(Crypto.decrypt(keypair!.privateKey, response.imageURL))
           : null,
         bannerImageURL: response.bannerImageURL
           ? new URL(
-              Crypto.decrypt(
-                "" /*keypair!.privateKey*/,
-                response.bannerImageURL
-              )
+              Crypto.decrypt(keypair!.privateKey, response.bannerImageURL)
             )
           : null,
         settings: response.settings ? JSON.parse(response.settings) : null,
@@ -669,16 +663,13 @@ export class Chat
       "_mutation() -> createConversationOneToOne()",
       {
         input: {
-          name: Crypto.encrypt("", /*keypair!.publicKey */ args.name),
-          description: Crypto.encrypt(
-            "",
-            /*keypair!.publicKey */ args.description
-          ),
+          name: Crypto.encrypt(keypair!.publicKey, args.name),
+          description: Crypto.encrypt(keypair!.publicKey, args.description),
           bannerImageURL: Crypto.encrypt(
-            "", //keypair!.publicKey,
+            keypair!.publicKey,
             args.bannerImageURL
           ),
-          imageURL: Crypto.encrypt("", /*keypair!.publicKey */ args.imageURL),
+          imageURL: Crypto.encrypt(keypair!.publicKey, args.imageURL),
         },
       }
     )
@@ -689,30 +680,22 @@ export class Chat
       keypairItem: KeyPairItem | null
       conversation: Conversation
     } = {
-      /*keypairItem: {
+      keypairItem: {
         id: response.id,
         keypair: keypair!,
-      },*/
-      keypairItem: null,
+      },
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.encrypt("", /*keypair!.publicKey */ response.name),
+        name: Crypto.encrypt(keypair!.publicKey, response.name),
         description: response.description
-          ? Crypto.encrypt("", /*keypair!.publicKey */ response.description)
+          ? Crypto.encrypt(keypair!.publicKey, response.description)
           : null,
         imageURL: response.imageURL
-          ? new URL(
-              Crypto.encrypt("", /*keypair!.publicKey */ response.imageURL)
-            )
+          ? new URL(Crypto.encrypt(keypair!.publicKey, response.imageURL))
           : null,
         bannerImageURL: response.bannerImageURL
-          ? new URL(
-              Crypto.encrypt(
-                "",
-                /*keypair!.publicKey */ response.bannerImageURL
-              )
-            )
+          ? new URL(Crypto.encrypt(keypair!.publicKey, response.bannerImageURL))
           : null,
         settings: response.settings ? JSON.parse(response.settings) : null,
         membersIds: response.membersIds ? response.membersIds : null,
@@ -3862,9 +3845,5 @@ export class Chat
     })
 
     return { unsubscribe, uuid }
-  }
-
-  private findPublicKeyById(id: string): string {
-    return ""
   }
 }

@@ -1,4 +1,4 @@
-//import forge = require("node-forge")
+import forge from "node-forge"
 import { Maybe } from "../../types/base"
 
 /**
@@ -13,10 +13,8 @@ export class Crypto {
    * @returns {boolean} True if the keys can successfully encrypt and decrypt a test message, false otherwise.
    */
   static verifyKeys(
-    //publicKey: forge.pki.rsa.PublicKey,
-    //privateKey: forge.pki.rsa.PrivateKey
-    publicKey: string,
-    privateKey: string
+    publicKey: forge.pki.rsa.PublicKey,
+    privateKey: forge.pki.rsa.PrivateKey
   ): boolean {
     const testMessage = "Test message"
     const encrypted: string = Crypto.encrypt(publicKey, testMessage)
@@ -33,16 +31,13 @@ export class Crypto {
    * @param {string} message - The message to be encrypted.
    * @returns {string} The encrypted message encoded in base64 format.
    */
-  static encrypt(
-    publicKey: string /*forge.pki.rsa.PublicKey*/,
-    message: string
-  ): string {
-    /*const encrypted = publicKey.encrypt(
+  static encrypt(publicKey: forge.pki.rsa.PublicKey, message: string): string {
+    const encrypted = publicKey.encrypt(
       forge.util.encodeUtf8(message),
       "RSA-OAEP"
     )
-    return forge.util.encode64(encrypted)*/
-    return ""
+
+    return forge.util.encode64(encrypted)
   }
 
   /**
@@ -52,15 +47,13 @@ export class Crypto {
    * @returns {string} The decrypted string.
    */
   static decrypt(
-    /*privateKey: forge.pki.rsa.PrivateKey,
-    encrypted: string*/
-    privateKey: string,
+    privateKey: forge.pki.rsa.PrivateKey,
     encrypted: string
   ): string {
-    /*const decodedEncrypted = forge.util.decode64(encrypted)
+    const decodedEncrypted = forge.util.decode64(encrypted)
     const decrypted = privateKey.decrypt(decodedEncrypted, "RSA-OAEP")
-    return forge.util.decodeUtf8(decrypted)*/
-    return ""
+
+    return forge.util.decodeUtf8(decrypted)
   }
 
   /**
@@ -68,12 +61,10 @@ export class Crypto {
    * @param {("STANDARD" | "HIGH")} security - The security level for key generation, either "STANDARD" or "HIGH".
    * @returns {Promise<forge.pki.rsa.KeyPair>} A promise that resolves with the generated RSA key pair.
    */
-  static /*async*/ generateKeys(
+  static async generateKeys(
     security: "STANDARD" | "HIGH"
-  ): string /*Promise<Maybe<forge.pki.rsa.KeyPair>>*/ {
-    return ""
-
-    /*return new Promise((resolve, reject) => {
+  ): Promise<Maybe<forge.pki.rsa.KeyPair>> {
+    return new Promise((resolve, reject) => {
       if (security !== "STANDARD" && security !== "HIGH") reject(null)
 
       forge.pki.rsa.generateKeyPair(
@@ -87,7 +78,7 @@ export class Crypto {
           }
         }
       )
-    })*/
+    })
   }
 
   /**
@@ -100,8 +91,8 @@ export class Crypto {
   static /*async*/ generateKeyPairFromPem(
     publicKeyPem: string,
     privateKeyPem: string
-  ): string /*Promise<Maybe<forge.pki.rsa.KeyPair>>*/ {
-    /*return new Promise((resolve, reject) => {
+  ): Promise<Maybe<forge.pki.rsa.KeyPair>> {
+    return new Promise((resolve, reject) => {
       try {
         const publicKey = forge.pki.publicKeyFromPem(publicKeyPem)
         const privateKey = forge.pki.privateKeyFromPem(privateKeyPem)
@@ -116,8 +107,7 @@ export class Crypto {
           "E2E: an exception occured when i tried to convert the public key and the private key pem strings. Please provide a valid pair of strings."
         )
       }
-    })*/
-    return ""
+    })
   }
 
   /**
@@ -128,16 +118,15 @@ export class Crypto {
    * @throws Error if the private key is not set up correctly.
    */
   static decryptStringOrFail(
-    privateKey: string, //Maybe<forge.pki.rsa.PrivateKey>,
+    privateKey: Maybe<forge.pki.rsa.PrivateKey>,
     content: string
-  ) {
+  ): string {
     if (!privateKey)
       throw new Error(
         "An exception occured during the decryption of a message. The private key is not setup correctly."
       )
 
-    //return Crypto.decrypt(privateKey, content)
-    return ""
+    return Crypto.decrypt(privateKey, content)
   }
 
   /**
@@ -148,9 +137,7 @@ export class Crypto {
    * @throws Error if the public key is not provided.
    */
   static encryptStringOrFail(
-    //publicKey: Maybe<forge.pki.rsa.PublicKey>,
-    //content: string
-    publicKey: string,
+    publicKey: Maybe<forge.pki.rsa.PublicKey>,
     content: string
   ) {
     if (!publicKey)
@@ -162,27 +149,23 @@ export class Crypto {
   }
 
   static generateRandomString(): string {
-    return ""
-    //return forge.random.getBytesSync(32)
+    return forge.random.getBytesSync(32)
   }
 
   static generateBase64Key_AES256(): string {
-    return ""
-    //const key = forge.random.getBytesSync(32) // 32 bytes = 256 bits for AES-256
+    const key = forge.random.getBytesSync(32) // 32 bytes = 256 bits for AES-256
 
-    //return forge.util.encode64(key)
+    return forge.util.encode64(key)
   }
 
   static generateBase64IV_128Bit(): string {
-    return ""
-    //const iv = forge.random.getBytesSync(16) // 16 bytes = 128 bits
+    const iv = forge.random.getBytesSync(16) // 16 bytes = 128 bits
 
-    //return forge.util.encode64(iv)
+    return forge.util.encode64(iv)
   }
 
   static generateString_128Bit(): string {
-    return ""
-    //return forge.random.getBytesSync(16) // 16 bytes = 128 bits
+    return forge.random.getBytesSync(16) // 16 bytes = 128 bits
   }
 
   static encryptAES_CBC(
@@ -191,7 +174,7 @@ export class Crypto {
     base64IV: string
   ): string {
     return ""
-    /*const key = forge.util.decode64(base64Key)
+    const key = forge.util.decode64(base64Key)
     const iv = forge.util.decode64(base64IV)
     const cipher = forge.cipher.createCipher("AES-CBC", key)
     cipher.start({ iv })
@@ -199,7 +182,7 @@ export class Crypto {
     cipher.finish()
     const encrypted = cipher.output.getBytes()
 
-    return forge.util.encode64(encrypted)*/
+    return forge.util.encode64(encrypted)
   }
 
   static decryptAES_CBC(
@@ -208,14 +191,14 @@ export class Crypto {
     base64IV: string
   ): string {
     return ""
-    /*const key = forge.util.decode64(base64Key)
+    const key = forge.util.decode64(base64Key)
     const iv = forge.util.decode64(base64IV)
     const decipher = forge.cipher.createDecipher("AES-CBC", key)
     decipher.start({ iv })
     decipher.update(forge.util.createBuffer(forge.util.decode64(encryptedText)))
     decipher.finish()
 
-    return decipher.output.toString()*/
+    return decipher.output.toString()
   }
 
   static encryptSHA256_IV(
@@ -223,13 +206,13 @@ export class Crypto {
     hash256Key: string,
     base64IV: string
   ): string {
-    /*const cipher = forge.cipher.createCipher("AES-CBC", hash256Key)
-    
+    const cipher = forge.cipher.createCipher("AES-CBC", hash256Key)
+
     cipher.start({ iv: forge.util.decode64(base64IV) })
     cipher.update(forge.util.createBuffer(text))
     cipher.finish()
 
-    return forge.util.encode64(cipher.output.getBytes())*/
+    return forge.util.encode64(cipher.output.getBytes())
     return ""
   }
 
@@ -239,37 +222,30 @@ export class Crypto {
     base64IV: string
   ): string {
     return ""
-    /*const decipher = forge.cipher.createDecipher("AES-CBC", hash256Key)
-    
+    const decipher = forge.cipher.createDecipher("AES-CBC", hash256Key)
+
     decipher.start({ iv: forge.util.decode64(base64IV) })
     decipher.update(forge.util.createBuffer(forge.util.decode64(encryptedText)))
     decipher.finish()
 
     return decipher.output.toString()
-    */
   }
 
-  static convertRSAPublicKeyToPem(
-    publicKey: string /*publicKey: forge.pki.rsa.PublicKey*/
-  ): string {
-    return ""
-    //return forge.pki.publicKeyToPem(publicKey)
+  static convertRSAPublicKeyToPem(publicKey: forge.pki.rsa.PublicKey): string {
+    return forge.pki.publicKeyToPem(publicKey)
   }
 
   static convertRSAPrivateKeyToPem(
-    //privateKey: forge.pki.rsa.PrivateKey
-    privateKey: string
+    privateKey: forge.pki.rsa.PrivateKey
   ): string {
-    return ""
-    //return forge.pki.privateKeyToPem(privateKey)
+    return forge.pki.privateKeyToPem(privateKey)
   }
 
   static generateSHA256Hash(text: string): string {
-    /*const md = forge.md.sha256.create()
+    const md = forge.md.sha256.create()
 
     md.update(text)
-    
-    return md.digest().getBytes()*/
-    return ""
+
+    return md.digest().getBytes()
   }
 }

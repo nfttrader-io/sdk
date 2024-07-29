@@ -1,4 +1,4 @@
-//import forge = require("node-forge")
+import forge from "node-forge"
 import { Maybe } from "../../../types/base"
 import { KeyPairItem } from "../../../types/chat/keypairitem"
 
@@ -26,7 +26,7 @@ export type EngineInitConfig = {
   /**
    * @property {Maybe<forge.pki.rsa.KeyPair>} userKeyPair - The user's RSA key pair, if available.
    */
-  userKeyPair: any //Maybe<forge.pki.rsa.KeyPair>
+  userKeyPair: Maybe<forge.pki.rsa.KeyPair>
   /**
    * @property {Maybe<Array<KeyPairItem>>} keyPairsMap - An array of key pair items, if available.
    */
