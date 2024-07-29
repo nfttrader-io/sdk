@@ -11,7 +11,7 @@ import { ApiResponse } from "./types/base/apiresponse"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { Crypto } from "./core"
 import { Account, IndexedDBStorage, RealmStorage } from "./core/app"
-import { CLIENT_STORE_NAME_LOCAL_KEYS } from "./constants/app"
+import { CLIENT_TABLE_NAME_LOCAL_KEYS } from "./constants/app"
 import { PrivyClientConfig } from "@privy-io/react-auth"
 import { AuthInternalEvents } from "./interfaces/auth/authinternalevents"
 import { PrivyErrorCode } from "@src/enums/adapter/auth/privyerrorcode"
@@ -19,6 +19,7 @@ import { LoginMethod, PrivyAuthInfo } from "./types/adapter"
 import { Trade } from "./trade"
 import { Post } from "./post"
 import { Oracle } from "./oracle"
+import forge from "node-forge"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -77,11 +78,45 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  private async _handleIndexedDB() {
+  private async _generateKeys(
+    e2eSecret: string,
+    iv: string
+  ): Promise<boolean | forge.pki.rsa.KeyPair> {
+    const keys = await Crypto.generateKeys("HIGH")
+
+    if (!keys) return false
+
+    return keys
+  }
+
+  private async _handleIndexedDB(e2eSecret: string, iv: string, did: string) {
     const storage = this._storage as IndexedDBStorage
     try {
-      await storage.createStoreIfNotExists(CLIENT_STORE_NAME_LOCAL_KEYS)
-      //generate keys and save them into db
+      await storage.createTableIfNotExists(CLIENT_TABLE_NAME_LOCAL_KEYS)
+      const keys = await this._generateKeys(e2eSecret, iv)
+      if (!keys || typeof keys === "boolean")
+        throw new Error("Error during generation of public/private keys.")
+
+      //save keys into db
+
+      //let's encrypt first the private key. Private key will be always calculated runtime.
+      const encryptedPrivateKey = Crypto.encryptAES_CBC(
+        Crypto.convertRSAPrivateKeyToPem(keys.privateKey),
+        Buffer.from(e2eSecret).toString("base64"),
+        Buffer.from(iv).toString("base64")
+      )
+      const publicKey = Crypto.convertRSAPublicKeyToPem(keys.publicKey)
+
+      await storage.insertSafe(
+        CLIENT_TABLE_NAME_LOCAL_KEYS,
+        `${did}_publicKey`,
+        publicKey
+      )
+      await storage.insertSafe(
+        CLIENT_TABLE_NAME_LOCAL_KEYS,
+        `${did}_encryptedPrivateKey`,
+        encryptedPrivateKey
+      )
     } catch (error) {
       console.log(error)
       throw new Error(
@@ -90,7 +125,14 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  private async _handleRealm() {}
+  private async _handleRealm() {
+    let keys = await this._generateKeys("", "")
+    //if (!keys) throw new Error("Keys generation error.")
+
+    return {
+      //...keys.server,
+    }
+  }
 
   private _formatAuthParams(authInfo: PrivyAuthInfo): AuthParams {
     return {
@@ -260,7 +302,13 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
         this._on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
           try {
             const { response } = await this._fetch<
-              ApiResponse<{ granted: boolean }>
+              ApiResponse<{
+                auth: {
+                  token: { secret: string; iv: string } | boolean
+                  status: string
+                  did: string
+                }
+              }>
             >(`${this.backendUrl()}/auth`, {
               method: "POST",
               body: {
@@ -272,23 +320,29 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
               },
             })
 
-            if (!response || !response.data) {
-              reject("Invalid response")
-              return
-            }
+            if (!response || !response.data) return reject("Invalid response.")
 
-            const { granted } = response.data[0]
+            const { auth } = response.data[0]
+            const { token, did } = auth
 
-            if (!granted) {
-              reject("Access not granted")
-              return
-            }
+            if (!token || typeof token === "boolean")
+              return reject("Access not granted")
 
             this._tradeRef?.setAuthToken(authInfo.authToken)
             this._oracleRef?.setAuthToken(authInfo.authToken)
             this._postRef?.setAuthToken(authInfo.authToken)
 
-            resolve({ isConnected: true, ...authInfo })
+            //generation of the table and local keys for e2e encryption
+            this._handleIndexedDB(token.secret, token.iv, did)
+
+            resolve({
+              isConnected: true,
+              tokenE2E: {
+                e2eSecret: token.secret,
+                e2eSecretIV: token.iv,
+              },
+              ...authInfo,
+            })
           } catch (error) {
             reject(error)
           }

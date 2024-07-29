@@ -13,11 +13,11 @@ export class RealmStorage implements BaseStorage {
     return new RealmStorage()
   }
 
-  async getItem(key: string): Promise<any> {}
+  async get(key: string): Promise<any> {}
 
-  async setItem(key: string, value: any): Promise<void> {}
+  async insert(key: string, value: any): Promise<void> {}
 
-  async removeItem(key: string): Promise<void> {}
+  async delete(key: string): Promise<void> {}
 
   async query(filter: any): Promise<any[]> {
     return new Promise(() => {})

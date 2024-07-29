@@ -140,7 +140,7 @@ export class Loopz {
       realtimeApiUrl,
       jwtToken: authToken,
       keyPairsMap: [],
-      userKeyPair: [],
+      userKeyPair: null,
     })
 
     return Loopz._chat

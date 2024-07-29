@@ -52,7 +52,7 @@ export class IndexedDBStorage implements BaseStorage {
     return instance
   }
 
-  async createStoreIfNotExists(newStoreName: string): Promise<void> {
+  async createTableIfNotExists(newStoreName: string): Promise<void> {
     const currentDb = await this._getDB()
     const newVersion = currentDb.version + 1
 
@@ -77,7 +77,7 @@ export class IndexedDBStorage implements BaseStorage {
     })
   }
 
-  async getItem(storeName: string, key: string): Promise<any> {
+  async get(storeName: string, key: string): Promise<any> {
     const db = await this._getDB()
 
     return new Promise<any>((resolve, reject) => {
@@ -95,7 +95,7 @@ export class IndexedDBStorage implements BaseStorage {
     })
   }
 
-  async setItem(storeName: string, key: string, value: any): Promise<void> {
+  async insert(storeName: string, key: string, value: any): Promise<void> {
     const db = await this._getDB()
 
     return new Promise<void>((resolve, reject) => {
@@ -113,7 +113,28 @@ export class IndexedDBStorage implements BaseStorage {
     })
   }
 
-  async removeItem(storeName: string, key: string): Promise<void> {
+  async insertSafe(storeName: string, key: string, value: any): Promise<void> {
+    const db = await this._getDB()
+
+    return new Promise<void>(async (resolve, reject) => {
+      const item = await this.get(storeName, key)
+
+      if (item) return resolve()
+      const transaction = db.transaction(storeName, "readwrite")
+      const store = transaction.objectStore(storeName)
+      const request = store.put(value, key)
+
+      request.onsuccess = () => {
+        resolve()
+      }
+
+      request.onerror = () => {
+        reject(request.error)
+      }
+    })
+  }
+
+  async delete(storeName: string, key: string): Promise<void> {
     const db = await this._getDB()
 
     return new Promise<void>((resolve, reject) => {

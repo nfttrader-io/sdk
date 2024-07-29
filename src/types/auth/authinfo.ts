@@ -9,4 +9,8 @@ export type AuthInfo = {
   linkedAccount: LinkedAccountWithMetadata
   authToken: string
   isConnected: boolean
+  tokenE2E: {
+    e2eSecret: string
+    e2eSecretIV: string
+  }
 }
