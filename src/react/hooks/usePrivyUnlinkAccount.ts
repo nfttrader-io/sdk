@@ -30,7 +30,7 @@ export const usePrivyUnlinkAccount = (
     if (!initialized.current && ready && user && device === "desktop") {
       initialized.current = true
 
-      auth._on(
+      auth.on(
         "__unlink",
         (
           method:

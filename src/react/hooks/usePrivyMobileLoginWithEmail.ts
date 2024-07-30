@@ -13,7 +13,7 @@ export const usePrivyMobileLoginWithEmail = (
     if (!initialized.current) {
       initialized.current = true
 
-      auth._on("__authenticate", () => {})
+      auth.on("__authenticate", () => {})
       auth._emit("__onPrivyReady")
     }
   }, [])

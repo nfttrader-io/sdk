@@ -43,7 +43,7 @@ export const usePrivyLinkAccount = (
     ) {
       initialized.current = true
 
-      auth._on(
+      auth.on(
         "__link",
         (
           method:

@@ -64,7 +64,7 @@ export const usePrivyLogin = (auth: Auth, device: "desktop" | "mobile") => {
     ) {
       initialized.current = true
 
-      auth._on("__authenticate", () => {
+      auth.on("__authenticate", () => {
         login()
       })
       auth._emit("__onPrivyReady")

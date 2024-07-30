@@ -31,22 +31,6 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   private _storage?: IndexedDBStorage | RealmStorage
   private _privyAppId: string
   private _privyConfig?: PrivyClientConfig
-  private _eventsMap: Array<AuthEvents> = [
-    "__authenticate",
-    "__onLoginComplete",
-    "__onLoginError",
-    "__onPrivyReady",
-    "__onLogoutComplete",
-    "__logout",
-    "__onLinkAccountComplete",
-    "__onLinkAccountError",
-    "__link",
-    "__onUnlinkAccountComplete",
-    "__onUnlinkAccountError",
-    "__unlink",
-    "__onExternalProviderAuthenticated",
-    "auth",
-  ]
   private _eventsCallbacks: Array<{
     callbacks: Function[]
     eventName: AuthEvents
@@ -68,21 +52,68 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     this._privyAppId = config.privyAppId
     this._privyConfig = config.privyConfig
 
-    this._on("__onExternalProviderAuthenticated", (authInfo: PrivyAuthInfo) => {
-      //aggiungere await per chiamata lato server per aggiornare backend
-      console.log(authInfo)
-      this._emit("auth")
-    })
+    this.on(
+      "__onExternalProviderAuthenticated",
+      async (authInfo: PrivyAuthInfo) => {
+        try {
+          const { response } = await this._fetch<
+            ApiResponse<{
+              auth: {
+                token: { secret: string; iv: string } | boolean
+                status: string
+                did: string
+              }
+            }>
+          >(`${this.backendUrl()}/auth`, {
+            method: "POST",
+            body: {
+              ...this._formatAuthParams(authInfo),
+            },
+            headers: {
+              "x-api-key": `${this._apiKey}`,
+              Authorization: `Bearer ${authInfo.authToken}`,
+            },
+          })
 
-    this._on("__onLoginError", (error: PrivyErrorCode) => {
-      this._emit("onLoginError")
+          if (!response || !response.data)
+            return this._emit(
+              "onAuthError",
+              new Error("No response from backend during authentication")
+            )
+
+          const { auth } = response.data[0]
+          const { token, did } = auth
+
+          if (!token || typeof token === "boolean")
+            return this._emit("onAuthError", new Error("Access not granted."))
+
+          this._tradeRef?.setAuthToken(authInfo.authToken)
+          this._oracleRef?.setAuthToken(authInfo.authToken)
+          this._postRef?.setAuthToken(authInfo.authToken)
+
+          //generation of the table and local keys for e2e encryption
+          this._handleIndexedDB(token.secret, token.iv, did)
+
+          this._emit("auth", {
+            isConnected: true,
+            tokenE2E: {
+              e2eSecret: token.secret,
+              e2eSecretIV: token.iv,
+            },
+            ...authInfo,
+          })
+        } catch (error) {
+          this._emit("onAuthError", error)
+        }
+      }
+    )
+
+    this.on("__onLoginError", (error: PrivyErrorCode) => {
+      this._emit("onAuthError")
     })
   }
 
-  private async _generateKeys(
-    e2eSecret: string,
-    iv: string
-  ): Promise<boolean | forge.pki.rsa.KeyPair> {
+  private async _generateKeys(): Promise<boolean | forge.pki.rsa.KeyPair> {
     const keys = await Crypto.generateKeys("HIGH")
 
     if (!keys) return false
@@ -94,7 +125,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     const storage = this._storage as IndexedDBStorage
     try {
       await storage.createTableIfNotExists(CLIENT_TABLE_NAME_LOCAL_KEYS)
-      const keys = await this._generateKeys(e2eSecret, iv)
+      const keys = await this._generateKeys()
       if (!keys || typeof keys === "boolean")
         throw new Error("Error during generation of public/private keys.")
 
@@ -127,7 +158,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private async _handleRealm() {
-    let keys = await this._generateKeys("", "")
+    let keys = await this._generateKeys()
     //if (!keys) throw new Error("Keys generation error.")
 
     return {
@@ -244,19 +275,6 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  _on(eventName: AuthEvents, callback: Function) {
-    const index = this._eventsCallbacks.findIndex((item) => {
-      return item.eventName === eventName
-    })
-
-    if (index > -1) this._eventsCallbacks[index].callbacks.push(callback)
-
-    this._eventsCallbacks.push({
-      eventName,
-      callbacks: [callback],
-    })
-  }
-
   _emit(eventName: AuthEvents, params?: any) {
     const index = this._eventsCallbacks.findIndex((item) => {
       return item.eventName === eventName
@@ -273,7 +291,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     reject: (reason?: any) => void
   ) {
     try {
-      this._on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+      this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
         try {
           const { response } = await this._fetch<
             ApiResponse<{
@@ -322,7 +340,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
         }
       })
 
-      this._on("__onLoginError", (error: PrivyErrorCode) => {
+      this.on("__onLoginError", (error: PrivyErrorCode) => {
         reject(error)
       })
 
@@ -347,23 +365,16 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     if (config.storage) this._storage = config.storage
   }
 
-  /**
-   * Checks if a user is registered based on the provided credentials.
-   * @param {Credentials} credentials - The user's credentials (address, email).
-   * @returns {Promise<boolean>} A promise that resolves to true if the user is registered, false otherwise.
-   * @throws {Error} An error is thrown if the authentication mode is not defined or if required credentials are missing.
-   */
-  async isUserRegistered() {}
+  on(eventName: AuthEvents, callback: Function) {
+    const index = this._eventsCallbacks.findIndex((item) => {
+      return item.eventName === eventName
+    })
 
-  async ready() {
-    return new Promise((resolve, reject) => {
-      try {
-        this._on("__onPrivyReady", () => {
-          resolve(true)
-        })
-      } catch (error) {
-        resolve(false)
-      }
+    if (index > -1) this._eventsCallbacks[index].callbacks.push(callback)
+
+    this._eventsCallbacks.push({
+      eventName,
+      callbacks: [callback],
     })
   }
 
@@ -379,10 +390,32 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
+  sendEmailOTPCode(email: string) {}
+
+  /**
+   * Checks if a user is registered based on the provided credentials.
+   * @param {Credentials} credentials - The user's credentials (address, email).
+   * @returns {Promise<boolean>} A promise that resolves to true if the user is registered, false otherwise.
+   * @throws {Error} An error is thrown if the authentication mode is not defined or if required credentials are missing.
+   */
+  async isUserRegistered() {}
+
+  async ready() {
+    return new Promise((resolve, reject) => {
+      try {
+        this.on("__onPrivyReady", () => {
+          resolve(true)
+        })
+      } catch (error) {
+        resolve(false)
+      }
+    })
+  }
+
   async logout(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
-        this._on("__onLogoutComplete", (status: boolean) => {
+        this.on("__onLogoutComplete", (status: boolean) => {
           resolve(status)
         })
 
@@ -413,12 +446,12 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   ): Promise<LinkAccountInfo> {
     return new Promise((resolve, reject) => {
       try {
-        this._on("__onLinkAccountComplete", (info: LinkAccountInfo) => {
+        this.on("__onLinkAccountComplete", (info: LinkAccountInfo) => {
           //aggiungere await per chiamata lato server per aggiornare backend
           resolve(info)
         })
 
-        this._on(
+        this.on(
           "__onLinkAccountError",
           ({
             error,
@@ -458,12 +491,12 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   ): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
-        this._on("__onUnlinkAccountComplete", (status: boolean) => {
+        this.on("__onUnlinkAccountComplete", (status: boolean) => {
           //aggiungere await per chiamata lato server per aggiornare backend
           resolve(status)
         })
 
-        this._on(
+        this.on(
           "__onUnlinkAccountError",
           ({ error }: { error: PrivyErrorCode }) => {
             reject({ error })

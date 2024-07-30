@@ -14,7 +14,7 @@ export const usePrivyLogout = (auth: Auth, device: "desktop" | "mobile") => {
     if (!initialized.current && device === "desktop") {
       initialized.current = true
 
-      auth._on("__logout", () => {
+      auth.on("__logout", () => {
         console.log("logout")
         logout()
       })
