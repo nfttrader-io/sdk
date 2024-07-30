@@ -1,12 +1,10 @@
 import React, {
   createContext,
-  ReactNode,
   useContext,
   useEffect,
   useRef,
   useState,
 } from "react"
-import { LoopzConfig } from "@src/types/app/loopzconfig"
 import { Loopz } from "@src/loopz"
 import { Auth } from "@src/auth"
 import { Trade } from "@src/trade"
@@ -18,33 +16,12 @@ import { PrivyWrapper } from "./privywrapper"
 import "fast-text-encoding"
 import "react-native-get-random-values"
 import "@ethersproject/shims"
-
-interface LoopzProviderProps {
-  config: LoopzConfig
-  children: ReactNode
-}
-
-interface LoopzDesktopProviderProps {
-  config: LoopzConfig
-  auth: Auth
-  trade: Trade
-  children: ReactNode
-}
-
-interface LoopzReactNativeProviderProps {
-  config: LoopzConfig
-  auth: Auth
-  trade: Trade
-  children: ReactNode
-}
-
-interface LoopzContext {
-  loopz: Loopz
-  auth: Auth
-  trade: Trade
-  post: Post
-  oracle: Oracle
-}
+import {
+  LoopzContext,
+  LoopzDesktopProviderProps,
+  LoopzProviderProps,
+  LoopzReactNativeProviderProps,
+} from "@src/interfaces"
 
 const LoopzContext = createContext<LoopzContext | undefined>(undefined)
 
