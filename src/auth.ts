@@ -2,6 +2,7 @@ import { HTTPClient } from "./core/httpclient"
 import {
   AuthClientConfig,
   AuthConfig,
+  AuthenticationMobileOptions,
   AuthEvents,
   AuthInfo,
   AuthParams,
@@ -267,6 +268,76 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       })
   }
 
+  _handleDesktopAuthentication(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void
+  ) {
+    try {
+      this._on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+        try {
+          const { response } = await this._fetch<
+            ApiResponse<{
+              auth: {
+                token: { secret: string; iv: string } | boolean
+                status: string
+                did: string
+              }
+            }>
+          >(`${this.backendUrl()}/auth`, {
+            method: "POST",
+            body: {
+              ...this._formatAuthParams(authInfo),
+            },
+            headers: {
+              "x-api-key": `${this._apiKey}`,
+              Authorization: `Bearer ${authInfo.authToken}`,
+            },
+          })
+
+          if (!response || !response.data) return reject("Invalid response.")
+
+          const { auth } = response.data[0]
+          const { token, did } = auth
+
+          if (!token || typeof token === "boolean")
+            return reject("Access not granted")
+
+          this._tradeRef?.setAuthToken(authInfo.authToken)
+          this._oracleRef?.setAuthToken(authInfo.authToken)
+          this._postRef?.setAuthToken(authInfo.authToken)
+
+          //generation of the table and local keys for e2e encryption
+          this._handleIndexedDB(token.secret, token.iv, did)
+
+          resolve({
+            isConnected: true,
+            tokenE2E: {
+              e2eSecret: token.secret,
+              e2eSecretIV: token.iv,
+            },
+            ...authInfo,
+          })
+        } catch (error) {
+          reject(error)
+        }
+      })
+
+      this._on("__onLoginError", (error: PrivyErrorCode) => {
+        reject(error)
+      })
+
+      this._emit("__authenticate")
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  _handleMobileAuthentication(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    mobileOptions?: AuthenticationMobileOptions
+  ) {}
+
   /**
    * Updates the configuration settings for the authentication client.
    * @param {AuthClientConfig} config - The configuration object containing the settings to update.
@@ -296,66 +367,15 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  async authenticate(): Promise<AuthInfo> {
+  authenticate(
+    device?: "desktop" | "mobile",
+    mobileOptions?: AuthenticationMobileOptions
+  ): Promise<AuthInfo> {
     return new Promise((resolve, reject) => {
-      try {
-        this._on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
-          try {
-            const { response } = await this._fetch<
-              ApiResponse<{
-                auth: {
-                  token: { secret: string; iv: string } | boolean
-                  status: string
-                  did: string
-                }
-              }>
-            >(`${this.backendUrl()}/auth`, {
-              method: "POST",
-              body: {
-                ...this._formatAuthParams(authInfo),
-              },
-              headers: {
-                "x-api-key": `${this._apiKey}`,
-                Authorization: `Bearer ${authInfo.authToken}`,
-              },
-            })
+      const isDesktop = device === "desktop"
 
-            if (!response || !response.data) return reject("Invalid response.")
-
-            const { auth } = response.data[0]
-            const { token, did } = auth
-
-            if (!token || typeof token === "boolean")
-              return reject("Access not granted")
-
-            this._tradeRef?.setAuthToken(authInfo.authToken)
-            this._oracleRef?.setAuthToken(authInfo.authToken)
-            this._postRef?.setAuthToken(authInfo.authToken)
-
-            //generation of the table and local keys for e2e encryption
-            this._handleIndexedDB(token.secret, token.iv, did)
-
-            resolve({
-              isConnected: true,
-              tokenE2E: {
-                e2eSecret: token.secret,
-                e2eSecretIV: token.iv,
-              },
-              ...authInfo,
-            })
-          } catch (error) {
-            reject(error)
-          }
-        })
-
-        this._on("__onLoginError", (error: PrivyErrorCode) => {
-          reject(error)
-        })
-
-        this._emit("__authenticate")
-      } catch (error) {
-        reject(error)
-      }
+      if (isDesktop) this._handleDesktopAuthentication(resolve, reject)
+      else this._handleMobileAuthentication(resolve, reject, mobileOptions)
     })
   }
 
