@@ -5,5 +5,6 @@ import { ReactNode } from "react"
 export interface PrivyWrapperProps {
   auth: Auth
   trade: Trade
+  device: "desktop" | "mobile"
   children: ReactNode
 }

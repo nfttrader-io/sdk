@@ -2,8 +2,11 @@ import { Auth } from "@src/auth"
 import { useEffect, useRef } from "react"
 import { useLinkAccount, usePrivy } from "@privy-io/react-auth"
 
-export const usePrivyLinkAccount = (auth: Auth) => {
-  const initialized = useRef(false)
+export const usePrivyLinkAccount = (
+  auth: Auth,
+  device: "desktop" | "mobile"
+) => {
+  const initialized = useRef<boolean>(false)
   const { ready, authenticated, user } = usePrivy()
 
   const {
@@ -31,7 +34,13 @@ export const usePrivyLinkAccount = (auth: Auth) => {
   })
 
   useEffect(() => {
-    if (!initialized.current && ready && authenticated && user) {
+    if (
+      !initialized.current &&
+      ready &&
+      authenticated &&
+      user &&
+      device === "desktop"
+    ) {
       initialized.current = true
 
       auth._on(

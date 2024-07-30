@@ -17,21 +17,12 @@ import "fast-text-encoding"
 import "react-native-get-random-values"
 import "@ethersproject/shims"
 import {
-  LoopzContext,
+  LoopzContext as ILoopzContext,
   LoopzDesktopProviderProps,
   LoopzProviderProps,
   LoopzReactNativeProviderProps,
 } from "@src/interfaces"
-
-const LoopzContext = createContext<LoopzContext | undefined>(undefined)
-
-export const useLoopz = () => {
-  const context = useContext(LoopzContext)
-  if (typeof context === "undefined")
-    throw new Error("useLoopz must be used within a LoopzProvider.")
-
-  return context
-}
+import { LoopzContext } from "../context"
 
 export const LoopzProvider: React.FC<LoopzProviderProps> = ({
   config,
@@ -43,7 +34,7 @@ export const LoopzProvider: React.FC<LoopzProviderProps> = ({
   const oracleRef = useRef<Oracle>()
   const postRef = useRef<Post>()
 
-  const [loopzContext, setLoopzContext] = useState<LoopzContext | null>(null)
+  const [loopzContext, setLoopzContext] = useState<ILoopzContext | null>(null)
   const [loopzInitialized, setLoopzInitialized] = useState<boolean>(false)
 
   useEffect(() => {
@@ -119,7 +110,7 @@ const LoopzDesktopProvider: React.FC<LoopzDesktopProviderProps> = ({
         ...config.privyClientConfig,
       }}
     >
-      <PrivyWrapper auth={auth} trade={trade}>
+      <PrivyWrapper auth={auth} trade={trade} device="desktop">
         {children}
       </PrivyWrapper>
     </PrivyProviderDesktop>
@@ -142,7 +133,7 @@ const LoopzReactNativeProvider: React.FC<LoopzReactNativeProviderProps> = ({
         ...config.privyClientConfig,
       }}
     >
-      <PrivyWrapper auth={auth} trade={trade}>
+      <PrivyWrapper auth={auth} trade={trade} device="mobile">
         {children}
       </PrivyWrapper>
     </PrivyProviderReactNative>

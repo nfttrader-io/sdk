@@ -1,3 +1,3 @@
-export * from "./loopzprovider"
-export * from "./privycontext"
-export * from "./privywrapper"
+export * from "./components"
+export * from "./context"
+export * from "./hooks"

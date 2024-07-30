@@ -6,7 +6,7 @@ import { v4 as uuid } from "uuid"
 import { PrivyClientConfig } from "@privy-io/react-auth"
 import { Auth } from "@src/auth"
 import { Trade } from "@src/trade"
-import { PrivyContext } from "@src/react/privycontext"
+import { PrivyContext } from "@src/react/components"
 
 export class PrivyAdapter {
   private _container: Maybe<HTMLElement> = null

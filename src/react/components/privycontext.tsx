@@ -19,7 +19,7 @@ export const PrivyContext: React.FC<PrivyAdapterProps> = ({
         ...config,
       }}
     >
-      <PrivyWrapper auth={auth} trade={trade}>
+      <PrivyWrapper auth={auth} trade={trade} device="desktop">
         <></>
       </PrivyWrapper>
     </PrivyProvider>

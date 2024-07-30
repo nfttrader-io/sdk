@@ -2,8 +2,8 @@ import { useLogin, usePrivy } from "@privy-io/react-auth"
 import { Auth } from "@src/auth"
 import { useEffect, useRef } from "react"
 
-export const usePrivyLogin = (auth: Auth) => {
-  const initialized = useRef(false)
+export const usePrivyLogin = (auth: Auth, device: "desktop" | "mobile") => {
+  const initialized = useRef<boolean>(false)
   const { ready, authenticated, getAccessToken } = usePrivy()
   const disableLogin = !ready || (ready && authenticated)
 
@@ -56,7 +56,12 @@ export const usePrivyLogin = (auth: Auth) => {
   })
 
   useEffect(() => {
-    if (!initialized.current && ready && !disableLogin) {
+    if (
+      !initialized.current &&
+      ready &&
+      !disableLogin &&
+      device === "desktop"
+    ) {
       initialized.current = true
 
       auth._on("__authenticate", () => {
