@@ -12,6 +12,7 @@ import { Trade } from "./trade"
 import { LoopzConfig } from "./types/app/loopzconfig"
 import { PrivyClientConfig } from "@privy-io/react-auth"
 import { PrivyAdapter } from "./adapter"
+import { Maybe } from "./types"
 
 export class Loopz {
   private static _instance: Loopz
@@ -31,22 +32,27 @@ export class Loopz {
 
   private static _storage: IndexedDBStorage | RealmStorage
 
-  private static _privyAdapter: PrivyAdapter
+  private static _privyAdapter: Maybe<PrivyAdapter> = null
 
-  private constructor(config: LoopzConfig) {
+  private constructor(config: LoopzConfig, runAdapter?: boolean) {
     Loopz._apiKey = config.apiKey
     Loopz._privyAppId = config.privyAppId
     Loopz._privyClientConfig = config.privyClientConfig
     Loopz._storage = config.storage
     Loopz._randomLsname = `loopz_${uuid()}`
 
-    Loopz._privyAdapter = new PrivyAdapter({
-      appId: config.privyAppId,
-      device: typeof window !== "undefined" ? "desktop" : "mobile",
-      desktopOptions:
-        typeof window === "undefined" ? undefined : config.privyClientConfig,
-      mobileOptions: typeof window !== "undefined" ? undefined : {},
-    })
+    if (runAdapter === true || typeof runAdapter === "undefined") {
+      if (typeof window === "undefined")
+        throw new Error("Adapter must be runned only in desktop environments.")
+      if (typeof window !== "undefined")
+        Loopz._privyAdapter = new PrivyAdapter({
+          appId: config.privyAppId,
+          options:
+            typeof window === "undefined"
+              ? undefined
+              : config.privyClientConfig,
+        })
+    }
 
     Loopz._oracle = new Oracle({
       apiKey: config.apiKey,
@@ -68,7 +74,8 @@ export class Loopz {
       storage: config.storage,
     })
 
-    Loopz._privyAdapter.render(Loopz._auth, Loopz._trade)
+    if (Loopz._privyAdapter)
+      Loopz._privyAdapter.render(Loopz._auth, Loopz._trade)
   }
 
   private static async createOrConnectToStorage(): Promise<
@@ -112,13 +119,19 @@ export class Loopz {
     }
   }
 
-  static async boot(config: Omit<LoopzConfig, "storage">): Promise<Loopz> {
+  static async boot(
+    config: Omit<LoopzConfig, "storage">,
+    runAdapter?: boolean
+  ): Promise<Loopz> {
     if (!Loopz._instance) {
       const storage = await Loopz.createOrConnectToStorage()
-      Loopz._instance = new Loopz({
-        ...config,
-        storage,
-      })
+      Loopz._instance = new Loopz(
+        {
+          ...config,
+          storage,
+        },
+        runAdapter
+      )
     }
 
     return Loopz._instance

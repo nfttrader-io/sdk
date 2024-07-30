@@ -23,6 +23,10 @@ export class RealmStorage implements BaseStorage {
     return new Promise(() => {})
   }
 
+  insertSafe(storeName: string, key: string, value: any): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+
   getDBName(): string {
     throw new Error("Method not implemented.")
   }
