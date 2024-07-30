@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Loopz } from "@src/loopz"
 import { Auth } from "@src/auth"
 import { Trade } from "@src/trade"
@@ -17,7 +11,7 @@ import "fast-text-encoding"
 import "react-native-get-random-values"
 import "@ethersproject/shims"
 import {
-  LoopzContext as ILoopzContext,
+  ILoopzContext,
   LoopzDesktopProviderProps,
   LoopzProviderProps,
   LoopzReactNativeProviderProps,

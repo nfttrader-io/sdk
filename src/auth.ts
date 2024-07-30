@@ -390,7 +390,13 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  sendEmailOTPCode(email: string) {}
+  sendEmailOTPCode(email: string): Promise<void> {
+    return new Promise(() => {})
+  }
+
+  sendPhoneOTPCode(phone: string): Promise<void> {
+    return new Promise(() => {})
+  }
 
   /**
    * Checks if a user is registered based on the provided credentials.

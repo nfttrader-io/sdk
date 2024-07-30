@@ -14,6 +14,7 @@ export const usePrivyMobileLoginWithEmail = (
       initialized.current = true
 
       auth.on("__authenticate", () => {})
+
       auth._emit("__onPrivyReady")
     }
   }, [])

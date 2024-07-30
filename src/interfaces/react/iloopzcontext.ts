@@ -4,7 +4,7 @@ import { Oracle } from "@src/oracle"
 import { Post } from "@src/post"
 import { Trade } from "@src/trade"
 
-export interface LoopzContext {
+export interface ILoopzContext {
   loopz: Loopz
   auth: Auth
   trade: Trade
