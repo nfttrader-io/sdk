@@ -32,7 +32,7 @@ export const usePrivyLogin = (auth: Auth, device: "desktop" | "mobile") => {
         loginMethod === "telegram"
       )
         //these services brings the user out of the current web page, so we should listen this event when the Auth object boots
-        auth._emit("__onExternalProviderAuthenticated", {
+        auth._emit("__onOAuthAuthenticatedDesktop", {
           user,
           isNewUser,
           wasAlreadyAuthenticated,

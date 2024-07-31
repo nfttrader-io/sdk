@@ -21,6 +21,11 @@ import { Trade } from "./trade"
 import { Post } from "./post"
 import { Oracle } from "./oracle"
 import forge from "node-forge"
+import {
+  OAuthProviderType,
+  PrivyApiError,
+  PrivyClientError,
+} from "@privy-io/expo"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -52,62 +57,16 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     this._privyAppId = config.privyAppId
     this._privyConfig = config.privyConfig
 
+    //OAuth providers like Google, Instagram etc bring the user from the current web application page to
+    //their authentication pages. When the user is redirect from their auth pages to the web application page again
+    //this event is fired.
     this.on(
-      "__onExternalProviderAuthenticated",
+      "__onOAuthAuthenticatedDesktop",
       async (authInfo: PrivyAuthInfo) => {
-        try {
-          const { response } = await this._fetch<
-            ApiResponse<{
-              auth: {
-                token: { secret: string; iv: string } | boolean
-                status: string
-                did: string
-              }
-            }>
-          >(`${this.backendUrl()}/auth`, {
-            method: "POST",
-            body: {
-              ...this._formatAuthParams(authInfo),
-            },
-            headers: {
-              "x-api-key": `${this._apiKey}`,
-              Authorization: `Bearer ${authInfo.authToken}`,
-            },
-          })
-
-          if (!response || !response.data)
-            return this._emit(
-              "onAuthError",
-              new Error("No response from backend during authentication")
-            )
-
-          const { auth } = response.data[0]
-          const { token, did } = auth
-
-          if (!token || typeof token === "boolean")
-            return this._emit("onAuthError", new Error("Access not granted."))
-
-          this._tradeRef?.setAuthToken(authInfo.authToken)
-          this._oracleRef?.setAuthToken(authInfo.authToken)
-          this._postRef?.setAuthToken(authInfo.authToken)
-
-          //generation of the table and local keys for e2e encryption
-          this._handleIndexedDB(token.secret, token.iv, did)
-
-          this._emit("auth", {
-            isConnected: true,
-            tokenE2E: {
-              e2eSecret: token.secret,
-              e2eSecretIV: token.iv,
-            },
-            ...authInfo,
-          })
-        } catch (error) {
-          this._emit("onAuthError", error)
-        }
+        await this._callBackendAuthAfterOAuthRedirect(authInfo, "desktop")
       }
     )
-
+    //OAuth providers login error handling
     this.on("__onLoginError", (error: PrivyErrorCode) => {
       this._emit("onAuthError")
     })
@@ -157,7 +116,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  private async _handleRealm() {
+  private async _handleRealm(e2eSecret: string, iv: string, did: string) {
     let keys = await this._generateKeys()
     //if (!keys) throw new Error("Keys generation error.")
 
@@ -275,69 +234,138 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  _emit(eventName: AuthEvents, params?: any) {
-    const index = this._eventsCallbacks.findIndex((item) => {
-      return item.eventName === eventName
-    })
-
-    if (index > -1)
-      this._eventsCallbacks[index].callbacks.forEach((callback) => {
-        callback(params)
+  private async _callBackendAuthAfterOAuthRedirect(
+    authInfo: PrivyAuthInfo,
+    device: "desktop" | "mobile"
+  ) {
+    try {
+      const { response } = await this._fetch<
+        ApiResponse<{
+          auth: {
+            token: { secret: string; iv: string } | boolean
+            status: string
+            did: string
+          }
+        }>
+      >(`${this.backendUrl()}/auth`, {
+        method: "POST",
+        body: {
+          ...this._formatAuthParams(authInfo),
+        },
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+          Authorization: `Bearer ${authInfo.authToken}`,
+        },
       })
+
+      if (!response || !response.data)
+        return this._emit(
+          "onAuthError",
+          new Error("No response from backend during authentication")
+        )
+
+      const { auth } = response.data[0]
+      const { token, did } = auth
+
+      if (!token || typeof token === "boolean")
+        return this._emit("onAuthError", new Error("Access not granted."))
+
+      this._tradeRef?.setAuthToken(authInfo.authToken)
+      this._oracleRef?.setAuthToken(authInfo.authToken)
+      this._postRef?.setAuthToken(authInfo.authToken)
+
+      //generation of the table and local keys for e2e encryption
+      if (device === "desktop")
+        await this._handleIndexedDB(token.secret, token.iv, did)
+      else if (device === "mobile")
+        await this._handleRealm(token.secret, token.iv, did)
+
+      //clear all the internal callbacks connected to the authentication...
+      this._clearEventsCallbacks([
+        "__onOAuthAuthenticatedDesktop",
+        "__onLoginError",
+      ])
+
+      this._emit("auth", {
+        isConnected: true,
+        tokenE2E: {
+          e2eSecret: token.secret,
+          e2eSecretIV: token.iv,
+        },
+        ...authInfo,
+      })
+    } catch (error) {
+      this._emit("onAuthError", error)
+    }
   }
 
-  _handleDesktopAuthentication(
+  private async _callBackendAuth(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    authInfo: PrivyAuthInfo,
+    device: "desktop" | "mobile"
+  ) {
+    try {
+      const { response } = await this._fetch<
+        ApiResponse<{
+          auth: {
+            token: { secret: string; iv: string } | boolean
+            status: string
+            did: string
+          }
+        }>
+      >(`${this.backendUrl()}/auth`, {
+        method: "POST",
+        body: {
+          ...this._formatAuthParams(authInfo),
+        },
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+          Authorization: `Bearer ${authInfo.authToken}`,
+        },
+      })
+
+      if (!response || !response.data) return reject("Invalid response.")
+
+      const { auth } = response.data[0]
+      const { token, did } = auth
+
+      if (!token || typeof token === "boolean")
+        return reject("Access not granted")
+
+      this._tradeRef?.setAuthToken(authInfo.authToken)
+      this._oracleRef?.setAuthToken(authInfo.authToken)
+      this._postRef?.setAuthToken(authInfo.authToken)
+
+      //generation of the table and local keys for e2e encryption
+      if (device === "desktop")
+        await this._handleIndexedDB(token.secret, token.iv, did)
+      else if (device === "mobile")
+        await this._handleRealm(token.secret, token.iv, did)
+
+      //clear all the internal callbacks connected to the authentication...
+      this._clearEventsCallbacks(["__onLoginComplete", "__onLoginError"])
+
+      resolve({
+        isConnected: true,
+        tokenE2E: {
+          e2eSecret: token.secret,
+          e2eSecretIV: token.iv,
+        },
+        ...authInfo,
+      })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleDesktopAuthentication(
     resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
     reject: (reason?: any) => void
   ) {
     try {
       this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
-        try {
-          const { response } = await this._fetch<
-            ApiResponse<{
-              auth: {
-                token: { secret: string; iv: string } | boolean
-                status: string
-                did: string
-              }
-            }>
-          >(`${this.backendUrl()}/auth`, {
-            method: "POST",
-            body: {
-              ...this._formatAuthParams(authInfo),
-            },
-            headers: {
-              "x-api-key": `${this._apiKey}`,
-              Authorization: `Bearer ${authInfo.authToken}`,
-            },
-          })
-
-          if (!response || !response.data) return reject("Invalid response.")
-
-          const { auth } = response.data[0]
-          const { token, did } = auth
-
-          if (!token || typeof token === "boolean")
-            return reject("Access not granted")
-
-          this._tradeRef?.setAuthToken(authInfo.authToken)
-          this._oracleRef?.setAuthToken(authInfo.authToken)
-          this._postRef?.setAuthToken(authInfo.authToken)
-
-          //generation of the table and local keys for e2e encryption
-          this._handleIndexedDB(token.secret, token.iv, did)
-
-          resolve({
-            isConnected: true,
-            tokenE2E: {
-              e2eSecret: token.secret,
-              e2eSecretIV: token.iv,
-            },
-            ...authInfo,
-          })
-        } catch (error) {
-          reject(error)
-        }
+        this._callBackendAuth(resolve, reject, authInfo, "desktop")
       })
 
       this.on("__onLoginError", (error: PrivyErrorCode) => {
@@ -350,11 +378,140 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  _handleMobileAuthentication(
+  private _clearEventsCallbacks(events: Array<AuthEvents>) {
+    events.forEach((event: AuthEvents) => {
+      const index = this._eventsCallbacks.findIndex((item) => {
+        return item.eventName === event
+      })
+
+      if (index > -1) this._eventsCallbacks[index].callbacks = []
+    })
+  }
+
+  private _handleMobileAuthenticationSMS(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    { phone, OTP }: { phone: string; OTP: string }
+  ) {
+    try {
+      this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendAuth(resolve, reject, authInfo, "mobile")
+      })
+
+      this.on(
+        "__onLoginError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__authenticateMobileSMS", { phone, OTP })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileAuthenticationEmail(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    { email, OTP }: { email: string; OTP: string }
+  ) {
+    try {
+      this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendAuth(resolve, reject, authInfo, "mobile")
+      })
+
+      this.on(
+        "__onLoginError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__authenticateMobileEmail", { email, OTP })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileAuthenticationOAuth(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    { provider }: { provider: Omit<OAuthProviderType, "farcaster"> }
+  ) {
+    try {
+      this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendAuth(resolve, reject, authInfo, "mobile")
+      })
+
+      this.on(
+        "__onLoginError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__authenticateMobileOAuth", { provider })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileAuthentication(
     resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
     reject: (reason?: any) => void,
     mobileOptions?: AuthenticationMobileOptions
-  ) {}
+  ) {
+    if (!mobileOptions) return reject("mobileOptions arg cannot be undefined.")
+
+    if (mobileOptions.type === "email") {
+      if (!mobileOptions.email)
+        return reject(
+          "mobileOptions.type is 'email' but you didn't provide an email."
+        )
+      if (!mobileOptions.OTPCode)
+        return reject(
+          "mobileOptions.type is 'email' but you didn't provide an OTP code."
+        )
+      this._handleMobileAuthenticationEmail(resolve, reject, {
+        email: mobileOptions.email,
+        OTP: mobileOptions.OTPCode,
+      })
+    } else if (mobileOptions.type === "sms") {
+      if (!mobileOptions.phone)
+        return reject(
+          "mobileOptions.type is 'sms' but you didn't provide an phone number."
+        )
+      if (!mobileOptions.OTPCode)
+        return reject(
+          "mobileOptions.type is 'sms' but you didn't provide an OTP code."
+        )
+
+      this._handleMobileAuthenticationSMS(resolve, reject, {
+        phone: mobileOptions.phone,
+        OTP: mobileOptions.OTPCode,
+      })
+    } else if (mobileOptions.type === "oauth") {
+      if (!mobileOptions.provider)
+        return reject(
+          "mobileOptions.type is 'oauth' but you didn't provide a provider."
+        )
+      this._handleMobileAuthenticationOAuth(resolve, reject, {
+        provider: mobileOptions.provider,
+      })
+    }
+  }
+
+  _emit(eventName: AuthEvents, params?: any) {
+    const index = this._eventsCallbacks.findIndex((item) => {
+      return item.eventName === eventName
+    })
+
+    if (index > -1)
+      this._eventsCallbacks[index].callbacks.forEach((callback) => {
+        callback(params)
+      })
+  }
 
   /**
    * Updates the configuration settings for the authentication client.
@@ -383,19 +540,43 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     mobileOptions?: AuthenticationMobileOptions
   ): Promise<AuthInfo> {
     return new Promise((resolve, reject) => {
-      const isDesktop = device === "desktop"
+      if (device === "desktop" && typeof window === "undefined")
+        throw new Error(
+          "argument 'desktop' was provided but the environment is not desktop."
+        )
 
-      if (isDesktop) this._handleDesktopAuthentication(resolve, reject)
+      if (device === "desktop")
+        this._handleDesktopAuthentication(resolve, reject)
       else this._handleMobileAuthentication(resolve, reject, mobileOptions)
     })
   }
 
-  sendEmailOTPCode(email: string): Promise<void> {
-    return new Promise(() => {})
+  sendEmailOTPCode(email: string): Promise<{ email: string }> {
+    return new Promise((resolve, reject) => {
+      this.on("__onEmailOTPCodeSent", (email: string) => {
+        resolve({ email })
+      })
+
+      this.on("__onEmailOTPCodeSentError", (error: string) => {
+        reject(error)
+      })
+
+      this._emit("__sendEmailOTPCode", email)
+    })
   }
 
-  sendPhoneOTPCode(phone: string): Promise<void> {
-    return new Promise(() => {})
+  sendPhoneOTPCode(phone: string): Promise<{ phone: string }> {
+    return new Promise((resolve, reject) => {
+      this.on("__onSMSOTPCodeSent", (phone: string) => {
+        resolve({ phone })
+      })
+
+      this.on("__onSMSOTPCodeSentError", (error: string) => {
+        reject(error)
+      })
+
+      this._emit("__sendSMSOTPCode", phone)
+    })
   }
 
   /**
