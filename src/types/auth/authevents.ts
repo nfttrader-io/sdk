@@ -33,8 +33,11 @@ export type AuthEvents =
   | "__sendSMSOTPCodeAfterAuth"
   | "__linkMobileEmail"
   | "__linkMobileSMS"
+  | "__onOAuthLinkAuthenticatedDesktop" //to verify
   | "__onOAuthLinkAuthenticatedMobile" //to verify
   | "__linkMobileOAuth"
   | "__linkMobileWallet"
+  | "link"
+  | "onLinkError"
   | "auth"
   | "onAuthError"

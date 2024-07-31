@@ -9,6 +9,7 @@ import {
   usePrivyMobileLoginWithSiwe,
   usePrivyMobileLoginWithSMS,
   usePrivyMobileLogout,
+  usePrivyUnlinkAccount,
 } from "@src/react/hooks"
 import { PrivyWrapperProps } from "@src/interfaces"
 import React from "react"
@@ -24,6 +25,7 @@ export const PrivyWrapper: React.FC<PrivyWrapperProps> = ({
   usePrivyLogin(auth, device)
   usePrivyLogout(auth, device)
   usePrivyLinkAccount(auth, device)
+  usePrivyUnlinkAccount(auth, device)
 
   //used in mobile environment (React Native)
   //if device is equal to "desktop" for example, inside the hooks there is a check to avoid that these functions will be executed.

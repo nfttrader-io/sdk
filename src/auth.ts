@@ -69,9 +69,26 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     this.on("__onOAuthAuthenticatedMobile", async (authInfo: PrivyAuthInfo) => {
       await this._callBackendAuthAfterOAuthRedirect(authInfo, "mobile")
     })
+    // same but for linking an account to a user already registered
+    this.on(
+      "__onOAuthLinkAuthenticatedDesktop",
+      async (authInfo: PrivyAuthInfo) => {
+        await this._callBackendLinkAfterOAuthRedirect(authInfo, "desktop")
+      }
+    )
+    this.on(
+      "__onOAuthLinkAuthenticatedMobile",
+      async (authInfo: PrivyAuthInfo) => {
+        await this._callBackendAuthAfterOAuthRedirect(authInfo, "mobile")
+      }
+    )
+
     //OAuth providers login error handling
     this.on("__onLoginError", (error: PrivyErrorCode) => {
       this._emit("onAuthError")
+    })
+    this.on("__onLinkAccountError", (error: PrivyErrorCode) => {
+      this._emit("onLinkError")
     })
   }
 
@@ -125,115 +142,6 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
     return {
       //...keys.server,
-    }
-  }
-
-  private _formatAuthParams(authInfo: PrivyAuthInfo): AuthParams {
-    return {
-      did: authInfo.user.id,
-      walletAddress: authInfo.user.wallet!.address,
-      walletConnectorType: authInfo.user.wallet!.connectorType!,
-      walletImported: authInfo.user.wallet!.imported
-        ? authInfo.user.wallet!.imported
-        : false,
-      walletRecoveryMethod: authInfo.user.wallet!.recoveryMethod
-        ? authInfo.user.wallet!.recoveryMethod
-        : "",
-      walletClientType: authInfo.user.wallet!.walletClientType
-        ? authInfo.user.wallet!.walletClientType
-        : "",
-      appleSubject: authInfo.user.apple ? authInfo.user.apple.subject : null,
-      appleEmail: authInfo.user.apple ? authInfo.user.apple.email : null,
-      discordSubject: authInfo.user.discord
-        ? authInfo.user.discord.subject
-        : null,
-      discordEmail: authInfo.user.discord ? authInfo.user.discord.email : null,
-      discordUsername: authInfo.user.discord
-        ? authInfo.user.discord.username
-        : null,
-      farcasterFid: authInfo.user.farcaster
-        ? authInfo.user.farcaster.fid
-        : null,
-      farcasterDisplayName: authInfo.user.farcaster
-        ? authInfo.user.farcaster.displayName
-        : null,
-      farcasterOwnerAddress: authInfo.user.farcaster
-        ? authInfo.user.farcaster.ownerAddress
-        : null,
-      farcasterPfp: authInfo.user.farcaster
-        ? authInfo.user.farcaster.pfp
-        : null,
-      farcasterSignerPublicKey: authInfo.user.farcaster
-        ? authInfo.user.farcaster.signerPublicKey
-        : null,
-      farcasterUrl: authInfo.user.farcaster
-        ? authInfo.user.farcaster.url
-        : null,
-      farcasterUsername: authInfo.user.farcaster
-        ? authInfo.user.farcaster.username
-        : null,
-      githubSubject: authInfo.user.github ? authInfo.user.github.subject : null,
-      githubEmail: authInfo.user.github ? authInfo.user.github.email : null,
-      githubName: authInfo.user.github ? authInfo.user.github.name : null,
-      githubUsername: authInfo.user.github
-        ? authInfo.user.github.username
-        : null,
-      googleEmail: authInfo.user.google ? authInfo.user.google.email : null,
-      googleName: authInfo.user.google ? authInfo.user.google.name : null,
-      googleSubject: authInfo.user.google ? authInfo.user.google.subject : null,
-      instagramSubject: authInfo.user.instagram
-        ? authInfo.user.instagram.subject
-        : null,
-      instagramUsername: authInfo.user.instagram
-        ? authInfo.user.instagram.username
-        : null,
-      linkedinEmail: authInfo.user.linkedin
-        ? authInfo.user.linkedin.email
-        : null,
-      linkedinName: authInfo.user.linkedin ? authInfo.user.linkedin.name : null,
-      linkedinSubject: authInfo.user.linkedin
-        ? authInfo.user.linkedin.subject
-        : null,
-      linkedinVanityName: authInfo.user.linkedin
-        ? authInfo.user.linkedin.vanityName
-        : null,
-      spotifyEmail: authInfo.user.spotify ? authInfo.user.spotify.email : null,
-      spotifyName: authInfo.user.spotify ? authInfo.user.spotify.name : null,
-      spotifySubject: authInfo.user.spotify
-        ? authInfo.user.spotify.subject
-        : null,
-      telegramFirstName: authInfo.user.telegram
-        ? authInfo.user.telegram.firstName
-        : null,
-      telegramLastName: authInfo.user.telegram
-        ? authInfo.user.telegram.lastName
-        : null,
-      telegramPhotoUrl: authInfo.user.telegram
-        ? authInfo.user.telegram.photoUrl
-        : null,
-      telegramUserId: authInfo.user.telegram
-        ? authInfo.user.telegram.telegramUserId
-        : null,
-      telegramUsername: authInfo.user.telegram
-        ? authInfo.user.telegram.username
-        : null,
-      tiktokName: authInfo.user.tiktok ? authInfo.user.tiktok.name : null,
-      tiktokSubject: authInfo.user.tiktok ? authInfo.user.tiktok.subject : null,
-      tiktokUsername: authInfo.user.tiktok
-        ? authInfo.user.tiktok.username
-        : null,
-      twitterName: authInfo.user.twitter ? authInfo.user.twitter.name : null,
-      twitterSubject: authInfo.user.twitter
-        ? authInfo.user.twitter.subject
-        : null,
-      twitterProfilePictureUrl: authInfo.user.twitter
-        ? authInfo.user.twitter.profilePictureUrl
-        : null,
-      twitterUsername: authInfo.user.twitter
-        ? authInfo.user.twitter.username
-        : null,
-      phone: authInfo.user.phone ? authInfo.user.phone.number : null,
-      email: authInfo.user.email ? authInfo.user.email.address : null,
     }
   }
 
@@ -365,6 +273,219 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
+  private async _callBackendLinkAfterOAuthRedirect(
+    authInfo: PrivyAuthInfo,
+    device: "desktop" | "mobile"
+  ) {
+    try {
+      const { response } = await this._fetch<
+        ApiResponse<{
+          link: {
+            status: boolean
+          }
+        }>
+      >(`${this.backendUrl()}/linkAccount`, {
+        method: "POST",
+        body: {
+          ...this._formatAuthParams(authInfo),
+        },
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+          Authorization: `Bearer ${authInfo.authToken}`,
+        },
+      })
+
+      if (!response || !response.data)
+        return this._emit("onLinkError", new Error("Invalid response."))
+
+      const { link } = response.data[0]
+      const { status } = link
+
+      if (!link || !status)
+        return this._emit(
+          "onLinkError",
+          new Error("An error occured while updating the account.")
+        )
+
+      //clear all the internal callbacks connected to the authentication...
+      let event:
+        | "__onOAuthLinkAuthenticatedDesktop"
+        | "__onOAuthLinkAuthenticatedMobile" =
+        device === "desktop"
+          ? "__onOAuthLinkAuthenticatedDesktop"
+          : "__onOAuthLinkAuthenticatedMobile"
+      this._clearEventsCallbacks([event, "__onLinkAccountError"])
+
+      this._emit("link", {
+        ...authInfo,
+      })
+    } catch (error) {
+      this._emit("onLinkError", error)
+    }
+  }
+
+  private async _callBackendLink(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
+    reject: (reason?: any) => void,
+    authInfo: PrivyAuthInfo
+  ) {
+    try {
+      const { response } = await this._fetch<
+        ApiResponse<{
+          link: {
+            status: boolean
+          }
+        }>
+      >(`${this.backendUrl()}/linkAccount`, {
+        method: "POST",
+        body: {
+          ...this._formatAuthParams(authInfo),
+        },
+        headers: {
+          "x-api-key": `${this._apiKey}`,
+          Authorization: `Bearer ${authInfo.authToken}`,
+        },
+      })
+
+      if (!response || !response.data) return reject("Invalid response.")
+
+      const { link } = response.data[0]
+      const { status } = link
+
+      if (!link || !status)
+        return reject("An error occured while updating the account.")
+
+      //clear all the internal callbacks connected to the link...
+      this._clearEventsCallbacks([
+        "__onLinkAccountComplete",
+        "__onLinkAccountError",
+      ])
+
+      resolve({ ...authInfo })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _formatAuthParams(authInfo: PrivyAuthInfo): AuthParams {
+    return {
+      did: authInfo.user.id,
+      walletAddress: authInfo.user.wallet!.address,
+      walletConnectorType: authInfo.user.wallet!.connectorType!,
+      walletImported: authInfo.user.wallet!.imported
+        ? authInfo.user.wallet!.imported
+        : false,
+      walletRecoveryMethod: authInfo.user.wallet!.recoveryMethod
+        ? authInfo.user.wallet!.recoveryMethod
+        : "",
+      walletClientType: authInfo.user.wallet!.walletClientType
+        ? authInfo.user.wallet!.walletClientType
+        : "",
+      appleSubject: authInfo.user.apple ? authInfo.user.apple.subject : null,
+      appleEmail: authInfo.user.apple ? authInfo.user.apple.email : null,
+      discordSubject: authInfo.user.discord
+        ? authInfo.user.discord.subject
+        : null,
+      discordEmail: authInfo.user.discord ? authInfo.user.discord.email : null,
+      discordUsername: authInfo.user.discord
+        ? authInfo.user.discord.username
+        : null,
+      farcasterFid: authInfo.user.farcaster
+        ? authInfo.user.farcaster.fid
+        : null,
+      farcasterDisplayName: authInfo.user.farcaster
+        ? authInfo.user.farcaster.displayName
+        : null,
+      farcasterOwnerAddress: authInfo.user.farcaster
+        ? authInfo.user.farcaster.ownerAddress
+        : null,
+      farcasterPfp: authInfo.user.farcaster
+        ? authInfo.user.farcaster.pfp
+        : null,
+      farcasterSignerPublicKey: authInfo.user.farcaster
+        ? authInfo.user.farcaster.signerPublicKey
+        : null,
+      farcasterUrl: authInfo.user.farcaster
+        ? authInfo.user.farcaster.url
+        : null,
+      farcasterUsername: authInfo.user.farcaster
+        ? authInfo.user.farcaster.username
+        : null,
+      githubSubject: authInfo.user.github ? authInfo.user.github.subject : null,
+      githubEmail: authInfo.user.github ? authInfo.user.github.email : null,
+      githubName: authInfo.user.github ? authInfo.user.github.name : null,
+      githubUsername: authInfo.user.github
+        ? authInfo.user.github.username
+        : null,
+      googleEmail: authInfo.user.google ? authInfo.user.google.email : null,
+      googleName: authInfo.user.google ? authInfo.user.google.name : null,
+      googleSubject: authInfo.user.google ? authInfo.user.google.subject : null,
+      instagramSubject: authInfo.user.instagram
+        ? authInfo.user.instagram.subject
+        : null,
+      instagramUsername: authInfo.user.instagram
+        ? authInfo.user.instagram.username
+        : null,
+      linkedinEmail: authInfo.user.linkedin
+        ? authInfo.user.linkedin.email
+        : null,
+      linkedinName: authInfo.user.linkedin ? authInfo.user.linkedin.name : null,
+      linkedinSubject: authInfo.user.linkedin
+        ? authInfo.user.linkedin.subject
+        : null,
+      linkedinVanityName: authInfo.user.linkedin
+        ? authInfo.user.linkedin.vanityName
+        : null,
+      spotifyEmail: authInfo.user.spotify ? authInfo.user.spotify.email : null,
+      spotifyName: authInfo.user.spotify ? authInfo.user.spotify.name : null,
+      spotifySubject: authInfo.user.spotify
+        ? authInfo.user.spotify.subject
+        : null,
+      telegramFirstName: authInfo.user.telegram
+        ? authInfo.user.telegram.firstName
+        : null,
+      telegramLastName: authInfo.user.telegram
+        ? authInfo.user.telegram.lastName
+        : null,
+      telegramPhotoUrl: authInfo.user.telegram
+        ? authInfo.user.telegram.photoUrl
+        : null,
+      telegramUserId: authInfo.user.telegram
+        ? authInfo.user.telegram.telegramUserId
+        : null,
+      telegramUsername: authInfo.user.telegram
+        ? authInfo.user.telegram.username
+        : null,
+      tiktokName: authInfo.user.tiktok ? authInfo.user.tiktok.name : null,
+      tiktokSubject: authInfo.user.tiktok ? authInfo.user.tiktok.subject : null,
+      tiktokUsername: authInfo.user.tiktok
+        ? authInfo.user.tiktok.username
+        : null,
+      twitterName: authInfo.user.twitter ? authInfo.user.twitter.name : null,
+      twitterSubject: authInfo.user.twitter
+        ? authInfo.user.twitter.subject
+        : null,
+      twitterProfilePictureUrl: authInfo.user.twitter
+        ? authInfo.user.twitter.profilePictureUrl
+        : null,
+      twitterUsername: authInfo.user.twitter
+        ? authInfo.user.twitter.username
+        : null,
+      phone: authInfo.user.phone ? authInfo.user.phone.number : null,
+      email: authInfo.user.email ? authInfo.user.email.address : null,
+    }
+  }
+
+  private _clearEventsCallbacks(events: Array<AuthEvents>) {
+    events.forEach((event: AuthEvents) => {
+      const index = this._eventsCallbacks.findIndex((item) => {
+        return item.eventName === event
+      })
+
+      if (index > -1) this._eventsCallbacks[index].callbacks = []
+    })
+  }
+
   private _handleDesktopAuthentication(
     resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
     reject: (reason?: any) => void
@@ -384,14 +505,52 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  private _clearEventsCallbacks(events: Array<AuthEvents>) {
-    events.forEach((event: AuthEvents) => {
-      const index = this._eventsCallbacks.findIndex((item) => {
-        return item.eventName === event
-      })
+  private _handleMobileAuthentication(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    mobileOptions?: AuthenticationMobileOptions
+  ) {
+    if (!mobileOptions)
+      return reject("mobileOptions argument must be provided.")
 
-      if (index > -1) this._eventsCallbacks[index].callbacks = []
-    })
+    if (mobileOptions.type === "email") {
+      if (!mobileOptions.email)
+        return reject(
+          "mobileOptions.type is 'email' but you didn't provide an email."
+        )
+      if (!mobileOptions.OTPCode)
+        return reject(
+          "mobileOptions.type is 'email' but you didn't provide an OTP code."
+        )
+      this._handleMobileAuthenticationEmail(resolve, reject, {
+        email: mobileOptions.email,
+        OTP: mobileOptions.OTPCode,
+      })
+    } else if (mobileOptions.type === "sms") {
+      if (!mobileOptions.phone)
+        return reject(
+          "mobileOptions.type is 'sms' but you didn't provide an phone number."
+        )
+      if (!mobileOptions.OTPCode)
+        return reject(
+          "mobileOptions.type is 'sms' but you didn't provide an OTP code."
+        )
+
+      this._handleMobileAuthenticationSMS(resolve, reject, {
+        phone: mobileOptions.phone,
+        OTP: mobileOptions.OTPCode,
+      })
+    } else if (mobileOptions.type === "oauth") {
+      if (!mobileOptions.provider)
+        return reject(
+          "mobileOptions.type is 'oauth' but you didn't provide a provider."
+        )
+      this._handleMobileAuthenticationOAuth(resolve, reject, {
+        provider: mobileOptions.provider,
+      })
+    } else if (mobileOptions.type === "wallet") {
+      this._handleMobileAuthenticationWallet(resolve, reject, "metamask") //for now the support is only for metamask
+    }
   }
 
   private _handleMobileAuthenticationSMS(
@@ -486,12 +645,141 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  private _handleMobileAuthentication(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+  private _handleDesktopLink(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
+    reject: (reason?: any) => void,
+    desktopOptions: {
+      method:
+        | "apple"
+        | "discord"
+        | "email"
+        | "farcaster"
+        | "github"
+        | "google"
+        | "instagram"
+        | "linkedin"
+        | "phone"
+        | "spotify"
+        | "tiktok"
+        | "twitter"
+        | "wallet"
+        | "telegram"
+    }
+  ) {
+    try {
+      this.on("__onLinkAccountComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendLink(resolve, reject, authInfo)
+      })
+
+      this.on("__onLinkAccountError", (error: PrivyErrorCode) => {
+        reject(error)
+      })
+
+      this._emit("__link", desktopOptions.method)
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileLinkSMS(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
+    reject: (reason?: any) => void,
+    { phone, OTP }: { phone: string; OTP: string }
+  ) {
+    try {
+      this.on("__onLinkAccountComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendLink(resolve, reject, authInfo)
+      })
+
+      this.on(
+        "__onLinkAccountError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__linkMobileSMS", { phone, OTP })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileLinkEmail(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
+    reject: (reason?: any) => void,
+    { email, OTP }: { email: string; OTP: string }
+  ) {
+    try {
+      this.on("__onLinkAccountComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendLink(resolve, reject, authInfo)
+      })
+
+      this.on(
+        "__onLinkAccountError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__linkMobileEmail", { email, OTP })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileLinkOAuth(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
+    reject: (reason?: any) => void,
+    { provider }: { provider: Omit<OAuthProviderType, "farcaster"> }
+  ) {
+    try {
+      this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendLink(resolve, reject, authInfo)
+      })
+
+      this.on(
+        "__onLinkAccountError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__linkMobileOAuth", { provider })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileLinkWallet(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
+    reject: (reason?: any) => void,
+    wallet: "metamask"
+  ) {
+    try {
+      this.on("__onLinkAccountComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendLink(resolve, reject, authInfo)
+      })
+
+      this.on(
+        "__onLinkAccountError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__linkMobileWallet", { wallet })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
+  private _handleMobileLink(
+    resolve: (value: PrivyAuthInfo | PromiseLike<PrivyAuthInfo>) => void,
     reject: (reason?: any) => void,
     mobileOptions?: AuthenticationMobileOptions
   ) {
-    if (!mobileOptions) return reject("mobileOptions arg cannot be undefined.")
+    if (!mobileOptions)
+      return reject("mobileOptions argument must be provided.")
 
     if (mobileOptions.type === "email") {
       if (!mobileOptions.email)
@@ -502,7 +790,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
         return reject(
           "mobileOptions.type is 'email' but you didn't provide an OTP code."
         )
-      this._handleMobileAuthenticationEmail(resolve, reject, {
+      this._handleMobileLinkEmail(resolve, reject, {
         email: mobileOptions.email,
         OTP: mobileOptions.OTPCode,
       })
@@ -516,7 +804,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
           "mobileOptions.type is 'sms' but you didn't provide an OTP code."
         )
 
-      this._handleMobileAuthenticationSMS(resolve, reject, {
+      this._handleMobileLinkSMS(resolve, reject, {
         phone: mobileOptions.phone,
         OTP: mobileOptions.OTPCode,
       })
@@ -525,11 +813,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
         return reject(
           "mobileOptions.type is 'oauth' but you didn't provide a provider."
         )
-      this._handleMobileAuthenticationOAuth(resolve, reject, {
+      this._handleMobileLinkOAuth(resolve, reject, {
         provider: mobileOptions.provider,
       })
     } else if (mobileOptions.type === "wallet") {
-      this._handleMobileAuthenticationWallet(resolve, reject, "metamask") //for now the support is only for metamask
+      this._handleMobileLinkWallet(resolve, reject, "metamask") //for now the support is only for metamask
     }
   }
 
@@ -566,18 +854,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  authenticate(
-    device?: "desktop" | "mobile",
-    mobileOptions?: AuthenticationMobileOptions
-  ): Promise<AuthInfo> {
+  authenticate(mobileOptions?: AuthenticationMobileOptions): Promise<AuthInfo> {
     return new Promise((resolve, reject) => {
-      if (device === "desktop" && typeof window === "undefined")
-        throw new Error(
-          "argument 'desktop' was provided but the environment is not desktop."
-        )
+      const isDesktop = typeof window !== "undefined"
 
-      if (device === "desktop")
-        this._handleDesktopAuthentication(resolve, reject)
+      if (isDesktop) this._handleDesktopAuthentication(resolve, reject)
       else this._handleMobileAuthentication(resolve, reject, mobileOptions)
     })
   }
@@ -638,7 +919,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  async ready() {
+  ready() {
     return new Promise((resolve, reject) => {
       try {
         this.on("__onPrivyReady", () => {
@@ -650,7 +931,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  async logout(): Promise<boolean> {
+  logout(): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         this.on("__onLogoutComplete", (status: boolean) => {
@@ -665,52 +946,42 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  async link(
-    method:
-      | "apple"
-      | "discord"
-      | "email"
-      | "farcaster"
-      | "github"
-      | "google"
-      | "instagram"
-      | "linkedin"
-      | "phone"
-      | "spotify"
-      | "tiktok"
-      | "twitter"
-      | "wallet"
-      | "telegram"
+  link(
+    desktopOptions?: {
+      method:
+        | "apple"
+        | "discord"
+        | "email"
+        | "farcaster"
+        | "github"
+        | "google"
+        | "instagram"
+        | "linkedin"
+        | "phone"
+        | "spotify"
+        | "tiktok"
+        | "twitter"
+        | "wallet"
+        | "telegram"
+    },
+    mobileOptions?: AuthenticationMobileOptions
   ): Promise<LinkAccountInfo> {
     return new Promise((resolve, reject) => {
-      try {
-        this.on("__onLinkAccountComplete", (info: LinkAccountInfo) => {
-          //aggiungere await per chiamata lato server per aggiornare backend
-          resolve(info)
-        })
+      const isDesktop = typeof window !== "undefined"
 
-        this.on(
-          "__onLinkAccountError",
-          ({
-            error,
-            details,
-          }: {
-            error: PrivyErrorCode
-            details: { linkMethod: LoginMethod }
-          }) => {
-            reject({ error, details })
-          }
-        )
-
-        this._emit("__link", method)
-      } catch (error) {
-        console.warn(error)
-        reject(error)
+      if (isDesktop) {
+        if (!desktopOptions)
+          throw new Error("desktopOptions argument must be provided.")
+        this._handleDesktopLink(resolve, reject, desktopOptions)
+      } else {
+        if (!mobileOptions)
+          throw new Error("mobileOptions argument must be provided.")
+        this._handleMobileLink(resolve, reject, mobileOptions)
       }
     })
   }
 
-  async unlink(
+  unlink(
     method:
       | "apple"
       | "discord"
