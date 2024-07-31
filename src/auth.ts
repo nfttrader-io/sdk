@@ -610,13 +610,33 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  /**
-   * Checks if a user is registered based on the provided credentials.
-   * @param {Credentials} credentials - The user's credentials (address, email).
-   * @returns {Promise<boolean>} A promise that resolves to true if the user is registered, false otherwise.
-   * @throws {Error} An error is thrown if the authentication mode is not defined or if required credentials are missing.
-   */
-  async isUserRegistered() {}
+  sendEmailOTPCodeAfterAuth(email: string): Promise<{ email: string }> {
+    return new Promise((resolve, reject) => {
+      this.on("__onEmailOTPCodeAfterAuthSent", (email: string) => {
+        resolve({ email })
+      })
+
+      this.on("__onEmailOTPCodeAfterAuthSentError", (error: string) => {
+        reject(error)
+      })
+
+      this._emit("__sendEmailOTPCodeAfterAuth", email)
+    })
+  }
+
+  sendPhoneOTPCodeAfterAuth(phone: string): Promise<{ phone: string }> {
+    return new Promise((resolve, reject) => {
+      this.on("__onSMSOTPCodeAfterAuthSent", (phone: string) => {
+        resolve({ phone })
+      })
+
+      this.on("__onSMSOTPCodeSentAfterAuthError", (error: string) => {
+        reject(error)
+      })
+
+      this._emit("__sendSMSOTPCodeAfterAuth", phone)
+    })
+  }
 
   async ready() {
     return new Promise((resolve, reject) => {
