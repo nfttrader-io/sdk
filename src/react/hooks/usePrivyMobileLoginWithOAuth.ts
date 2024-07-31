@@ -16,11 +16,11 @@ export const usePrivyMobileLoginWithOAuth = (
     onSuccess: async (user, isNewUser) => {
       const authToken = await getAccessToken()
 
-      auth._emit("__onLoginComplete", {
+      auth._emit("__onOAuthAuthenticatedMobile", {
         user,
         isNewUser,
         wasAlreadyAuthenticated: false,
-        loginMethod: "email",
+        loginMethod: "oauth",
         linkedAccount: {},
         authToken,
       })

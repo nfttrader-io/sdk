@@ -1,3 +1,9 @@
+import "fast-text-encoding"
+import "react-native-get-random-values"
+import "@ethersproject/shims"
+import "node-libs-react-native/globals"
+import "react-native-url-polyfill/auto"
+import "react-native-get-random-values"
 import React, { useEffect, useRef, useState } from "react"
 import { Loopz } from "@src/loopz"
 import { Auth } from "@src/auth"
@@ -7,9 +13,6 @@ import { Post } from "@src/post"
 import { PrivyProvider as PrivyProviderDesktop } from "@privy-io/react-auth"
 import { PrivyProvider as PrivyProviderReactNative } from "@privy-io/expo"
 import { PrivyWrapper } from "./privywrapper"
-import "fast-text-encoding"
-import "react-native-get-random-values"
-import "@ethersproject/shims"
 import {
   ILoopzContext,
   LoopzDesktopProviderProps,

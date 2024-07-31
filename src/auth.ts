@@ -66,6 +66,9 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
         await this._callBackendAuthAfterOAuthRedirect(authInfo, "desktop")
       }
     )
+    this.on("__onOAuthAuthenticatedMobile", async (authInfo: PrivyAuthInfo) => {
+      await this._callBackendAuthAfterOAuthRedirect(authInfo, "mobile")
+    })
     //OAuth providers login error handling
     this.on("__onLoginError", (error: PrivyErrorCode) => {
       this._emit("onAuthError")
@@ -281,10 +284,13 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
         await this._handleRealm(token.secret, token.iv, did)
 
       //clear all the internal callbacks connected to the authentication...
-      this._clearEventsCallbacks([
-        "__onOAuthAuthenticatedDesktop",
-        "__onLoginError",
-      ])
+      let event:
+        | "__onOAuthAuthenticatedDesktop"
+        | "__onOAuthAuthenticatedMobile" =
+        device === "desktop"
+          ? "__onOAuthAuthenticatedDesktop"
+          : "__onOAuthAuthenticatedMobile"
+      this._clearEventsCallbacks([event, "__onLoginError"])
 
       this._emit("auth", {
         isConnected: true,
@@ -457,6 +463,29 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
+  private _handleMobileAuthenticationWallet(
+    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    reject: (reason?: any) => void,
+    wallet: "metamask"
+  ) {
+    try {
+      this.on("__onLoginComplete", async (authInfo: PrivyAuthInfo) => {
+        this._callBackendAuth(resolve, reject, authInfo, "mobile")
+      })
+
+      this.on(
+        "__onLoginError",
+        (error: PrivyClientError | PrivyApiError | Error) => {
+          reject(error)
+        }
+      )
+
+      this._emit("__authenticateMobileWallet", { wallet })
+    } catch (error) {
+      reject(error)
+    }
+  }
+
   private _handleMobileAuthentication(
     resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
     reject: (reason?: any) => void,
@@ -499,6 +528,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       this._handleMobileAuthenticationOAuth(resolve, reject, {
         provider: mobileOptions.provider,
       })
+    } else if (mobileOptions.type === "wallet") {
+      this._handleMobileAuthenticationWallet(resolve, reject, "metamask") //for now the support is only for metamask
     }
   }
 
