@@ -106,17 +106,17 @@ export class User
    */
   readonly allowGroupsSuggestion: boolean
   /**
-   * @readonly encryptedPrivateKey - The encrypted private key.
+   * @property {Maybe<string>} e2ePublicKey - The public key of the user.
    */
-  readonly encryptedPrivateKey: Maybe<string>
+  readonly e2ePublicKey: Maybe<string>
   /**
-   * @readonly publicKey - The public key.
+   * @property {Maybe<string>} e2eSecret - The secret key of the user.
    */
-  readonly publicKey: Maybe<string>
+  readonly e2eSecret: Maybe<string>
   /**
-   * @readonly encryptedSecret - The secret key.
+   * @property {Maybe<string>} e2eSecretIV - The secret IV of the user.
    */
-  readonly encryptedSecret: Maybe<string>
+  readonly e2eSecretIV: Maybe<string>
   /**
    *  @readonly createdAt - The creation date of the key pair.
    */
@@ -159,9 +159,9 @@ export class User
     this.allowReceiveMessageFrom = config.allowReceiveMessageFrom
     this.allowAddToGroupsFrom = config.allowAddToGroupsFrom
     this.allowGroupsSuggestion = config.allowGroupsSuggestion
-    this.encryptedPrivateKey = config.encryptedPrivateKey
-    this.publicKey = config.publicKey
-    this.encryptedSecret = config.encryptedSecret
+    this.e2ePublicKey = config.e2ePublicKey
+    this.e2eSecret = config.e2eSecret
+    this.e2eSecretIV = config.e2eSecretIV
     this.createdAt = config.createdAt
     this.updatedAt = config.updatedAt
 
@@ -223,13 +223,9 @@ export class User
       allowGroupsSuggestion: response.allowGroupsSuggestion
         ? response.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.encryptedPrivateKey
-        ? response.encryptedPrivateKey
-        : null,
-      publicKey: response.publicKey ? response.publicKey : null,
-      encryptedSecret: response.encryptedSecret
-        ? response.encryptedSecret
-        : null,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -291,13 +287,9 @@ export class User
       allowGroupsSuggestion: response.allowGroupsSuggestion
         ? response.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.encryptedPrivateKey
-        ? response.encryptedPrivateKey
-        : null,
-      publicKey: response.publicKey ? response.publicKey : null,
-      encryptedSecret: response.encryptedSecret
-        ? response.encryptedSecret
-        : null,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -378,14 +370,14 @@ export class User
               allowGroupsSuggestion: item.blockedUser.allowGroupsSuggestion
                 ? item.blockedUser.allowGroupsSuggestion
                 : false,
-              encryptedPrivateKey: item.blockedUser.encryptedPrivateKey
-                ? item.blockedUser.encryptedPrivateKey
+              e2ePublicKey: item.blockedUser.e2ePublicKey
+                ? item.blockedUser.e2ePublicKey
                 : null,
-              publicKey: item.blockedUser.publicKey
-                ? item.blockedUser.publicKey
+              e2eSecret: item.blockedUser.e2eSecret
+                ? item.blockedUser.e2eSecret
                 : null,
-              encryptedSecret: item.blockedUser.encryptedSecret
-                ? item.blockedUser.encryptedSecret
+              e2eSecretIV: item.blockedUser.e2eSecretIV
+                ? item.blockedUser.e2eSecretIV
                 : null,
               createdAt: new Date(item.blockedUser.createdAt),
               updatedAt: item.blockedUser.updatedAt

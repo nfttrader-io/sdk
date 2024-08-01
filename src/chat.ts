@@ -275,13 +275,9 @@ export class Chat
       allowGroupsSuggestion: response.allowGroupsSuggestion
         ? response.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.encryptedPrivateKey
-        ? response.encryptedPrivateKey
-        : null,
-      publicKey: response.publicKey ? response.publicKey : null,
-      encryptedSecret: response.encryptedSecret
-        ? response.encryptedSecret
-        : null,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -1129,13 +1125,9 @@ export class Chat
       allowGroupsSuggestion: response.allowGroupsSuggestion
         ? response.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.encryptedPrivateKey
-        ? response.encryptedPrivateKey
-        : null,
-      publicKey: response.publicKey ? response.publicKey : null,
-      encryptedSecret: response.encryptedSecret
-        ? response.encryptedSecret
-        : null,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -1610,13 +1602,9 @@ export class Chat
       allowGroupsSuggestion: response.allowGroupsSuggestion
         ? response.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.encryptedPrivateKey
-        ? response.encryptedPrivateKey
-        : null,
-      publicKey: response.publicKey ? response.publicKey : null,
-      encryptedSecret: response.encryptedSecret
-        ? response.encryptedSecret
-        : null,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -2237,11 +2225,9 @@ export class Chat
           allowGroupsSuggestion: item.allowGroupsSuggestion
             ? item.allowGroupsSuggestion
             : false,
-          encryptedPrivateKey: item.encryptedPrivateKey
-            ? item.encryptedPrivateKey
-            : null,
-          publicKey: item.publicKey ? item.publicKey : null,
-          encryptedSecret: item.encryptedSecret ? item.encryptedSecret : null,
+          e2ePublicKey: item.e2ePublicKey ? item.e2ePublicKey : null,
+          e2eSecret: item.e2eSecret ? item.e2eSecret : null,
+          e2eSecretIV: item.e2eSecretIV ? item.e2eSecretIV : null,
           createdAt: new Date(item.createdAt),
           updatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
           client: this._client!,
@@ -2295,13 +2281,9 @@ export class Chat
       allowGroupsSuggestion: response.allowGroupsSuggestion
         ? response.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.encryptedPrivateKey
-        ? response.encryptedPrivateKey
-        : null,
-      publicKey: response.publicKey ? response.publicKey : null,
-      encryptedSecret: response.encryptedSecret
-        ? response.encryptedSecret
-        : null,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
       createdAt: new Date(response.createdAt),
       updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
@@ -3709,11 +3691,9 @@ export class Chat
           allowGroupsSuggestion: r.allowGroupsSuggestion
             ? r.allowGroupsSuggestion
             : false,
-          encryptedPrivateKey: r.encryptedPrivateKey
-            ? r.encryptedPrivateKey
-            : null,
-          publicKey: r.publicKey ? r.publicKey : null,
-          encryptedSecret: r.encryptedSecret ? r.encryptedSecret : null,
+          e2ePublicKey: r.e2ePublicKey ? r.e2ePublicKey : null,
+          e2eSecret: r.e2eSecret ? r.e2eSecret : null,
+          e2eSecretIV: r.e2eSecretIV ? r.e2eSecretIV : null,
           createdAt: new Date(r.createdAt),
           updatedAt: r.updatedAt ? new Date(r.updatedAt) : null,
           client: this._client!,

@@ -1042,12 +1042,12 @@ export class Conversation
       allowGroupsSuggestion: response.owner!.allowGroupsSuggestion
         ? response.owner!.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.owner!.encryptedPrivateKey
-        ? response.owner!.encryptedPrivateKey
+      e2ePublicKey: response.owner!.e2ePublicKey
+        ? response.owner!.e2ePublicKey
         : null,
-      publicKey: response.owner!.publicKey ? response.owner!.publicKey : null,
-      encryptedSecret: response.owner!.encryptedSecret
-        ? response.owner!.encryptedSecret
+      e2eSecret: response.owner!.e2eSecret ? response.owner!.e2eSecret : null,
+      e2eSecretIV: response.owner!.e2eSecretIV
+        ? response.owner!.e2eSecretIV
         : null,
       createdAt: new Date(response.owner!.createdAt),
       updatedAt: response.owner!.updatedAt

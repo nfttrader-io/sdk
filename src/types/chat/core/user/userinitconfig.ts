@@ -79,17 +79,17 @@ export type UserInitConfig = {
    */
   allowGroupsSuggestion: boolean
   /**
-   * @property {Maybe<string>} encryptedPrivateKey - Indicates the encrypted private key
+   * @property {Maybe<string>} e2ePublicKey - The public key of the user.
    */
-  encryptedPrivateKey: Maybe<string>
+  e2ePublicKey: Maybe<string>
   /**
-   * @property {Maybe<string>} publicKey - Indicates the public key
+   * @property {Maybe<string>} e2eSecret - The secret key of the user.
    */
-  publicKey: Maybe<string>
+  e2eSecret: Maybe<string>
   /**
-   * @property {Maybe<string>} encryptedSecret - The secret key of the user.
+   * @property {Maybe<string>} e2eSecretIV - The secret IV of the user.
    */
-  encryptedSecret: Maybe<string>
+  e2eSecretIV: Maybe<string>
   /**
    * @property {Date} createdAt - Indicates the creation date
    */

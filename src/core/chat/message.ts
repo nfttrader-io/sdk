@@ -703,12 +703,12 @@ export class Message
       allowGroupsSuggestion: response.user!.allowGroupsSuggestion
         ? response.user!.allowGroupsSuggestion
         : false,
-      encryptedPrivateKey: response.user!.encryptedPrivateKey
-        ? response.user!.encryptedPrivateKey
+      e2ePublicKey: response.user!.e2ePublicKey
+        ? response.user!.e2ePublicKey
         : null,
-      publicKey: response.user!.publicKey ? response.user!.publicKey : null,
-      encryptedSecret: response.user!.encryptedSecret
-        ? response.user!.encryptedSecret
+      e2eSecret: response.user!.e2eSecret ? response.user!.e2eSecret : null,
+      e2eSecretIV: response.user!.e2eSecretIV
+        ? response.user!.e2eSecretIV
         : null,
       createdAt: new Date(response.user!.createdAt),
       updatedAt: response.user!.updatedAt
