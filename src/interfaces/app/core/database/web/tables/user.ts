@@ -1,13 +1,12 @@
 import { Maybe } from "@src/types"
 
 export interface WebUser {
-  id: string //primary key
   did: string
   organizationId: string
   username: string
   email: string
   bio: string
-  avatarUrl: string
+  avatarUrl: URL
   isVerified: boolean
   isNft: boolean
   wallet: {
@@ -71,7 +70,7 @@ export interface WebUser {
   twitter: Maybe<{
     name: Maybe<string>
     subject: Maybe<string>
-    profilePictureUrl: Maybe<string>
+    profilePictureUrl: Maybe<URL>
     username: Maybe<string>
   }>
   allowNotification: boolean
@@ -85,5 +84,5 @@ export interface WebUser {
   e2ePublicKey: string
   e2eEncryptedPrivateKey: string
   createdAt: Date
-  updatedAt: Date
+  updatedAt: Maybe<Date>
 }

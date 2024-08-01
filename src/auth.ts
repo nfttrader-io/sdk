@@ -100,25 +100,144 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     return keys
   }
 
-  private async _handleIndexedDB(e2eSecret: string, iv: string, did: string) {
+  private async _handleDexie(account: Account) {
     const storage = this._storage as DexieStorage
     try {
       const keys = await this._generateKeys()
       if (!keys || typeof keys === "boolean")
         throw new Error("Error during generation of public/private keys.")
 
-      //save keys into db
-
       //let's encrypt first the private key. Private key will be always calculated runtime.
       const encryptedPrivateKey = Crypto.encryptAES_CBC(
         Crypto.convertRSAPrivateKeyToPem(keys.privateKey),
-        Buffer.from(e2eSecret).toString("base64"),
-        Buffer.from(iv).toString("base64")
+        Buffer.from(account.e2eSecret).toString("base64"),
+        Buffer.from(account.e2eSecretIV).toString("base64")
       )
       const publicKey = Crypto.convertRSAPublicKeyToPem(keys.publicKey)
 
-      //await storage.user.add() //public key
-      //await storage.user.add() //private key
+      //save all the data related to this user into the db
+      await storage.transaction("rw", storage.user, async () => {
+        const existingUser = await storage.user
+          .where("did")
+          .equals(account.did)
+          .first()
+
+        if (!existingUser)
+          await storage.user.add({
+            did: account.did,
+            organizationId: account.organizationId,
+            username: account.username,
+            email: account.email,
+            bio: account.bio,
+            avatarUrl: account.avatarUrl,
+            isVerified: account.isVerified,
+            isNft: account.isNft,
+            wallet: {
+              address: account.walletAddress,
+              connectorType: account.walletConnectorType,
+            },
+            apple: account.appleSubject
+              ? {
+                  subject: account.appleSubject,
+                  email: account.email,
+                }
+              : null,
+            discord: account.discordSubject
+              ? {
+                  subject: account.discordSubject,
+                  email: account.discordEmail,
+                  username: account.username,
+                }
+              : null,
+            farcaster: account.farcasterFid
+              ? {
+                  fid: account.farcasterFid,
+                  displayName: account.farcasterDisplayName,
+                  ownerAddress: account.farcasterOwnerAddress,
+                  pfp: new URL(
+                    account.farcasterPfp ? account.farcasterPfp : ""
+                  ),
+                  username: account.farcasterUsername,
+                }
+              : null,
+            github: account.githubSubject
+              ? {
+                  subject: account.githubSubject,
+                  email: account.githubEmail,
+                  name: account.githubName,
+                  username: account.githubUsername,
+                }
+              : null,
+            google: account.googleSubject
+              ? {
+                  subject: account.googleSubject,
+                  email: account.googleEmail,
+                  name: account.googleName,
+                }
+              : null,
+            instagram: account.instagramSubject
+              ? {
+                  subject: account.instagramSubject,
+                  username: account.instagramUsername,
+                }
+              : null,
+            linkedin: account.linkedinSubject
+              ? {
+                  subject: account.linkedinSubject,
+                  email: account.linkedinEmail,
+                  name: account.linkedinName,
+                  vanityName: account.linkedinVanityName,
+                }
+              : null,
+            spotify: account.spotifySubject
+              ? {
+                  subject: account.spotifySubject,
+                  email: account.spotifyEmail,
+                  name: account.spotifyName,
+                }
+              : null,
+            telegram: account.telegramUserId
+              ? {
+                  firstName: account.telegramFirstName,
+                  lastName: account.telegramLastName,
+                  photoUrl: account.telegramPhotoUrl
+                    ? new URL(account.telegramPhotoUrl)
+                    : null,
+                  userId: account.telegramUserId,
+                  username: account.telegramUsername,
+                }
+              : null,
+            tiktok: account.tiktokSubject
+              ? {
+                  name: account.tiktokName,
+                  subject: account.tiktokSubject,
+                  username: account.tiktokUsername,
+                }
+              : null,
+            twitter: account.twitterSubject
+              ? {
+                  name: account.twitterName,
+                  subject: account.twitterSubject,
+                  profilePictureUrl: account.twitterProfilePictureUrl
+                    ? new URL(account.twitterProfilePictureUrl)
+                    : null,
+                  username: account.twitterUsername,
+                }
+              : null,
+            allowNotification: account.allowNotification,
+            allowNotificationSound: account.allowNotificationSound,
+            visibility: account.visibility,
+            onlineStatus: account.onlineStatus,
+            allowReadReceipt: account.allowReadReceipt,
+            allowReceiveMessageFrom: account.allowReceiveMessageFrom,
+            allowAddToGroupsFrom: account.allowAddToGroupsFrom,
+            allowGroupsSuggestion: account.allowGroupsSuggestion,
+            e2ePublicKey: publicKey,
+            e2eEncryptedPrivateKey: encryptedPrivateKey,
+            createdAt: account.createdAt,
+            updatedAt: account.updatedAt,
+          })
+      })
     } catch (error) {
       console.log(error)
       throw new Error(
@@ -127,7 +246,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     }
   }
 
-  private async _handleRealm(e2eSecret: string, iv: string, did: string) {
+  private async _handleRealm(account: Account) {
     let keys = await this._generateKeys()
     //if (!keys) throw new Error("Keys generation error.")
 
@@ -174,18 +293,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       this._postRef?.setAuthToken(authInfo.authToken)
 
       //generation of the table and local keys for e2e encryption
-      if (device === "desktop")
-        await this._handleIndexedDB(
-          account.e2eSecret,
-          account.e2eSecretIV,
-          account.did
-        )
-      else if (device === "mobile")
-        await this._handleRealm(
-          account.e2eSecret,
-          account.e2eSecretIV,
-          account.did
-        )
+      if (device === "desktop") await this._handleDexie(account)
+      else if (device === "mobile") await this._handleRealm(account)
 
       //clear all the internal callbacks connected to the authentication...
       let event:
@@ -247,18 +356,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       this._postRef?.setAuthToken(authInfo.authToken)
 
       //generation of the table and local keys for e2e encryption
-      if (device === "desktop")
-        await this._handleIndexedDB(
-          account.e2eSecret,
-          account.e2eSecretIV,
-          account.did
-        )
-      else if (device === "mobile")
-        await this._handleRealm(
-          account.e2eSecret,
-          account.e2eSecretIV,
-          account.did
-        )
+      if (device === "desktop") await this._handleDexie(account)
+      else if (device === "mobile") await this._handleRealm(account)
 
       //clear all the internal callbacks connected to the authentication...
       this._clearEventsCallbacks(["__onLoginComplete", "__onLoginError"])

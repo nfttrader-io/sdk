@@ -79,6 +79,14 @@ export class Account implements AccountSchema {
   readonly updatedAt: Maybe<Date>
   readonly deletedAt: Maybe<Date>
   readonly token: string
+  readonly allowNotification: boolean
+  readonly allowNotificationSound: boolean
+  readonly visibility: boolean
+  readonly onlineStatus: "OFFLINE" | "ONLINE" | "BUSY"
+  readonly allowReadReceipt: boolean
+  readonly allowReceiveMessageFrom: "NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE"
+  readonly allowAddToGroupsFrom: "ONLY_FOLLOWED" | "EVERYONE"
+  readonly allowGroupsSuggestion: boolean
 
   constructor(config: AccountInitConfig) {
     this.did = config.did
@@ -163,5 +171,13 @@ export class Account implements AccountSchema {
     this.createdAt = new Date(config.createdAt)
     this.updatedAt = config.updatedAt ? new Date(config.updatedAt) : null
     this.deletedAt = config.deletedAt ? new Date(config.deletedAt) : null
+    this.allowNotification = config.allowNotification
+    this.allowNotificationSound = config.allowNotificationSound
+    this.visibility = config.visibility
+    this.onlineStatus = config.onlineStatus
+    this.allowReadReceipt = config.allowReadReceipt
+    this.allowReceiveMessageFrom = config.allowReceiveMessageFrom
+    this.allowAddToGroupsFrom = config.allowAddToGroupsFrom
+    this.allowGroupsSuggestion = config.allowGroupsSuggestion
   }
 }

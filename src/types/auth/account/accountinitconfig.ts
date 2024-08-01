@@ -70,6 +70,14 @@ export type AccountInitConfig = {
   generalNotificationPush: boolean
   generalNotificationSystem: boolean
   accountSuspended: boolean
+  allowNotification: boolean
+  allowNotificationSound: boolean
+  visibility: boolean
+  onlineStatus: "OFFLINE" | "ONLINE" | "BUSY"
+  allowReadReceipt: boolean
+  allowReceiveMessageFrom: "NO_ONE" | "ONLY_FOLLOWED" | "EVERYONE"
+  allowAddToGroupsFrom: "EVERYONE" | "ONLY_FOLLOWED"
+  allowGroupsSuggestion: boolean
   e2ePublicKey: string
   e2eSecret: string
   e2eSecretIV: string
