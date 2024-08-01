@@ -1,3 +1,2 @@
-export * from "../core/createorconnectidb"
+export * from "./createorconnectdexie"
 export * from "../core/createorconnectrealm"
-export * from "../core/account"

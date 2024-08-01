@@ -1,4 +1,4 @@
-import { IndexedDBStorage, RealmStorage } from "./core/app"
+import { DexieStorage, RealmStorage } from "./core/app"
 import {
   CLIENT_DB_NAME,
   CLIENT_DB_VERSION_LOCALSTORAGE_PROPERTY_NAME,
@@ -30,7 +30,7 @@ export class Loopz {
 
   private static _privyClientConfig: PrivyClientConfig
 
-  private static _storage: IndexedDBStorage | RealmStorage
+  private static _storage: DexieStorage | RealmStorage
 
   private static _privyAdapter: Maybe<PrivyAdapter> = null
 
@@ -79,7 +79,7 @@ export class Loopz {
   }
 
   private static async createOrConnectToStorage(): Promise<
-    IndexedDBStorage | RealmStorage
+    DexieStorage | RealmStorage
   > {
     if (
       typeof window !== "undefined" &&
@@ -104,7 +104,7 @@ export class Loopz {
       )
 
       try {
-        return IndexedDBStorage.createOrConnect({
+        return DexieStorage.createOrConnect({
           dbName: CLIENT_DB_NAME,
           dbVersion: DB_VERSION ? Number(DB_VERSION) : 0,
         })

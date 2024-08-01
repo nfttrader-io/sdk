@@ -1,183 +1,62 @@
+import {
+  WebConversation,
+  WebMessage,
+  WebUser,
+} from "@src/interfaces/app/core/database"
 import { BaseStorage } from "../../interfaces/app"
-import { CreateOrConnectIndexedDBArgs } from "../../types/app"
+import { CreateOrConnectDexieArgs } from "../../types/app"
+import Dexie from "dexie"
+import { Maybe } from "@src/types"
 
-export class IndexedDBStorage implements BaseStorage {
+export class DexieStorage extends Dexie implements BaseStorage {
+  //db info
   private _dbName: string
   private _dbVersion: number
 
+  //tables
+  migration!: Dexie.Table<{ key: string; value: any }, string>
+  user!: Dexie.Table<WebUser, string>
+  message!: Dexie.Table<WebMessage, string>
+  conversation!: Dexie.Table<WebConversation, string>
+
   private constructor(dbName: string, dbVersion: number) {
+    super(dbName)
+
     this._dbName = dbName
     this._dbVersion = dbVersion
-  }
 
-  private _applyFilter(item: any, filter: any): boolean {
-    // Implement your filter logic here
-    return true
-  }
-
-  private async _initDB() {
-    return new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(this._dbName)
-
-      request.onerror = (event) => {
-        reject((event.target as IDBRequest).error)
-      }
-
-      request.onsuccess = () => {
-        resolve()
-      }
+    this.version(this._dbVersion).stores({
+      user: "++id, did, organizationId",
+      conversation: "++id, name, description",
+      message: "++id, content",
+      migration: "key",
     })
-  }
 
-  private async _getDB() {
-    return new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(this._dbName)
-
-      request.onerror = (event) => {
-        reject((event.target as IDBRequest).error)
-      }
-
-      request.onsuccess = (event) => {
-        resolve((event.target as IDBRequest).result)
-      }
+    //let's store the current version of the database
+    this.on("ready", async () => {
+      const dbVersion = (await this.migration.get("dbVersion"))?.value
+      if (dbVersion !== this._dbVersion)
+        await this.migration.put({ key: "dbVersion", value: this._dbVersion })
     })
   }
 
   static async createOrConnect(
-    params: CreateOrConnectIndexedDBArgs
-  ): Promise<IndexedDBStorage> {
-    const instance = new IndexedDBStorage(params.dbName, params.dbVersion)
-    await instance._initDB()
+    params: CreateOrConnectDexieArgs
+  ): Promise<DexieStorage> {
+    const instance = new DexieStorage(params.dbName, params.dbVersion)
 
     return instance
   }
 
-  async createTableIfNotExists(newStoreName: string): Promise<void> {
-    const currentDb = await this._getDB()
-    const newVersion = currentDb.version + 1
+  async get(): Promise<any> {}
 
-    return new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(this._dbName, newVersion)
+  async insert(): Promise<void> {}
 
-      request.onerror = (event) => {
-        reject((event.target as IDBRequest).error)
-      }
+  async insertSafe(): Promise<void> {}
 
-      request.onsuccess = () => {
-        this._dbVersion = newVersion
-        resolve()
-      }
+  async deleteItem(): Promise<void> {}
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBRequest).result
-        if (!db.objectStoreNames.contains(newStoreName)) {
-          db.createObjectStore(newStoreName)
-        }
-      }
-    })
-  }
-
-  async get(storeName: string, key: string): Promise<any> {
-    const db = await this._getDB()
-
-    return new Promise<any>((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readonly")
-      const store = transaction.objectStore(storeName)
-      const request = store.get(key)
-
-      request.onsuccess = () => {
-        resolve(request.result)
-      }
-
-      request.onerror = () => {
-        reject(request.error)
-      }
-    })
-  }
-
-  async insert(storeName: string, key: string, value: any): Promise<void> {
-    const db = await this._getDB()
-
-    return new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readwrite")
-      const store = transaction.objectStore(storeName)
-      const request = store.put(value, key)
-
-      request.onsuccess = () => {
-        resolve()
-      }
-
-      request.onerror = () => {
-        reject(request.error)
-      }
-    })
-  }
-
-  async insertSafe(storeName: string, key: string, value: any): Promise<void> {
-    const db = await this._getDB()
-
-    return new Promise<void>(async (resolve, reject) => {
-      const item = await this.get(storeName, key)
-
-      if (item) return resolve()
-      const transaction = db.transaction(storeName, "readwrite")
-      const store = transaction.objectStore(storeName)
-      const request = store.put(value, key)
-
-      request.onsuccess = () => {
-        resolve()
-      }
-
-      request.onerror = () => {
-        reject(request.error)
-      }
-    })
-  }
-
-  async delete(storeName: string, key: string): Promise<void> {
-    const db = await this._getDB()
-
-    return new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readwrite")
-      const store = transaction.objectStore(storeName)
-      const request = store.delete(key)
-
-      request.onsuccess = () => {
-        resolve()
-      }
-
-      request.onerror = () => {
-        reject(request.error)
-      }
-    })
-  }
-
-  async query(storeName: string, filter: any): Promise<any[]> {
-    const db = await this._getDB()
-
-    return new Promise<any[]>((resolve, reject) => {
-      const transaction = db.transaction(storeName, "readonly")
-      const store = transaction.objectStore(storeName)
-      const request = store.openCursor()
-      const results: any[] = []
-
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result
-        if (cursor) {
-          if (this._applyFilter(cursor.value, filter)) {
-            results.push(cursor.value)
-          }
-          cursor.continue()
-        } else {
-          resolve(results)
-        }
-      }
-
-      request.onerror = () => {
-        reject(request.error)
-      }
-    })
-  }
+  async query(): Promise<void> {}
 
   getDBName(): string {
     return this._dbName

@@ -1,3 +1,3 @@
 export * from "./indexeddbstorage"
 export * from "./realmstorage"
-export * from "./account"
+export * from "../auth/account"

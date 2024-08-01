@@ -11,8 +11,7 @@ import {
 import { ApiResponse } from "./types/base/apiresponse"
 import { ApiKeyAuthorized, Maybe } from "./types/base"
 import { Crypto } from "./core"
-import { Account, IndexedDBStorage, RealmStorage } from "./core/app"
-import { CLIENT_TABLE_NAME_LOCAL_KEYS } from "./constants/app"
+import { Account, DexieStorage, RealmStorage } from "./core/app"
 import { PrivyClientConfig } from "@privy-io/react-auth"
 import { AuthInternalEvents } from "./interfaces/auth/authinternalevents"
 import { PrivyErrorCode } from "@src/enums/adapter/auth/privyerrorcode"
@@ -26,6 +25,7 @@ import {
   PrivyApiError,
   PrivyClientError,
 } from "@privy-io/expo"
+import { AccountInitConfig } from "./types/auth/account"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -33,7 +33,7 @@ import {
  * @extends HTTPClient
  */
 export class Auth extends HTTPClient implements AuthInternalEvents {
-  private _storage?: IndexedDBStorage | RealmStorage
+  private _storage?: DexieStorage | RealmStorage
   private _privyAppId: string
   private _privyConfig?: PrivyClientConfig
   private _eventsCallbacks: Array<{
@@ -101,9 +101,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private async _handleIndexedDB(e2eSecret: string, iv: string, did: string) {
-    const storage = this._storage as IndexedDBStorage
+    const storage = this._storage as DexieStorage
     try {
-      await storage.createTableIfNotExists(CLIENT_TABLE_NAME_LOCAL_KEYS)
       const keys = await this._generateKeys()
       if (!keys || typeof keys === "boolean")
         throw new Error("Error during generation of public/private keys.")
@@ -118,16 +117,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       )
       const publicKey = Crypto.convertRSAPublicKeyToPem(keys.publicKey)
 
-      await storage.insertSafe(
-        CLIENT_TABLE_NAME_LOCAL_KEYS,
-        `${did}_publicKey`,
-        publicKey
-      )
-      await storage.insertSafe(
-        CLIENT_TABLE_NAME_LOCAL_KEYS,
-        `${did}_encryptedPrivateKey`,
-        encryptedPrivateKey
-      )
+      //await storage.user.add() //public key
+      //await storage.user.add() //private key
     } catch (error) {
       console.log(error)
       throw new Error(
@@ -152,11 +143,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     try {
       const { response } = await this._fetch<
         ApiResponse<{
-          auth: {
-            token: { secret: string; iv: string } | boolean
-            status: string
-            did: string
-          }
+          user: AccountInitConfig
         }>
       >(`${this.backendUrl()}/auth`, {
         method: "POST",
@@ -175,11 +162,12 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
           new Error("No response from backend during authentication")
         )
 
-      const { auth } = response.data[0]
-      const { token, did } = auth
+      const { user } = response.data[0]
 
-      if (!token || typeof token === "boolean")
+      if (!user)
         return this._emit("onAuthError", new Error("Access not granted."))
+
+      const account = new Account(user)
 
       this._tradeRef?.setAuthToken(authInfo.authToken)
       this._oracleRef?.setAuthToken(authInfo.authToken)
@@ -187,9 +175,17 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
       //generation of the table and local keys for e2e encryption
       if (device === "desktop")
-        await this._handleIndexedDB(token.secret, token.iv, did)
+        await this._handleIndexedDB(
+          account.e2eSecret,
+          account.e2eSecretIV,
+          account.did
+        )
       else if (device === "mobile")
-        await this._handleRealm(token.secret, token.iv, did)
+        await this._handleRealm(
+          account.e2eSecret,
+          account.e2eSecretIV,
+          account.did
+        )
 
       //clear all the internal callbacks connected to the authentication...
       let event:
@@ -201,12 +197,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       this._clearEventsCallbacks([event, "__onLoginError"])
 
       this._emit("auth", {
-        isConnected: true,
-        tokenE2E: {
-          e2eSecret: token.secret,
-          e2eSecretIV: token.iv,
+        auth: {
+          isConnected: true,
+          ...authInfo,
         },
-        ...authInfo,
+        account,
       })
     } catch (error) {
       this._emit("onAuthError", error)
@@ -214,7 +209,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private async _callBackendAuth(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void,
     authInfo: PrivyAuthInfo,
     device: "desktop" | "mobile"
@@ -222,11 +221,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     try {
       const { response } = await this._fetch<
         ApiResponse<{
-          auth: {
-            token: { secret: string; iv: string } | boolean
-            status: string
-            did: string
-          }
+          user: AccountInitConfig
         }>
       >(`${this.backendUrl()}/auth`, {
         method: "POST",
@@ -241,11 +236,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
       if (!response || !response.data) return reject("Invalid response.")
 
-      const { auth } = response.data[0]
-      const { token, did } = auth
+      const { user } = response.data[0]
 
-      if (!token || typeof token === "boolean")
-        return reject("Access not granted")
+      if (!user) return reject("Access not granted")
+
+      const account = new Account(user)
 
       this._tradeRef?.setAuthToken(authInfo.authToken)
       this._oracleRef?.setAuthToken(authInfo.authToken)
@@ -253,20 +248,27 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
       //generation of the table and local keys for e2e encryption
       if (device === "desktop")
-        await this._handleIndexedDB(token.secret, token.iv, did)
+        await this._handleIndexedDB(
+          account.e2eSecret,
+          account.e2eSecretIV,
+          account.did
+        )
       else if (device === "mobile")
-        await this._handleRealm(token.secret, token.iv, did)
+        await this._handleRealm(
+          account.e2eSecret,
+          account.e2eSecretIV,
+          account.did
+        )
 
       //clear all the internal callbacks connected to the authentication...
       this._clearEventsCallbacks(["__onLoginComplete", "__onLoginError"])
 
       resolve({
-        isConnected: true,
-        tokenE2E: {
-          e2eSecret: token.secret,
-          e2eSecretIV: token.iv,
+        auth: {
+          isConnected: true,
+          ...authInfo,
         },
-        ...authInfo,
+        account,
       })
     } catch (error) {
       reject(error)
@@ -487,7 +489,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private _handleDesktopAuthentication(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void
   ) {
     try {
@@ -506,7 +512,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private _handleMobileAuthentication(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void,
     mobileOptions?: AuthenticationMobileOptions
   ) {
@@ -554,7 +564,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private _handleMobileAuthenticationSMS(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void,
     { phone, OTP }: { phone: string; OTP: string }
   ) {
@@ -577,7 +591,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private _handleMobileAuthenticationEmail(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void,
     { email, OTP }: { email: string; OTP: string }
   ) {
@@ -600,7 +618,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private _handleMobileAuthenticationOAuth(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void,
     { provider }: { provider: Omit<OAuthProviderType, "farcaster"> }
   ) {
@@ -623,7 +645,11 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private _handleMobileAuthenticationWallet(
-    resolve: (value: AuthInfo | PromiseLike<AuthInfo>) => void,
+    resolve: (
+      value:
+        | { auth: AuthInfo; account: Account }
+        | PromiseLike<{ auth: AuthInfo; account: Account }>
+    ) => void,
     reject: (reason?: any) => void,
     wallet: "metamask"
   ) {
@@ -854,7 +880,9 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     })
   }
 
-  authenticate(mobileOptions?: AuthenticationMobileOptions): Promise<AuthInfo> {
+  authenticate(
+    mobileOptions?: AuthenticationMobileOptions
+  ): Promise<{ auth: AuthInfo; account: Account }> {
     return new Promise((resolve, reject) => {
       const isDesktop = typeof window !== "undefined"
 
