@@ -6,12 +6,12 @@ import {
 import { BaseStorage } from "../../interfaces/app"
 import { CreateOrConnectDexieArgs } from "../../types/app"
 import Dexie from "dexie"
-import { Maybe } from "@src/types"
 
 export class DexieStorage extends Dexie implements BaseStorage {
   //db info
   private _dbName: string
   private _dbVersion: number
+  private _enableStorage: boolean = true
 
   //tables
   migration!: Dexie.Table<{ key: string; value: any }, string>
@@ -48,15 +48,50 @@ export class DexieStorage extends Dexie implements BaseStorage {
     return instance
   }
 
-  async get(): Promise<any> {}
+  async get(): Promise<any> {
+    if (!this._enableStorage) return
+  }
 
-  async insert(): Promise<void> {}
+  async insert(): Promise<void> {
+    if (!this._enableStorage) return
+  }
 
-  async insertSafe(): Promise<void> {}
+  async insertSafe(): Promise<void> {
+    if (!this._enableStorage) return
+  }
 
-  async deleteItem(): Promise<void> {}
+  async deleteItem(): Promise<void> {
+    if (!this._enableStorage) return
+  }
 
-  async query(): Promise<void> {}
+  async query(): Promise<void> {
+    if (!this._enableStorage) return
+  }
+
+  async insertBulkSafe<T>(tableName: string, items: T[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.transaction("rw", tableName, async () => {
+        if (tableName === "conversation")
+          await this.conversation.bulkPut(items as WebConversation[])
+        else if (tableName === "user")
+          await this.user.bulkPut(items as WebUser[])
+        else if (tableName === "message")
+          await this.message.bulkPut(items as WebMessage[])
+
+        resolve()
+      }).catch((error) => {
+        reject(error)
+      })
+    })
+  }
+
+  disableStorage(): void {
+    this._enableStorage = false
+  }
+
+  enableStorage(): void {
+    this._enableStorage = true
+  }
 
   getDBName(): string {
     return this._dbName

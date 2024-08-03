@@ -99,12 +99,8 @@ export class Message
    */
   constructor(config: MessageInitConfig & EngineInitConfig) {
     super({
-      jwtToken: config.jwtToken,
       apiKey: config.apiKey,
-      apiUrl: config.apiUrl,
-      realtimeApiUrl: config.realtimeApiUrl,
-      userKeyPair: config.userKeyPair,
-      keyPairsMap: config.keyPairsMap,
+      storage: config.storage,
     })
 
     this.id = config.id
@@ -522,20 +518,10 @@ export class Message
           )
         : null,
       imageURL: response.conversation!.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.conversation!.id),
-              response.conversation!.imageURL
-            )
-          )
+        ? response.conversation!.imageURL
         : null,
       bannerImageURL: response.conversation!.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.conversation!.id),
-              response.conversation!.bannerImageURL
-            )
-          )
+        ? response.conversation!.bannerImageURL
         : null,
       settings: response.conversation!.settings
         ? JSON.parse(response.conversation!.settings)
@@ -716,5 +702,13 @@ export class Message
         : null,
       client: this._client!,
     })
+  }
+
+  getContent(): Maybe<string> {
+    if (!this.conversationId) return null
+    return Crypto.decryptStringOrFail(
+      this.findPrivateKeyById(this.conversationId),
+      this.content
+    )
   }
 }

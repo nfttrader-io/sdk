@@ -193,6 +193,22 @@ export class HTTPClient {
     }nfttrader.io`
   }
 
+  protected backendChatUrl(): string {
+    return `${
+      this._devMode === "development"
+        ? `url server chat graphql development`
+        : `url server chat graphql production`
+    }`
+  }
+
+  protected backendChatRealtimeUrl(): string {
+    return `${
+      this._devMode === "development"
+        ? `url server chat graphql development`
+        : `url server chat graphql production`
+    }`
+  }
+
   setAuthToken(authToken: string): void {
     this._authToken = authToken
   }

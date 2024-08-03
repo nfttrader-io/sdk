@@ -42,9 +42,9 @@ export interface UserSchema {
    */
   isNft: boolean
   /**
-   * @property {Maybe<Array<Maybe<string>>>} blacklistIds - An array of user IDs to blacklist.
+   * @property {Maybe<Array<string>>} blacklistIds - An array of user IDs to blacklist.
    */
-  blacklistIds: Maybe<Array<Maybe<string>>>
+  blacklistIds: Maybe<Array<string>>
   /**
    * @property {boolean} allowNotification - Flag to allow notifications.
    */

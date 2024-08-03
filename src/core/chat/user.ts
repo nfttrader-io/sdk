@@ -70,7 +70,7 @@ export class User
   /**
    * @property blacklistIds - An array of user IDs that are blacklisted by this user.
    */
-  readonly blacklistIds: Maybe<Array<Maybe<string>>>
+  readonly blacklistIds: Maybe<Array<string>>
   /**
    * @property allowNotification - Indicates if notification are allowed.
    */
@@ -133,12 +133,8 @@ export class User
    */
   constructor(config: UserInitConfig & EngineInitConfig) {
     super({
-      jwtToken: config.jwtToken,
       apiKey: config.apiKey,
-      apiUrl: config.apiUrl,
-      realtimeApiUrl: config.realtimeApiUrl,
-      userKeyPair: config.userKeyPair,
-      keyPairsMap: config.keyPairsMap,
+      storage: config.storage,
     })
 
     this.id = config.id

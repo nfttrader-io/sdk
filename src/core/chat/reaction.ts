@@ -26,12 +26,8 @@ export class Reaction extends Engine implements ReactionSchema {
 
   constructor(config: ReactionInitConfig & EngineInitConfig) {
     super({
-      jwtToken: config.jwtToken,
       apiKey: config.apiKey,
-      apiUrl: config.apiUrl,
-      realtimeApiUrl: config.realtimeApiUrl,
-      userKeyPair: config.userKeyPair,
-      keyPairsMap: config.keyPairsMap,
+      storage: config.storage,
     })
     this.content = config.content
     this.createdAt = config.createdAt

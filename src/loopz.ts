@@ -34,6 +34,8 @@ export class Loopz {
 
   private static _privyAdapter: Maybe<PrivyAdapter> = null
 
+  private static _disableStorage: boolean = false
+
   private constructor(config: LoopzConfig, runAdapter?: boolean) {
     Loopz._apiKey = config.apiKey
     Loopz._privyAppId = config.privyAppId
@@ -63,6 +65,10 @@ export class Loopz {
     Loopz._trade = new Trade({
       apiKey: config.apiKey,
     })
+    Loopz._chat = new Chat({
+      apiKey: Loopz._apiKey,
+      storage: config.storage,
+    })
 
     Loopz._auth = new Auth({
       apiKey: config.apiKey,
@@ -71,6 +77,7 @@ export class Loopz {
       oracle: Loopz._oracle,
       post: Loopz._post,
       trade: Loopz._trade,
+      chat: Loopz._chat,
       storage: config.storage,
     })
 
@@ -121,10 +128,16 @@ export class Loopz {
 
   static async boot(
     config: Omit<LoopzConfig, "storage">,
-    runAdapter?: boolean
+    options: { runAdapter?: boolean; enableStorage?: boolean }
   ): Promise<Loopz> {
     if (!Loopz._instance) {
+      const { runAdapter, enableStorage } = options
       const storage = await Loopz.createOrConnectToStorage()
+
+      //storage is enabled by default
+      if (typeof enableStorage !== "undefined" && enableStorage === false)
+        storage.disableStorage()
+
       Loopz._instance = new Loopz(
         {
           ...config,
@@ -137,25 +150,13 @@ export class Loopz {
     return Loopz._instance
   }
 
-  init(): { auth: Auth; trade: Trade; post: Post; oracle: Oracle } {
+  init(): { auth: Auth; trade: Trade; post: Post; oracle: Oracle; chat: Chat } {
     return {
       auth: Loopz._auth,
       trade: Loopz._trade,
       post: Loopz._post,
       oracle: Loopz._oracle,
+      chat: Loopz._chat,
     }
-  }
-
-  initChat(authToken: string, apiUrl: string, realtimeApiUrl: string): Chat {
-    Loopz._chat = new Chat({
-      apiKey: Loopz._apiKey,
-      apiUrl,
-      realtimeApiUrl,
-      jwtToken: authToken,
-      keyPairsMap: [],
-      userKeyPair: null,
-    })
-
-    return Loopz._chat
   }
 }

@@ -26,6 +26,7 @@ import {
   PrivyClientError,
 } from "@privy-io/expo"
 import { AccountInitConfig } from "./types/auth/account"
+import { Chat } from "./chat"
 
 /**
  * Represents an authentication client that interacts with a backend server for user authentication.
@@ -40,9 +41,10 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     callbacks: Function[]
     eventName: AuthEvents
   }> = []
-  private _tradeRef: Maybe<Trade> = null
-  private _postRef: Maybe<Post> = null
-  private _oracleRef: Maybe<Oracle> = null
+  private _tradeRef: Trade
+  private _postRef: Post
+  private _oracleRef: Oracle
+  private _chatRef: Chat
 
   /**
    * Constructs a new instance of Auth with the provided configuration.
@@ -56,6 +58,10 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
     this._apiKey = config.apiKey
     this._privyAppId = config.privyAppId
     this._privyConfig = config.privyConfig
+    this._tradeRef = config.trade
+    this._oracleRef = config.oracle
+    this._postRef = config.post
+    this._chatRef = config.chat
 
     //OAuth providers like Google, Instagram etc bring the user from the current web application page to
     //their authentication pages. When the user is redirect from their auth pages to the web application page again
@@ -291,6 +297,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       this._tradeRef?.setAuthToken(authInfo.authToken)
       this._oracleRef?.setAuthToken(authInfo.authToken)
       this._postRef?.setAuthToken(authInfo.authToken)
+      this._chatRef?.setAuthToken(authInfo.authToken)
+      this._chatRef?.setCurrentAccount(account)
 
       //generation of the table and local keys for e2e encryption
       if (device === "desktop") await this._handleDexie(account)
@@ -354,6 +362,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       this._tradeRef?.setAuthToken(authInfo.authToken)
       this._oracleRef?.setAuthToken(authInfo.authToken)
       this._postRef?.setAuthToken(authInfo.authToken)
+      this._chatRef?.setAuthToken(authInfo.authToken)
+      this._chatRef?.setCurrentAccount(account)
 
       //generation of the table and local keys for e2e encryption
       if (device === "desktop") await this._handleDexie(account)

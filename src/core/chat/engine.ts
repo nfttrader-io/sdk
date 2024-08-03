@@ -20,6 +20,7 @@ import { SubscriptionGarbage } from "../../types/chat/subscriptiongarbage"
 import forge from "node-forge"
 import { KeyPairItem } from "../../types/chat/keypairitem"
 import { EngineInitConfig } from "../../types"
+import { DexieStorage, RealmStorage } from "../app"
 
 /**
  * Represents an Engine class that extends HTTPClient and implements IEngine interface.
@@ -37,14 +38,6 @@ export class Engine extends HTTPClient implements IEngine {
    * @property {Maybe<string>} _apiKey - The API key for authentication.
    */
   protected _apiKey: Maybe<string> = null
-  /**
-   * @property {Maybe<URL>} _apiUrl - The URL for the API.
-   */
-  protected _apiUrl: Maybe<URL> = null
-  /**
-   * @property {Maybe<URL>} _realtimeApiUrl - The URL for the real-time API.
-   */
-  protected _realtimeApiUrl: Maybe<URL> = null
   /**
    * @property {Maybe<string>} _realtimeAuthorizationToken - The authorization token for real-time API.
    */
@@ -69,6 +62,8 @@ export class Engine extends HTTPClient implements IEngine {
    * @property {Maybe<Array<KeyPairItem>>} _keyPairsMap - An array of key pair items.
    */
   protected _keyPairsMap: Maybe<Array<KeyPairItem>> = null
+
+  protected _storage: DexieStorage | RealmStorage
   /**
    * @property {Maybe<Function>} _connectCallback - The callback function for connecting to real-time services.
    */
@@ -98,13 +93,9 @@ export class Engine extends HTTPClient implements IEngine {
   constructor(config: EngineInitConfig) {
     super()
 
-    this._jwtToken = config.jwtToken
     this._apiKey = config.apiKey
-    this._apiUrl = new URL(config.apiUrl)
-    this._realtimeApiUrl = new URL(config.realtimeApiUrl)
+    this._storage = config.storage
     this._realtimeAuthorizationToken = `${this._apiKey}##${this._jwtToken}`
-    this._keyPairsMap = config.keyPairsMap
-    //this._userKeyPair = config.userKeyPair
     this._parentConfig = config
     this._connectionParams = {
       Authorization: null,
@@ -224,12 +215,12 @@ export class Engine extends HTTPClient implements IEngine {
   private _makeWSClient(callback: Function): void {
     try {
       this._connectionParams!.Authorization = this._realtimeAuthorizationToken
-      this._connectionParams!.host = this._apiUrl!.toString()
+      this._connectionParams!.host = this.backendChatUrl()
         .replace("https://", "")
         .replace("/graphql", "")
 
       this._realtimeClient = new UUIDSubscriptionClient(
-        this._realtimeApiUrl!.toString(),
+        this.backendChatRealtimeUrl(),
         {
           reconnect: true,
           timeout: Engine.WS_TIMEOUT,
@@ -281,12 +272,11 @@ export class Engine extends HTTPClient implements IEngine {
   private _makeClient(): Maybe<Client> {
     if (!this._jwtToken) return null
     if (!this._apiKey) return null
-    if (!this._apiUrl) return null
     if (!this._realtimeClient) return null
     if (!this._client) {
       try {
         this._client = createClient({
-          url: this._apiUrl.toString(),
+          url: this.backendChatUrl(),
           exchanges: [
             fetchExchange,
             subscriptionExchange({
@@ -623,18 +613,18 @@ export class Engine extends HTTPClient implements IEngine {
 
   /**
    * Returns the API URL as a string or null if it is not set.
-   * @returns {Maybe<string>} The API URL as a string or null if not set.
+   * @returns {string} The API URL as a string or null if not set.
    */
-  getApiURL(): Maybe<string> {
-    return this._apiUrl ? this._apiUrl.toString() : null
+  getApiURL(): string {
+    return this.backendChatUrl()
   }
 
   /**
    * Returns the Realtime API URL as a string or null if it is not set.
-   * @returns {Maybe<string>} The Realtime API URL as a string or null.
+   * @returns {string} The Realtime API URL as a string or null.
    */
-  getRealtimeApiURL(): Maybe<string> {
-    return this._realtimeApiUrl ? this._realtimeApiUrl.toString() : null
+  getRealtimeApiURL(): string {
+    return this.backendChatRealtimeUrl()
   }
 
   /**

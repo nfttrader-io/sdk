@@ -46,12 +46,8 @@ export class BlacklistUserEntry
    */
   constructor(config: BlacklistUserEntryInitConfig & EngineInitConfig) {
     super({
-      jwtToken: config.jwtToken,
       apiKey: config.apiKey,
-      apiUrl: config.apiUrl,
-      realtimeApiUrl: config.realtimeApiUrl,
-      userKeyPair: config.userKeyPair,
-      keyPairsMap: config.keyPairsMap,
+      storage: config.storage,
     })
     this.id = config.id
     this.createdAt = config.createdAt

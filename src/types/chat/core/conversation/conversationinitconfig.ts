@@ -19,21 +19,21 @@ export type ConversationInitConfig = {
    */
   description: Maybe<string>
   /**
-   * @property {Maybe<URL>} imageURL - The URL of the image associated with the conversation.
+   * @property {Maybe<string>} imageURL - The URL of the image associated with the conversation.
    */
-  imageURL: Maybe<URL>
+  imageURL: Maybe<string>
   /**
-   * @property {Maybe<URL>} bannerImageURL - The URL of the banner image for the conversation.
+   * @property {Maybe<string>} bannerImageURL - The URL of the banner image for the conversation.
    */
-  bannerImageURL: Maybe<URL>
+  bannerImageURL: Maybe<string>
   /**
-   * @property {Maybe<JSON>} settings - Additional settings for the conversation.
+   * @property {Maybe<string>} settings - Additional settings for the conversation.
    */
-  settings: Maybe<JSON>
+  settings: Maybe<string>
   /**
-   * @property {Maybe<Array<Maybe<string>>} membersIds - An array of member IDs in the conversation.
+   * @property {Maybe<Array<string>>} membersIds - An array of member IDs in the conversation.
    */
-  membersIds: Maybe<Array<Maybe<string>>>
+  membersIds: Maybe<Array<string>>
   /**
    * @property {"GROUP" | "ONE_TO_ONE" | "COMMUNITY"} type - The type of the chat group.
    */

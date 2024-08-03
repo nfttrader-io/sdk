@@ -11,5 +11,5 @@ export type ListAllActiveUserConversationIdsArgs = {
   /**
    * @property {string} nextToken - The token for paginating through the list of active user conversations.
    */
-  nextToken: string
+  nextToken?: string
 }

@@ -43,9 +43,9 @@ export type UserInitConfig = {
    */
   isNft: boolean
   /**
-   * @property {Maybe<Array<Maybe<string>>>} blacklistIds - An array of user IDs that are blacklisted.
+   * @property {Maybe<Array<string>>} blacklistIds - An array of user IDs that are blacklisted.
    */
-  blacklistIds: Maybe<Array<Maybe<string>>>
+  blacklistIds: Maybe<Array<string>>
   /**
    * @property {boolean} allowNotification - Indicates if notifications are allowed.
    */

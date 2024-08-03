@@ -18,17 +18,17 @@ export interface ConversationTradingPoolSchema {
    */
   userId: Maybe<string>
   /**
-   * @property {Maybe<Array<Maybe<string>>>} creatorsIds - An array of user IDs who are creators of the trading pool.
+   * @property {Maybe<Array<string>>} creatorsIds - An array of user IDs who are creators of the trading pool.
    */
-  creatorsIds: Maybe<Array<Maybe<string>>>
+  creatorsIds: Maybe<Array<string>>
   /**
-   * @property {Maybe<Array<Maybe<string>>>} initializatorsIds - An array of user IDs who are initializers of the trading pool.
+   * @property {Maybe<Array<string>>} initializatorsIds - An array of user IDs who are initializers of the trading pool.
    */
-  initializatorsIds: Maybe<Array<Maybe<string>>>
+  initializatorsIds: Maybe<Array<string>>
   /**
-   * @property {Maybe<JSON>} operation - The JSON object representing the operation of the user.
+   * @property {Maybe<string>} operation - The JSON object representing the operation of the user.
    */
-  operation: Maybe<JSON>
+  operation: Maybe<string>
   /**
    * @property {Maybe<"TRADE_INITIALIZED" | "TRADE_CONFIRMED" | "TRADE_PROGRESS" | "TRADE_COMPLETED">} status - Represents a trade status.
    */

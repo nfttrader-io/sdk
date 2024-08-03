@@ -202,6 +202,9 @@ import {
 import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 import { KeyPairItem } from "./types/chat/keypairitem"
+import { ActiveUserConversationType } from "./enums"
+import { WebConversation } from "./interfaces/app/core/database"
+import { Account, Converter } from "./core"
 
 export class Chat
   extends Engine
@@ -219,6 +222,50 @@ export class Chat
     UAMutationEngine,
     UAQueryEngine
 {
+  private _isSyncing: boolean = false
+
+  private _syncingCounter: number = 0
+
+  private _eventsCallback: Array<{
+    event: "sync" | "syncing"
+    callbacks: Array<Function>
+  }> = []
+
+  private _account: Maybe<Account> = null
+
+  private _emit(event: "sync" | "syncing", args?: any) {
+    const index = this._eventsCallback.findIndex((item) => {
+      return item.event === event
+    })
+
+    if (index > -1)
+      this,
+        this._eventsCallback[index].callbacks.forEach((callback) => {
+          callback(args)
+        })
+  }
+
+  private _on(event: "sync" | "syncing", callback: Function) {
+    const index = this._eventsCallback.findIndex((item) => {
+      return item.event === event
+    })
+
+    if (index > -1) this._eventsCallback[index].callbacks.push(callback)
+    else
+      this._eventsCallback.push({
+        event,
+        callbacks: [callback],
+      })
+  }
+
+  private _off(event: "sync" | "syncing") {
+    const index = this._eventsCallback.findIndex((item) => {
+      return item.event === event
+    })
+
+    if (index > -1) this._eventsCallback[index].callbacks = []
+  }
+
   /**
    * Blocks a user by their ID.
    * @param {string} [id] - The ID of the user to block.
@@ -352,10 +399,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -397,10 +441,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -503,33 +544,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -614,19 +633,13 @@ export class Chat
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.decrypt(keypair!.privateKey, response.name),
-        description: response.description
-          ? Crypto.decrypt(keypair!.privateKey, response.description)
-          : null,
-        imageURL: response.imageURL
-          ? new URL(Crypto.decrypt(keypair!.privateKey, response.imageURL))
-          : null,
+        name: response.name,
+        description: response.description ? response.description : null,
+        imageURL: response.imageURL ? response.imageURL : null,
         bannerImageURL: response.bannerImageURL
-          ? new URL(
-              Crypto.decrypt(keypair!.privateKey, response.bannerImageURL)
-            )
+          ? response.bannerImageURL
           : null,
-        settings: response.settings ? JSON.parse(response.settings) : null,
+        settings: response.settings ? response.settings : null,
         membersIds: response.membersIds ? response.membersIds : null,
         type: response.type,
         lastMessageSentAt: response.lastMessageSentAt
@@ -683,17 +696,13 @@ export class Chat
       conversation: new Conversation({
         ...this._parentConfig!,
         id: response.id,
-        name: Crypto.encrypt(keypair!.publicKey, response.name),
-        description: response.description
-          ? Crypto.encrypt(keypair!.publicKey, response.description)
-          : null,
-        imageURL: response.imageURL
-          ? new URL(Crypto.encrypt(keypair!.publicKey, response.imageURL))
-          : null,
+        name: response.name,
+        description: response.description ? response.description : null,
+        imageURL: response.imageURL ? response.imageURL : null,
         bannerImageURL: response.bannerImageURL
-          ? new URL(Crypto.encrypt(keypair!.publicKey, response.bannerImageURL))
+          ? response.bannerImageURL
           : null,
-        settings: response.settings ? JSON.parse(response.settings) : null,
+        settings: response.settings ? response.settings : null,
         membersIds: response.membersIds ? response.membersIds : null,
         type: response.type,
         lastMessageSentAt: response.lastMessageSentAt
@@ -755,10 +764,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -799,14 +805,7 @@ export class Chat
       initializatorsIds: response.initializatorsIds
         ? response.initializatorsIds
         : null,
-      operation: response.operation
-        ? JSON.parse(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.conversationId!),
-              response.operation
-            )
-          )
-        : null,
+      operation: response.operation ? response.operation : null,
       status: response.status ? response.status : null,
       type: response.type ? response.type : null,
       createdAt: response.createdAt ? response.createdAt : null,
@@ -837,10 +836,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -871,33 +867,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -969,33 +943,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1034,33 +986,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1161,10 +1091,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1206,10 +1133,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1253,14 +1177,7 @@ export class Chat
       initializatorsIds: response.initializatorsIds
         ? response.initializatorsIds
         : null,
-      operation: response.operation
-        ? JSON.parse(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.conversationId!),
-              response.operation
-            )
-          )
-        : null,
+      operation: response.operation ? response.operation : null,
       status: response.status ? response.status : null,
       type: response.type ? response.type : null,
       createdAt: response.createdAt ? response.createdAt : null,
@@ -1291,10 +1208,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1335,33 +1249,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1428,33 +1320,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1508,33 +1378,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1638,10 +1486,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1682,10 +1527,7 @@ export class Chat
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId ? response.conversationId : null,
       userId: response.userId ? response.userId : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
@@ -1726,33 +1568,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1793,33 +1613,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -1872,7 +1670,7 @@ export class Chat
     | QIError
     | {
         items: Conversation[]
-        unprocessedKeys?: Maybe<Maybe<string>[]> | undefined
+        unprocessedKeys?: Maybe<string[]> | undefined
       }
   > {
     const response = await this._query<
@@ -1889,7 +1687,7 @@ export class Chat
     if (response instanceof QIError) return response
 
     const listConversations: {
-      unprocessedKeys?: Maybe<Maybe<string>[]>
+      unprocessedKeys?: Maybe<string[]>
       items: Array<Conversation>
     } = {
       unprocessedKeys: response.unprocessedKeys,
@@ -1897,33 +1695,11 @@ export class Chat
         return new Conversation({
           ...this._parentConfig!,
           id: item.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(item.id),
-            item.name
-          ),
-          description: item.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(item.id),
-                item.description
-              )
-            : null,
-          imageURL: item.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(item.id),
-                  item.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: item.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(item.id),
-                  item.bannerImageURL
-                )
-              )
-            : null,
-          settings: item.settings ? JSON.parse(item.settings) : null,
+          name: item.name,
+          description: item.description ? item.description : null,
+          imageURL: item.imageURL ? item.imageURL : null,
+          bannerImageURL: item.bannerImageURL ? item.bannerImageURL : null,
+          settings: item.settings ? item.settings : null,
           membersIds: item.membersIds ? item.membersIds : null,
           type: item.type,
           lastMessageSentAt: item.lastMessageSentAt
@@ -1973,10 +1749,7 @@ export class Chat
         return new Message({
           ...this._parentConfig!,
           id: item.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(item.conversationId),
-            item.content
-          ),
+          content: item.content,
           conversationId: item.conversationId,
           userId: item.userId ? item.userId : null,
           messageRootId: item.messageRootId ? item.messageRootId : null,
@@ -2037,10 +1810,7 @@ export class Chat
           message: new Message({
             ...this._parentConfig!,
             id: item.message!.id,
-            content: Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(item.message!.conversationId),
-              item.message!.content
-            ),
+            content: item.message!.content,
             conversationId: item.message!.conversation
               ? item.message!.conversationId
               : null,
@@ -2107,34 +1877,18 @@ export class Chat
           conversation: new Conversation({
             ...this._parentConfig!,
             id: item.conversation!.id,
-            name: Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(item.conversation!.id),
-              item.conversation!.name
-            ),
+            name: item.conversation!.name,
             description: item.conversation!.description
-              ? Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(item.conversation!.id),
-                  item.conversation!.description
-                )
+              ? item.conversation!.description
               : null,
             imageURL: item.conversation!.imageURL
-              ? new URL(
-                  Crypto.decryptStringOrFail(
-                    this.findPrivateKeyById(item.conversation!.id),
-                    item.conversation!.imageURL
-                  )
-                )
+              ? item.conversation!.imageURL
               : null,
             bannerImageURL: item.conversation!.bannerImageURL
-              ? new URL(
-                  Crypto.decryptStringOrFail(
-                    this.findPrivateKeyById(item.conversation!.id),
-                    item.conversation!.bannerImageURL
-                  )
-                )
+              ? item.conversation!.bannerImageURL
               : null,
             settings: item.conversation!.settings
-              ? JSON.parse(item.conversation!.settings)
+              ? item.conversation!.settings
               : null,
             membersIds: item.conversation!.membersIds
               ? item.conversation!.membersIds
@@ -2309,33 +2063,11 @@ export class Chat
     return new Conversation({
       ...this._parentConfig!,
       id: response.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.id),
-        response.name
-      ),
-      description: response.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.id),
-            response.description
-          )
-        : null,
-      imageURL: response.imageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.imageURL
-            )
-          )
-        : null,
-      bannerImageURL: response.bannerImageURL
-        ? new URL(
-            Crypto.decryptStringOrFail(
-              this.findPrivateKeyById(response.id),
-              response.bannerImageURL
-            )
-          )
-        : null,
-      settings: response.settings ? JSON.parse(response.settings) : null,
+      name: response.name,
+      description: response.description ? response.description : null,
+      imageURL: response.imageURL ? response.imageURL : null,
+      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
+      settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
@@ -2392,10 +2124,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversationId,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2449,10 +2178,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2506,10 +2232,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2563,10 +2286,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2620,10 +2340,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2677,10 +2394,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2734,10 +2448,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2791,10 +2502,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2848,10 +2556,7 @@ export class Chat
         new Message({
           ...this._parentConfig!,
           id: r.id,
-          content: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.conversationId),
-            r.content
-          ),
+          content: r.content,
           conversationId: r.conversation ? r.conversationId : null,
           userId: r.userId ? r.userId : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
@@ -2905,33 +2610,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -2983,33 +2666,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3061,33 +2722,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3139,33 +2778,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3217,33 +2834,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3295,33 +2890,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3373,33 +2946,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3451,33 +3002,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3529,33 +3058,11 @@ export class Chat
         new Conversation({
           ...this._parentConfig!,
           id: r.id,
-          name: Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(r.id),
-            r.name
-          ),
-          description: r.description
-            ? Crypto.decryptStringOrFail(
-                this.findPrivateKeyById(r.id),
-                r.description
-              )
-            : null,
-          imageURL: r.imageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.imageURL
-                )
-              )
-            : null,
-          bannerImageURL: r.bannerImageURL
-            ? new URL(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.bannerImageURL
-                )
-              )
-            : null,
-          settings: r.settings ? JSON.parse(r.settings) : null,
+          name: r.name,
+          description: r.description ? r.description : null,
+          imageURL: r.imageURL ? r.imageURL : null,
+          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
+          settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
@@ -3744,14 +3251,7 @@ export class Chat
           userId: r.userId ? r.userId : null,
           creatorsIds: r.creatorsIds ? r.creatorsIds : null,
           initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
-          operation: r.operation
-            ? JSON.parse(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.operation
-                )
-              )
-            : null,
+          operation: r.operation ? r.operation : null,
           status: r.status ? r.status : null,
           type: r.type ? r.type : null,
           createdAt: r.createdAt ? r.createdAt : null,
@@ -3805,14 +3305,7 @@ export class Chat
           userId: r.userId ? r.userId : null,
           creatorsIds: r.creatorsIds ? r.creatorsIds : null,
           initializatorsIds: r.initializatorsIds ? r.initializatorsIds : null,
-          operation: r.operation
-            ? JSON.parse(
-                Crypto.decryptStringOrFail(
-                  this.findPrivateKeyById(r.id),
-                  r.operation
-                )
-              )
-            : null,
+          operation: r.operation ? r.operation : null,
           status: r.status ? r.status : null,
           type: r.type ? r.type : null,
           createdAt: r.createdAt ? r.createdAt : null,
@@ -3825,5 +3318,99 @@ export class Chat
     })
 
     return { unsubscribe, uuid }
+  }
+
+  /** syncing data with backend*/
+
+  setCurrentAccount(account: Account) {
+    this._account = account
+  }
+
+  private async recoverUserConversations(type: ActiveUserConversationType) {
+    try {
+      let AUCfirstSet = await this.listAllActiveUserConversationIds({
+        type,
+      })
+
+      if (AUCfirstSet instanceof QIError)
+        throw new Error(JSON.stringify(AUCfirstSet))
+
+      let { nextToken, items } = AUCfirstSet
+      let activeIds = [...items]
+
+      while (nextToken) {
+        const set = await this.listAllActiveUserConversationIds({
+          type,
+        })
+
+        if (set instanceof QIError) break
+
+        const { nextToken: token, items } = set
+
+        activeIds = [...activeIds, ...items]
+
+        if (token) nextToken = token
+        else break
+      }
+
+      let conversationfirstSet = await this.listConversationsByIds(activeIds)
+
+      if (conversationfirstSet instanceof QIError)
+        throw new Error(JSON.stringify(conversationfirstSet))
+
+      let { unprocessedKeys, items: conversations } = conversationfirstSet
+      let conversationsItems = [...conversations]
+
+      while (unprocessedKeys) {
+        const set = await this.listConversationsByIds(unprocessedKeys)
+
+        if (set instanceof QIError) break
+
+        const { unprocessedKeys: ids, items } = set
+
+        conversationsItems = [...conversationsItems, ...items]
+
+        if (ids) unprocessedKeys = ids
+        else break
+      }
+
+      //stores the conversations into the local db
+      this._storage.insertBulkSafe<WebConversation>(
+        "conversation",
+        conversationsItems.map((conversation: Conversation) =>
+          Converter.fromConversationToWebConversation(
+            conversation,
+            this._account!.did,
+            this._account!.organizationId,
+            type === ActiveUserConversationType.Canceled
+          )
+        )
+      )
+
+      this._storage
+    } catch (error) {
+      console.log("[ERROR]: recoverUserConversations() -> ", error)
+    }
+  }
+
+  async sync(callback: Function) {
+    if (!this._account)
+      throw new Error("You must be authenticated before to sync.")
+
+    this._isSyncing = true
+    this._emit("syncing", this._syncingCounter++)
+
+    this._on("sync", () => {
+      this._isSyncing = false
+      callback()
+    })
+
+    //first operation. Recover the list of the conversations in which the user is a member
+  }
+
+  syncing(callback: (isSyncing: boolean, syncingCounter: number) => void) {
+    this._on("syncing", (syncingCounter: number) => {
+      callback(this._isSyncing, syncingCounter)
+    })
   }
 }

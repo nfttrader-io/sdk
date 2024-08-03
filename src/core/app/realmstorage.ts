@@ -4,6 +4,7 @@ import { Maybe } from "../../types"
 
 export class RealmStorage implements BaseStorage {
   private realm: Maybe<Realm>
+  private _enableStorage = true
 
   private constructor() {
     this.realm = null
@@ -11,6 +12,38 @@ export class RealmStorage implements BaseStorage {
 
   static async createOrConnect(): Promise<RealmStorage> {
     return new RealmStorage()
+  }
+
+  async get(): Promise<any> {
+    if (!this._enableStorage) return
+  }
+
+  async insert(): Promise<void> {
+    if (!this._enableStorage) return
+  }
+
+  async insertSafe(): Promise<void> {
+    if (!this._enableStorage) return
+  }
+
+  async deleteItem(): Promise<void> {
+    if (!this._enableStorage) return
+  }
+
+  async query(): Promise<void> {
+    if (!this._enableStorage) return
+  }
+
+  async insertBulkSafe<T>(tableName: string, items: T[]): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
+
+  disableStorage(): void {
+    this._enableStorage = false
+  }
+
+  enableStorage(): void {
+    this._enableStorage = true
   }
 
   getDBName(): string {

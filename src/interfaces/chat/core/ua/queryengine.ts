@@ -31,8 +31,7 @@ export interface UAQueryEngine {
   listConversationsByIds(
     ids: Array<string>
   ): Promise<
-    | { items: Array<Conversation>; unprocessedKeys?: Maybe<Maybe<string>[]> }
-    | QIError
+    { items: Array<Conversation>; unprocessedKeys?: Maybe<string[]> } | QIError
   >
   listMessagesByConversationId(
     args: ListMessagesByConversationIdArgs

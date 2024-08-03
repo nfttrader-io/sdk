@@ -5,6 +5,7 @@ import {
 import { ConversationTradingPoolSchema } from "../../interfaces/chat/schema"
 import { Maybe } from "../../types/base"
 import { Engine } from "./engine"
+import { Crypto } from "./crypto"
 
 /**
  * Represents a Conversation Trading Pool that extends the Engine class and implements the ConversationTradingPoolSchema interface.
@@ -32,15 +33,15 @@ export class ConversationTradingPool
   /**
    * @property creatorsIds - An array of IDs of the creators involved in the operation.
    */
-  readonly creatorsIds: Maybe<Array<Maybe<string>>>
+  readonly creatorsIds: Maybe<Array<string>>
   /**
    * @property initializatorsIds - An array of IDs of the initializers involved in the operation.
    */
-  readonly initializatorsIds: Maybe<Array<Maybe<string>>>
+  readonly initializatorsIds: Maybe<Array<string>>
   /**
    * @property operation - Additional JSON data related to the operation.
    */
-  readonly operation: Maybe<JSON>
+  readonly operation: Maybe<string>
   /**
    * @property status - The current status of the operation (TRADE_INITIALIZED, TRADE_CONFIRMED, TRADE_PROGRESS, TRADE_COMPLETED).
    */
@@ -74,12 +75,8 @@ export class ConversationTradingPool
    */
   constructor(config: ConversationTradingPoolInitConfig & EngineInitConfig) {
     super({
-      jwtToken: config.jwtToken,
       apiKey: config.apiKey,
-      apiUrl: config.apiUrl,
-      realtimeApiUrl: config.realtimeApiUrl,
-      userKeyPair: config.userKeyPair,
-      keyPairsMap: config.keyPairsMap,
+      storage: config.storage,
     })
 
     this.id = config.id
@@ -94,5 +91,15 @@ export class ConversationTradingPool
     this.updatedAt = config.updatedAt
     this.userId = config.userId
     this._client = config.client
+  }
+
+  getOperation(): Maybe<JSON> {
+    if (!this.conversationId || !this.operation) return null
+    return JSON.parse(
+      Crypto.decryptStringOrFail(
+        this.findPrivateKeyById(this.conversationId),
+        this.operation
+      )
+    )
   }
 }
