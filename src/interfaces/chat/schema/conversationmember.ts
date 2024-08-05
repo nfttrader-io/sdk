@@ -10,9 +10,9 @@ export interface ConversationMemberSchema {
    */
   id: string
   /**
-   * @property {Maybe<string>} conversationId - The ID of the conversation the member belongs to, if available.
+   * @property {string} conversationId - The ID of the conversation the member belongs to, if available.
    */
-  conversationId: Maybe<string>
+  conversationId: string
   /**
    * @property {string} userId - The ID of the user who is a member of the conversation.
    */
@@ -30,7 +30,7 @@ export interface ConversationMemberSchema {
    */
   encryptedConversationPrivateKey: string
   /**
-   * @property { Maybe<Date>} createdAt - The creation date of the current object.
+   * @property { Date} createdAt - The creation date of the current object.
    */
-  createdAt: Maybe<Date>
+  createdAt: Date
 }

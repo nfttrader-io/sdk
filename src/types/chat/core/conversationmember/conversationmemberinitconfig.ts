@@ -11,9 +11,9 @@ export type ConversationMemberInitConfig = {
    */
   id: string
   /**
-   * @property {Maybe<string>} conversationId - The ID of the conversation the member belongs to.
+   * @property {string} conversationId - The ID of the conversation the member belongs to.
    */
-  conversationId: Maybe<string>
+  conversationId: string
   /**
    * @property {string} userId - The ID of the user who is a member of the conversation.
    */
@@ -31,9 +31,9 @@ export type ConversationMemberInitConfig = {
    */
   encryptedConversationPrivateKey: string
   /**
-   * @property {Maybe<Date>} createdAt - The optional creation date of the client.
+   * @property {Date} createdAt - The optional creation date of the client.
    */
-  createdAt: Maybe<Date>
+  createdAt: Date
   /**
    * @property {Client} client - The client object.
    */

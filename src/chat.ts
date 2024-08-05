@@ -106,6 +106,8 @@ import {
   ListMessagesImportantByUserConversationIdResult as ListMessagesImportantByUserConversationIdResultGraphQL,
   QueryListConversationsPinnedByCurrentUserArgs,
   ListConversationsPinnedByUserIdResult as ListConversationsPinnedByUserIdResultGraphQL,
+  QueryListConversationMemberByUserIdArgs,
+  ListConversationMemberByUserIdResult as ListConversationMemberByUserIdResultGraphQL,
 } from "./graphql/generated/graphql"
 import {
   addBlockedUser,
@@ -150,6 +152,7 @@ import {
   listConversationsPinnedByCurrentUser,
   listMessagesByConversationId,
   listMessagesImportantByUserConversationId,
+  listConversationMemberByUserId,
 } from "./constants/chat/queries"
 import { ConversationMember } from "./core/chat/conversationmember"
 import {
@@ -203,8 +206,9 @@ import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 import { KeyPairItem } from "./types/chat/keypairitem"
 import { ActiveUserConversationType } from "./enums"
-import { WebConversation } from "./interfaces/app/core/database"
+import { WebConversation, WebUser } from "./interfaces/app/core/database"
 import { Account, Converter } from "./core"
+import Dexie from "dexie"
 
 export class Chat
   extends Engine
@@ -227,13 +231,18 @@ export class Chat
   private _syncingCounter: number = 0
 
   private _eventsCallback: Array<{
-    event: "sync" | "syncing"
+    event: "sync" | "syncing" | "syncError" | "syncUpdate"
     callbacks: Array<Function>
   }> = []
 
   private _account: Maybe<Account> = null
 
-  private _emit(event: "sync" | "syncing", args?: any) {
+  static readonly SYNCING_TIME = 60000
+
+  private _emit(
+    event: "sync" | "syncing" | "syncError" | "syncUpdate",
+    args?: any
+  ) {
     const index = this._eventsCallback.findIndex((item) => {
       return item.event === event
     })
@@ -245,7 +254,10 @@ export class Chat
         })
   }
 
-  private _on(event: "sync" | "syncing", callback: Function) {
+  private _on(
+    event: "sync" | "syncing" | "syncError" | "syncUpdate",
+    callback: Function
+  ) {
     const index = this._eventsCallback.findIndex((item) => {
       return item.event === event
     })
@@ -258,7 +270,7 @@ export class Chat
       })
   }
 
-  private _off(event: "sync" | "syncing") {
+  private _off(event: "sync" | "syncing" | "syncError" | "syncUpdate") {
     const index = this._eventsCallback.findIndex((item) => {
       return item.event === event
     })
@@ -363,12 +375,12 @@ export class Chat
         return new ConversationMember({
           ...this._parentConfig!,
           id: item.id,
-          conversationId: item.conversationId ? item.conversationId : null,
+          conversationId: item.conversationId,
           userId: item.userId,
           type: item.type,
           encryptedConversationPublicKey: item.encryptedConversationPublicKey,
           encryptedConversationPrivateKey: item.encryptedConversationPrivateKey,
-          createdAt: item.createdAt ? item.createdAt : null,
+          createdAt: item.createdAt,
           client: this._client!,
         })
       }),
@@ -1637,7 +1649,7 @@ export class Chat
 
   async listAllActiveUserConversationIds(
     args: ListAllActiveUserConversationIdsArgs
-  ): Promise<QIError | { items: string[]; nextToken?: String | undefined }> {
+  ): Promise<QIError | { items: string[]; nextToken?: string | undefined }> {
     const response = await this._query<
       QueryListAllActiveUserConversationIdsArgs,
       {
@@ -1664,6 +1676,52 @@ export class Chat
     }
 
     return activeUserConversationIds
+  }
+
+  async listConversationMemberByUserId(
+    nextToken?: string | undefined
+  ): Promise<
+    | QIError
+    | { items: ConversationMember[]; nextToken?: Maybe<string> | undefined }
+  > {
+    const response = await this._query<
+      QueryListConversationMemberByUserIdArgs,
+      {
+        listConversationMemberByUserId: ListConversationMemberByUserIdResultGraphQL
+      },
+      ListConversationMemberByUserIdResultGraphQL
+    >(
+      "listConversationMemberByUserId",
+      listConversationMemberByUserId,
+      "_query() -> listConversationMemberByUserId()",
+      {
+        nextToken,
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    const listConversationMember: {
+      nextToken?: string
+      items: Array<ConversationMember>
+    } = {
+      nextToken: response.nextToken ? response.nextToken : undefined,
+      items: response.items.map((item) => {
+        return new ConversationMember({
+          ...this._parentConfig!,
+          id: item.id,
+          conversationId: item.conversationId,
+          userId: item.userId,
+          type: item.type,
+          encryptedConversationPrivateKey: item.encryptedConversationPrivateKey,
+          encryptedConversationPublicKey: item.encryptedConversationPublicKey,
+          createdAt: item.createdAt,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listConversationMember
   }
 
   async listConversationsByIds(ids: string[]): Promise<
@@ -3119,14 +3177,14 @@ export class Chat
             return new ConversationMember({
               ...this._parentConfig!,
               id: item.id,
-              conversationId: item.conversationId ? item.conversationId : null,
+              conversationId: item.conversationId,
               userId: item.userId,
               type: item.type,
               encryptedConversationPublicKey:
                 item.encryptedConversationPublicKey,
               encryptedConversationPrivateKey:
                 item.encryptedConversationPrivateKey,
-              createdAt: item.createdAt ? item.createdAt : null,
+              createdAt: item.createdAt,
               client: this._client!,
             })
           }),
@@ -3326,7 +3384,9 @@ export class Chat
     this._account = account
   }
 
-  private async recoverUserConversations(type: ActiveUserConversationType) {
+  private async recoverUserConversations(
+    type: ActiveUserConversationType
+  ): Promise<Maybe<Array<Conversation>>> {
     try {
       let AUCfirstSet = await this.listAllActiveUserConversationIds({
         type,
@@ -3341,6 +3401,7 @@ export class Chat
       while (nextToken) {
         const set = await this.listAllActiveUserConversationIds({
           type,
+          nextToken,
         })
 
         if (set instanceof QIError) break
@@ -3374,43 +3435,277 @@ export class Chat
         else break
       }
 
-      //stores the conversations into the local db
-      this._storage.insertBulkSafe<WebConversation>(
-        "conversation",
-        conversationsItems.map((conversation: Conversation) =>
-          Converter.fromConversationToWebConversation(
-            conversation,
-            this._account!.did,
-            this._account!.organizationId,
-            type === ActiveUserConversationType.Canceled
+      //stores/update the conversations into the local db
+      if (this._storage.typeOf() === "DexieStorage") {
+        await this._storage.insertBulkSafe<WebConversation>(
+          "conversation",
+          conversationsItems.map((conversation: Conversation) =>
+            Converter.fromConversationToWebConversation(
+              conversation,
+              this._account!.did,
+              this._account!.organizationId,
+              type === ActiveUserConversationType.Canceled
+            )
           )
         )
-      )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+        //mobile insert TODO
+      }
 
-      this._storage
+      return conversationsItems
+      //TODO, still thinking how to integrate the local db objects with Chat, Conversation object that comes from GraphQL
     } catch (error) {
       console.log("[ERROR]: recoverUserConversations() -> ", error)
     }
+
+    return null
+  }
+
+  private async recoverKeysFromConversations(): Promise<boolean> {
+    try {
+      let firstConversationMemberSet =
+        await this.listConversationMemberByUserId()
+
+      if (firstConversationMemberSet instanceof QIError)
+        throw new Error(JSON.stringify(firstConversationMemberSet))
+
+      let { nextToken, items } = firstConversationMemberSet
+      let conversationMemberItems = [...items]
+
+      while (nextToken) {
+        const set = await this.listConversationMemberByUserId(nextToken)
+
+        if (set instanceof QIError) break
+
+        const { nextToken: token, items } = set
+
+        conversationMemberItems = [...conversationMemberItems, ...items]
+
+        if (token) nextToken = token
+        else break
+      }
+
+      //let's take all the information related to our keys into _userKeyPair object. These are the public and private key of the current user.
+      //To do that, let's do a query on the local user table.
+      if (this._storage.typeOf() === "DexieStorage") {
+        const user = (await this._storage.get(
+          "user",
+          "did",
+          this._account!.did
+        )) as WebUser
+
+        const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user
+        const { e2eSecret } = this._account!
+        const { e2eSecretIV } = this._account!
+
+        const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
+          e2eEncryptedPrivateKey,
+          Buffer.from(e2eSecret).toString("base64"),
+          Buffer.from(e2eSecretIV).toString("base64")
+        )
+
+        const userKeyPair = await Crypto.generateKeyPairFromPem(
+          e2ePublicKeyPem,
+          e2ePrivateKeyPem
+        )
+
+        if (!userKeyPair)
+          throw new Error("Impossible to recover the user key pair.")
+
+        this.setUserKeyPair(userKeyPair)
+      } else if (this._storage.typeOf() === "RealmStorage") {
+      }
+
+      //now, from the private key of the user, we will decrypt all the information about the conversation member.
+      //we will store these decrypted pairs public keys/private keys into the _keyPairsMap array.
+      const _keyPairsMap: Array<KeyPairItem> = []
+      let isError: boolean = false
+
+      for (const conversationMember of conversationMemberItems) {
+        const {
+          encryptedConversationPrivateKey,
+          encryptedConversationPublicKey,
+        } = conversationMember
+        const privateKeyPem = Crypto.decryptStringOrFail(
+          this.getUserKeyPair()!.privateKey,
+          encryptedConversationPrivateKey
+        )
+        const publicKeyPem = Crypto.decryptStringOrFail(
+          this.getUserKeyPair()!.privateKey,
+          encryptedConversationPublicKey
+        )
+        const keypair = await Crypto.generateKeyPairFromPem(
+          privateKeyPem,
+          publicKeyPem
+        )
+
+        if (!keypair) {
+          isError = true
+          break
+        }
+
+        _keyPairsMap.push({
+          id: conversationMember.conversationId,
+          keypair,
+        })
+      }
+
+      if (isError)
+        throw new Error("Failed to convert a public/private key pair.")
+
+      this.setKeyPairMap(_keyPairsMap)
+
+      return true
+    } catch (error) {
+      console.log("[ERROR]: recoverKeysFromConversations() -> ", error)
+    }
+
+    return false
+  }
+
+  private async recoverMessagesFromConversations(
+    conversations: Array<Conversation>
+  ): Promise<boolean> {
+    try {
+      for (const conversation of conversations) {
+        const { id, lastMessageSentAt } = conversation
+
+        //if the conversation hasn't any message it's useless to download the messages.
+        if (!lastMessageSentAt) continue
+
+        //let's see if the last message sent into the conversation is more recent than the last message stored in the database
+        if (this._storage.typeOf() === "DexieStorage") {
+          const userTable = this._storage.getTable("user") as Dexie.Table<
+            WebUser,
+            string,
+            WebUser
+          >
+          const lastMessageStored = await userTable
+            .orderBy("createdAt")
+            .reverse()
+            .first()
+
+          const canDownloadMessages =
+            !lastMessageStored ||
+            (lastMessageStored &&
+              lastMessageStored.createdAt < lastMessageSentAt)
+
+          if (canDownloadMessages) {
+            const messagesFirstSet = await this.listMessagesByConversationId({
+              id,
+            })
+
+            if (messagesFirstSet instanceof QIError)
+              throw new Error(JSON.stringify(messagesFirstSet))
+
+            let { nextToken, items } = messagesFirstSet
+            let messages = [...items]
+
+            while (nextToken) {
+              const set = await this.listMessagesByConversationId({
+                id,
+                nextToken,
+              })
+
+              if (set instanceof QIError) break
+
+              const { nextToken: token, items } = set
+
+              messages = [...messages, ...items]
+
+              if (token) nextToken = token
+              else break
+            }
+
+            //let's store the messages without create duplicates
+            this._storage.insertBulkSafe("message", messages)
+          }
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.log("[ERROR]: recoverMessagesFromConversations() -> ", error)
+    }
+
+    return false
+  }
+
+  private async _sync(syncingCounter: number) {
+    this._isSyncing = true
+    this._emit("syncing", this._syncingCounter)
+
+    //first operation. Recover the list of the conversations in which the user is a member
+    const activeConversations = await this.recoverUserConversations(
+      ActiveUserConversationType.Active
+    )
+    const archivedConversations = await this.recoverUserConversations(
+      ActiveUserConversationType.Canceled
+    )
+
+    if (!activeConversations || !archivedConversations) {
+      this._emit("syncError", { error: `error during conversation sincying.` })
+      return
+    }
+
+    //second operation. Recover the list of conversation member objects, in order to retrieve the public & private keys of all conversations.
+    const keysRecovered = await this.recoverKeysFromConversations()
+    if (!keysRecovered) {
+      this._emit("syncError", {
+        error: `error during recovering of the keys from conversations.`,
+      })
+      return
+    }
+
+    //third operation. For each conversation, we need to download the messages if the lastMessageSentAt of the conversation is != null
+    //and the date of the last message stored in the local db is less recent than the lastMessageSentAt date.
+    const messagesRecovered = await this.recoverMessagesFromConversations([
+      ...activeConversations,
+      ...archivedConversations,
+    ])
+    if (!messagesRecovered) {
+      this._emit("syncError", {
+        error: `error during recovering of the messages from conversations.`,
+      })
+      return
+    }
+
+    if (syncingCounter === 0) this._emit("sync")
+    else this._emit("syncUpdate", this._syncingCounter)
+
+    this._syncingCounter++
+
+    setTimeout(async () => {
+      await this._sync(this._syncingCounter)
+    }, Chat.SYNCING_TIME)
   }
 
   async sync(callback: Function) {
     if (!this._account)
       throw new Error("You must be authenticated before to sync.")
-
-    this._isSyncing = true
-    this._emit("syncing", this._syncingCounter++)
+    if (!this._storage.isStorageEnabled())
+      throw new Error("sync() is available only if you enable the storage.")
 
     this._on("sync", () => {
       this._isSyncing = false
       callback()
     })
 
-    //first operation. Recover the list of the conversations in which the user is a member
+    await this._sync(this._syncingCounter)
+
+    //TODO define which tables and which fields should be updated by sync() and subscription methods
   }
 
   syncing(callback: (isSyncing: boolean, syncingCounter: number) => void) {
     this._on("syncing", (syncingCounter: number) => {
       callback(this._isSyncing, syncingCounter)
+    })
+  }
+
+  syncUpdate(callback: (syncingCounter: number) => void) {
+    this._on("syncUpdate", (syncingCounter: number) => {
+      callback(syncingCounter)
     })
   }
 }

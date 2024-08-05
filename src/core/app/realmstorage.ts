@@ -1,6 +1,7 @@
 import { BaseStorage } from "../../interfaces/app"
 import * as Realm from "realm"
 import { Maybe } from "../../types"
+import Dexie from "dexie"
 
 export class RealmStorage implements BaseStorage {
   private realm: Maybe<Realm>
@@ -56,5 +57,13 @@ export class RealmStorage implements BaseStorage {
 
   typeOf(): string {
     return this.constructor.name
+  }
+
+  isStorageEnabled(): boolean {
+    return this._enableStorage === true
+  }
+
+  getTable<T>(tableName: "user" | "conversation" | "message") {
+    return "" as T
   }
 }

@@ -5,7 +5,7 @@ import {
 } from "@src/interfaces/app/core/database"
 import { BaseStorage } from "../../interfaces/app"
 import { CreateOrConnectDexieArgs } from "../../types/app"
-import Dexie from "dexie"
+import Dexie, { Table } from "dexie"
 
 export class DexieStorage extends Dexie implements BaseStorage {
   //db info
@@ -27,8 +27,8 @@ export class DexieStorage extends Dexie implements BaseStorage {
 
     this.version(this._dbVersion).stores({
       user: "++id, did, organizationId",
-      conversation: "++id, name, description",
-      message: "++id, content",
+      conversation: "++id, name, description, createdAt",
+      message: "++id, content, createdAt",
       migration: "key",
     })
 
@@ -48,8 +48,32 @@ export class DexieStorage extends Dexie implements BaseStorage {
     return instance
   }
 
-  async get(): Promise<any> {
-    if (!this._enableStorage) return
+  async get(
+    tableName: "user" | "conversation" | "message",
+    key: string,
+    value: string
+  ): Promise<any> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!this._enableStorage) return
+
+        await this.transaction("r", tableName, async () => {
+          if (tableName === "user") {
+            resolve(await this.user.where(key).equals(value).first())
+          } else if (tableName === "conversation") {
+            resolve(await this.conversation.where(key).equals(value).first())
+          } else if (tableName === "message") {
+            resolve(await this.message.where(key).equals(value).first())
+          } else {
+            reject(
+              `${tableName} argument given is wrong. No table exists with that name.`
+            )
+          }
+        })
+      } catch (error) {
+        reject(error)
+      }
+    })
   }
 
   async insert(): Promise<void> {
@@ -64,13 +88,23 @@ export class DexieStorage extends Dexie implements BaseStorage {
     if (!this._enableStorage) return
   }
 
-  async query(): Promise<void> {
+  async query<T>(
+    callback: (db: Dexie, table: Table<T, string, T>) => void,
+    tableName: "user" | "conversation" | "message"
+  ): Promise<void> {
     if (!this._enableStorage) return
+    if (tableName === "user") callback(this, this.user as Table<T, string, T>)
+    else if (tableName === "conversation")
+      callback(this, this.conversation as Table<T, string, T>)
+    else callback(this, this.message as Table<T, string, T>)
   }
 
-  async insertBulkSafe<T>(tableName: string, items: T[]): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.transaction("rw", tableName, async () => {
+  async insertBulkSafe<T>(
+    tableName: "user" | "conversation" | "message",
+    items: T[]
+  ): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      await this.transaction("rw", tableName, async () => {
         if (tableName === "conversation")
           await this.conversation.bulkPut(items as WebConversation[])
         else if (tableName === "user")
@@ -103,5 +137,18 @@ export class DexieStorage extends Dexie implements BaseStorage {
 
   typeOf(): string {
     return this.constructor.name
+  }
+
+  isStorageEnabled(): boolean {
+    return this._enableStorage === true
+  }
+
+  getTable<T>(tableName: "user" | "conversation" | "message") {
+    if (tableName === "user") return this.user as T
+    else if (tableName === "conversation") {
+      return this.conversation as T
+    } else {
+      return this.message as T
+    }
   }
 }

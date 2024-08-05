@@ -234,12 +234,12 @@ export class Conversation
         return new ConversationMember({
           ...this._parentConfig!,
           id: item.id,
-          conversationId: item.conversationId ? item.conversationId : null,
+          conversationId: item.conversationId,
           userId: item.userId,
           type: item.type,
           encryptedConversationPublicKey: item.encryptedConversationPublicKey,
           encryptedConversationPrivateKey: item.encryptedConversationPrivateKey,
-          createdAt: item.createdAt ? item.createdAt : null,
+          createdAt: item.createdAt,
           client: this._client!,
         })
       }),
@@ -882,13 +882,13 @@ export class Conversation
         return new ConversationMember({
           ...this._parentConfig!,
           id: item!.id,
-          conversationId: item!.conversationId ? item!.conversationId : null,
+          conversationId: item!.conversationId,
           userId: item!.userId,
           type: item!.type,
           encryptedConversationPublicKey: item!.encryptedConversationPublicKey,
           encryptedConversationPrivateKey:
             item!.encryptedConversationPrivateKey,
-          createdAt: item!.createdAt ? item!.createdAt : null,
+          createdAt: item!.createdAt,
           client: this._client!,
         })
       })

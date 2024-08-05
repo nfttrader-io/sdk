@@ -34,8 +34,6 @@ export class Loopz {
 
   private static _privyAdapter: Maybe<PrivyAdapter> = null
 
-  private static _disableStorage: boolean = false
-
   private constructor(config: LoopzConfig, runAdapter?: boolean) {
     Loopz._apiKey = config.apiKey
     Loopz._privyAppId = config.privyAppId
@@ -69,7 +67,6 @@ export class Loopz {
       apiKey: Loopz._apiKey,
       storage: config.storage,
     })
-
     Loopz._auth = new Auth({
       apiKey: config.apiKey,
       privyAppId: config.privyAppId,
