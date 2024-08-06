@@ -29,7 +29,7 @@ export interface UAMutationEngine {
   >
   deleteBatchConversationMessages(
     args: DeleteBatchConversationMessagesArgs
-  ): Promise<Boolean | QIError>
+  ): Promise<{ conversationId: string; messagesIds: string[] } | QIError>
   eraseConversationByAdmin(
     id: string
   ): Promise<{ conversationId: string; items: Array<{ id: string }> } | QIError>

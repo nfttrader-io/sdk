@@ -108,6 +108,8 @@ import {
   MutationAddMemberToConversationArgs,
   AddMemberToConversationResult as AddMemberToConversationResultGraphQL,
   SubscriptionOnAddMemberToConversationArgs,
+  BatchDeleteMessagesResult as BatchDeleteMessagesResultGraphQL,
+  SubscriptionOnBatchDeleteMessagesArgs,
 } from "./graphql/generated/graphql"
 import {
   addBlockedUser,
@@ -201,6 +203,7 @@ import {
   onDeleteRequestTrade,
   onAddMembersToConversation,
   onAddMemberToConversation,
+  onBatchDeleteMessages,
 } from "./constants/chat/subscriptions"
 import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
@@ -237,6 +240,25 @@ export class Chat
   }> = []
 
   private _account: Maybe<Account> = null
+
+  private _unsubscribeSyncSet: Array<{
+    type:
+      | "onAddMemberToConversation"
+      | "onAddReaction"
+      | "onSendMessage"
+      | "onEditMessage"
+      | "onEjectMember"
+      | "onLeaveConversation"
+      | "onMuteConversation"
+      | "onUnmuteConversation"
+      | "onDeleteMessage"
+      | "onAddReaction"
+      | "onRemoveReaction"
+      | "onBatchDeleteMessages"
+    unsubscribe: Function
+    uuid: string
+    conversationId: string
+  }> = []
 
   static readonly SYNCING_TIME = 60000
 
@@ -930,11 +952,11 @@ export class Chat
 
   async deleteBatchConversationMessages(
     args: DeleteBatchConversationMessagesArgs
-  ): Promise<Boolean | QIError> {
+  ): Promise<{ conversationId: string; messagesIds: string[] } | QIError> {
     const response = await this._mutation<
       MutationDeleteBatchConversationMessagesArgs,
-      { deleteBatchConversationMessages: Boolean },
-      Boolean
+      { deleteBatchConversationMessages: BatchDeleteMessagesResultGraphQL },
+      BatchDeleteMessagesResultGraphQL
     >(
       "deleteBatchConversationMessages",
       deleteBatchConversationMessages,
@@ -949,7 +971,10 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return true
+    return {
+      conversationId: response.conversationId,
+      messagesIds: response.messagesIds,
+    }
   }
 
   async deleteMessage(id: string): Promise<Message | QIError> {
@@ -2850,7 +2875,8 @@ export class Chat
         SubscriptionOnSendMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError {
     const key = "onSendMessage"
@@ -2870,7 +2896,7 @@ export class Chat
       >("onSendMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -2938,7 +2964,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -2952,7 +2979,8 @@ export class Chat
       source: OperationResult<
         { onEditMessage: MessageGraphQL },
         SubscriptionOnEditMessageArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onEditMessage"
@@ -2972,7 +3000,7 @@ export class Chat
       >("onEditMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3040,7 +3068,53 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
+  onBatchDeleteMessages(
+    conversationId: string,
+    callback: (
+      response: QIError | { conversationId: string; messagesIds: string[] },
+      source: OperationResult<
+        { onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL },
+        SubscriptionOnBatchDeleteMessagesArgs & { jwt: string }
+      >,
+      uuid: string
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onBatchDeleteMessages"
+    const metasubcription = this._subscription<
+      SubscriptionOnBatchDeleteMessagesArgs,
+      { onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL }
+    >(onBatchDeleteMessages, key, { conversationId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL },
+        BatchDeleteMessagesResultGraphQL
+      >("onBatchDeleteMessages", result)
+
+      if (r instanceof QIError) {
+        callback(r, result, uuid)
+        return
+      }
+
+      callback(
+        {
+          conversationId: r.conversationId,
+          messagesIds: r.messagesIds,
+        },
+        result,
+        uuid
       )
     })
 
@@ -3054,7 +3128,8 @@ export class Chat
       source: OperationResult<
         { onDeleteMessage: MessageGraphQL },
         SubscriptionOnDeleteMessageArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onDeleteMessage"
@@ -3074,7 +3149,7 @@ export class Chat
       >("onDeleteMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3142,7 +3217,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3156,7 +3232,8 @@ export class Chat
       source: OperationResult<
         { onAddReaction: MessageGraphQL },
         SubscriptionOnAddReactionArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onAddReaction"
@@ -3176,7 +3253,7 @@ export class Chat
       >("onAddReaction", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3244,7 +3321,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3258,7 +3336,8 @@ export class Chat
       source: OperationResult<
         { onRemoveReaction: MessageGraphQL },
         SubscriptionOnRemoveReactionArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onRemoveReaction"
@@ -3278,7 +3357,7 @@ export class Chat
       >("onRemoveReaction", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3346,7 +3425,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3360,7 +3440,8 @@ export class Chat
       source: OperationResult<
         { onAddPinMessage: MessageGraphQL },
         SubscriptionOnAddPinMessageArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onAddPinMessage"
@@ -3380,7 +3461,7 @@ export class Chat
       >("onAddPinMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3448,7 +3529,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3462,7 +3544,8 @@ export class Chat
       source: OperationResult<
         { onRemovePinMessage: MessageGraphQL },
         SubscriptionOnRemovePinMessageArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onRemovePinMessage"
@@ -3482,7 +3565,7 @@ export class Chat
       >("onRemovePinMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3550,7 +3633,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3564,7 +3648,8 @@ export class Chat
       source: OperationResult<
         { onAddImportantMessage: MessageGraphQL },
         SubscriptionOnAddImportantMessageArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onAddImportantMessage"
@@ -3584,7 +3669,7 @@ export class Chat
       >("onAddImportantMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3652,7 +3737,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3666,7 +3752,8 @@ export class Chat
       source: OperationResult<
         { onRemoveImportantMessage: MessageGraphQL },
         SubscriptionOnRemoveImportantMessageArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onRemoveImportantMessage"
@@ -3686,7 +3773,7 @@ export class Chat
       >("onRemoveImportantMessage", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3754,7 +3841,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3768,7 +3856,8 @@ export class Chat
       source: OperationResult<
         { onUpdateConversationGroup: ConversationGraphQL },
         SubscriptionOnUpdateConversationGroupArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onUpdateConversationGroup"
@@ -3788,7 +3877,7 @@ export class Chat
       >("onUpdateConversationGroup", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3810,7 +3899,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3824,7 +3914,8 @@ export class Chat
       source: OperationResult<
         { onEjectMember: ConversationGraphQL },
         SubscriptionOnEjectMemberArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onEjectMember"
@@ -3844,7 +3935,7 @@ export class Chat
       >("onEjectMember", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3866,7 +3957,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3880,7 +3972,8 @@ export class Chat
       source: OperationResult<
         { onLeaveConversation: ConversationGraphQL },
         SubscriptionOnLeaveConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onLeaveConversation"
@@ -3900,7 +3993,7 @@ export class Chat
       >("onLeaveConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3922,7 +4015,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3936,7 +4030,8 @@ export class Chat
       source: OperationResult<
         { onAddPinConversation: ConversationGraphQL },
         SubscriptionOnAddPinConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onAddPinConversation"
@@ -3956,7 +4051,7 @@ export class Chat
       >("onAddPinConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -3978,7 +4073,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -3992,7 +4088,8 @@ export class Chat
       source: OperationResult<
         { onRemovePinConversation: ConversationGraphQL },
         SubscriptionOnRemovePinConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onRemovePinConversation"
@@ -4012,7 +4109,7 @@ export class Chat
       >("onRemovePinConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4034,7 +4131,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -4048,7 +4146,8 @@ export class Chat
       source: OperationResult<
         { onMuteConversation: ConversationGraphQL },
         SubscriptionOnMuteConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onMuteConversation"
@@ -4068,7 +4167,7 @@ export class Chat
       >("onMuteConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4090,7 +4189,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -4104,7 +4204,8 @@ export class Chat
       source: OperationResult<
         { onUnmuteConversation: ConversationGraphQL },
         SubscriptionOnUnmuteConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onUnmuteConversation"
@@ -4124,7 +4225,7 @@ export class Chat
       >("onUnmuteConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4146,7 +4247,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -4162,7 +4264,8 @@ export class Chat
       source: OperationResult<
         { onAddMembersToConversation: ListConversationMembersGraphQL },
         SubscriptionOnAddMembersToConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onAddMembersToConversation"
@@ -4182,7 +4285,7 @@ export class Chat
       >("onAddMembersToConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4205,7 +4308,8 @@ export class Chat
             })
           }),
         },
-        result
+        result,
+        uuid
       )
     })
 
@@ -4225,7 +4329,8 @@ export class Chat
       source: OperationResult<
         { onAddMemberToConversation: AddMemberToConversationResultGraphQL },
         SubscriptionOnAddMemberToConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onAddMemberToConversation"
@@ -4245,7 +4350,7 @@ export class Chat
       >("onAddMemberToConversation", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4267,7 +4372,8 @@ export class Chat
             client: this._client!,
           }),
         },
-        result
+        result,
+        uuid
       )
     })
 
@@ -4281,7 +4387,8 @@ export class Chat
       source: OperationResult<
         { onUpdateUser: UserGraphQL },
         SubscriptionOnUpdateUserArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onUpdateUser"
@@ -4301,7 +4408,7 @@ export class Chat
       >("onUpdateUser", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4344,7 +4451,8 @@ export class Chat
           updatedAt: r.updatedAt ? new Date(r.updatedAt) : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -4358,7 +4466,8 @@ export class Chat
       source: OperationResult<
         { onRequestTrade: ConversationTradingPoolGraphQL },
         SubscriptionOnRequestTradeArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onRequestTrade"
@@ -4378,7 +4487,7 @@ export class Chat
       >("onRequestTrade", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4398,7 +4507,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -4412,7 +4522,8 @@ export class Chat
       source: OperationResult<
         { onDeleteRequestTrade: ConversationTradingPoolGraphQL },
         SubscriptionOnDeleteRequestTradeArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onDeleteRequestTrade"
@@ -4432,7 +4543,7 @@ export class Chat
       >("onDeleteRequestTrade", result)
 
       if (r instanceof QIError) {
-        callback(r, result)
+        callback(r, result, uuid)
         return
       }
 
@@ -4452,7 +4563,8 @@ export class Chat
           deletedAt: r.deletedAt ? r.deletedAt : null,
           client: this._client!,
         }),
-        result
+        result,
+        uuid
       )
     })
 
@@ -4512,18 +4624,35 @@ export class Chat
         else break
       }
 
+      const currentUser = await this.getCurrentUser()
+
+      if (currentUser instanceof QIError)
+        throw new Error(JSON.stringify(currentUser))
+
       //stores/update the conversations into the local db
       if (this._storage.typeOf() === "DexieStorage") {
         await this._storage.insertBulkSafe<WebConversation>(
           "conversation",
-          conversationsItems.map((conversation: Conversation) =>
-            Converter.fromConversationToWebConversation(
+          conversationsItems.map((conversation: Conversation) => {
+            let isConversationArchived = false
+
+            if (currentUser.archivedConversations) {
+              const index = currentUser.archivedConversations.findIndex(
+                (id) => {
+                  return id === conversation.id
+                }
+              )
+
+              if (index > -1) isConversationArchived = true
+            }
+
+            return Converter.fromConversationToWebConversation(
               conversation,
               this._account!.did,
               this._account!.organizationId,
-              type === ActiveUserConversationType.Canceled
+              isConversationArchived
             )
-          )
+          })
         )
       } else if (this._storage.typeOf() === "RealmStorage") {
         //mobile insert TODO
@@ -4563,34 +4692,36 @@ export class Chat
       }
 
       //let's take all the information related to our keys into _userKeyPair object. These are the public and private key of the current user.
-      //To do that, let's do a query on the local user table.
-      if (this._storage.typeOf() === "DexieStorage") {
-        const user = (await this._storage.get(
-          "user",
-          "did",
-          this._account!.did
-        )) as WebUser
+      //To do that, let's do a query on the local user table. If the _userKeyPair is already set, we skip this operation.
+      if (!this._userKeyPair) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const user = (await this._storage.get(
+            "user",
+            "did",
+            this._account!.did
+          )) as WebUser
 
-        const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user
-        const { e2eSecret } = this._account!
-        const { e2eSecretIV } = this._account!
+          const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user
+          const { e2eSecret } = this._account!
+          const { e2eSecretIV } = this._account!
 
-        const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
-          e2eEncryptedPrivateKey,
-          Buffer.from(e2eSecret).toString("base64"),
-          Buffer.from(e2eSecretIV).toString("base64")
-        )
+          const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
+            e2eEncryptedPrivateKey,
+            Buffer.from(e2eSecret).toString("base64"),
+            Buffer.from(e2eSecretIV).toString("base64")
+          )
 
-        const userKeyPair = await Crypto.generateKeyPairFromPem(
-          e2ePublicKeyPem,
-          e2ePrivateKeyPem
-        )
+          const userKeyPair = await Crypto.generateKeyPairFromPem(
+            e2ePublicKeyPem,
+            e2ePrivateKeyPem
+          )
 
-        if (!userKeyPair)
-          throw new Error("Impossible to recover the user key pair.")
+          if (!userKeyPair)
+            throw new Error("Impossible to recover the user key pair.")
 
-        this.setUserKeyPair(userKeyPair)
-      } else if (this._storage.typeOf() === "RealmStorage") {
+          this.setUserKeyPair(userKeyPair)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
       }
 
       //now, from the private key of the user, we will decrypt all the information about the conversation member.
@@ -4758,15 +4889,16 @@ export class Chat
     this._isSyncing = true
     this._emit("syncing", this._syncingCounter)
 
-    //first operation. Recover the list of the conversations in which the user is a member
+    //first operation. Recover the list of the conversations in which the user is a member.
+    //unactive conversations are the convos in which the user left the group or was ejected
     const activeConversations = await this.recoverUserConversations(
       ActiveUserConversationType.Active
     )
-    const archivedConversations = await this.recoverUserConversations(
+    const unactiveConversations = await this.recoverUserConversations(
       ActiveUserConversationType.Canceled
     )
 
-    if (!activeConversations || !archivedConversations) {
+    if (!activeConversations || !unactiveConversations) {
       this._emit("syncError", { error: `error during conversation sincying.` })
       return
     }
@@ -4784,7 +4916,7 @@ export class Chat
     //and the date of the last message stored in the local db is less recent than the lastMessageSentAt date.
     const messagesRecovered = await this.recoverMessagesFromConversations([
       ...activeConversations,
-      ...archivedConversations,
+      ...unactiveConversations,
     ])
     if (!messagesRecovered) {
       this._emit("syncError", {
@@ -4803,6 +4935,397 @@ export class Chat
     }, Chat.SYNCING_TIME)
   }
 
+  private async _onAddMemberToConversationSync(
+    response:
+      | QIError
+      | {
+          conversationId: string
+          memberId: string
+          item: ConversationMember
+        },
+    source: OperationResult<
+      {
+        onAddMemberToConversation: AddMemberToConversationResultGraphQL
+      },
+      SubscriptionOnAddMemberToConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        //we need to update the _keyPairsMap with the new keys of the new conversation
+        const { conversationId } = response
+        const {
+          encryptedConversationPrivateKey,
+          encryptedConversationPublicKey,
+        } = response.item
+        //these pair is encrypted with the public key of the current user, so we need to decrypt them
+        const conversationPrivateKeyPem = Crypto.decryptStringOrFail(
+          this._userKeyPair!.privateKey,
+          encryptedConversationPrivateKey
+        )
+        const conversationPublicKeyPem = Crypto.decryptStringOrFail(
+          this._userKeyPair!.privateKey,
+          encryptedConversationPublicKey
+        )
+        const keypair = await Crypto.generateKeyPairFromPem(
+          conversationPublicKeyPem,
+          conversationPrivateKeyPem
+        )
+
+        this.addKeyPairItem({
+          id: conversationId,
+          keypair: keypair!,
+        })
+
+        //we update also the _unsubscribeSyncSet array using the uuid emitted by the subscription
+        //in order to map the unsubscribe function with the conversation
+        const index = this._unsubscribeSyncSet.findIndex((item) => {
+          return item.uuid === uuid
+        })
+
+        if (index > -1)
+          this._unsubscribeSyncSet[index].conversationId = conversationId
+
+        //now we store the conversation in the local database
+        const responseConversation = await this.listConversationsByIds([
+          conversationId,
+        ])
+
+        if (!(responseConversation instanceof QIError)) {
+          const { items } = responseConversation
+          const conversation = items[0]
+
+          const currentUser = await this.getCurrentUser()
+
+          if (currentUser instanceof QIError)
+            throw new Error(JSON.stringify(currentUser))
+
+          //stores/update the conversations into the local db
+          if (this._storage.typeOf() === "DexieStorage") {
+            let isConversationArchived = false
+
+            if (currentUser.archivedConversations) {
+              const index = currentUser.archivedConversations.findIndex(
+                (id) => {
+                  return id === conversationId
+                }
+              )
+
+              if (index > -1) isConversationArchived = true
+            }
+
+            await this._storage.insertBulkSafe<WebConversation>(
+              "conversation",
+              [
+                Converter.fromConversationToWebConversation(
+                  conversation,
+                  this._account!.did,
+                  this._account!.organizationId,
+                  isConversationArchived
+                ),
+              ]
+            )
+          } else if (this._storage.typeOf() === "RealmStorage") {
+            //mobile insert TODO
+          }
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onAddMemberToConversationSync() -> ", error)
+    }
+  }
+
+  private async _onAddReactionSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onAddReaction: MessageGraphQL
+      },
+      SubscriptionOnAddReactionArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToWebMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onAddReactionSync() -> ", error)
+    }
+  }
+
+  private async _onRemoveReactionSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onRemoveReaction: MessageGraphQL
+      },
+      SubscriptionOnRemoveReactionArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToWebMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onRemoveReactionSync() -> ", error)
+    }
+  }
+
+  private async _onSendMessageSync(
+    response: Message | QIError,
+    source: OperationResult<
+      {
+        onSendMessage: MessageGraphQL
+      },
+      SubscriptionOnSendMessageArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToWebMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onSendMessageSync() -> ", error)
+    }
+  }
+
+  private async _onEditMessageSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onEditMessage: MessageGraphQL
+      },
+      SubscriptionOnEditMessageArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToWebMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onEditMessageSync() -> ", error)
+    }
+  }
+
+  private async _onDeleteMessageSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onDeleteMessage: MessageGraphQL
+      },
+      SubscriptionOnDeleteMessageArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.deleteItem("message", response.id)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onDeleteMessageSync() -> ", error)
+    }
+  }
+
+  private async _onBatchDeleteMessagesSync(
+    response:
+      | QIError
+      | {
+          conversationId: string
+          messagesIds: string[]
+        },
+    source: OperationResult<
+      {
+        onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL
+      },
+      SubscriptionOnBatchDeleteMessagesArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.deleteBulk("message", response.messagesIds)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onDeleteMessageSync() -> ", error)
+    }
+  }
+
+  private async _addSubscriptionsSync(conversationId: string) {
+    //add reaction(conversationId)
+    const onAddReaction = this.onAddReaction(
+      conversationId,
+      this._onAddReactionSync
+    )
+
+    if (!(onAddReaction instanceof QIError)) {
+      const { unsubscribe, uuid } = onAddReaction
+      this._unsubscribeSyncSet.push({
+        type: "onAddReaction",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //remove reaction(conversationId)
+    const onRemoveReaction = this.onRemoveReaction(
+      conversationId,
+      this._onRemoveReactionSync
+    )
+
+    if (!(onRemoveReaction instanceof QIError)) {
+      const { unsubscribe, uuid } = onRemoveReaction
+      this._unsubscribeSyncSet.push({
+        type: "onRemoveReaction",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //send message(conversationId)
+    const onSendMessage = this.onSendMessage(
+      conversationId,
+      this._onSendMessageSync
+    )
+
+    if (!(onSendMessage instanceof QIError)) {
+      const { unsubscribe, uuid } = onSendMessage
+      this._unsubscribeSyncSet.push({
+        type: "onSendMessage",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //edit message(conversationId)
+    const onEditMessage = this.onEditMessage(
+      conversationId,
+      this._onEditMessageSync
+    )
+
+    if (!(onEditMessage instanceof QIError)) {
+      const { unsubscribe, uuid } = onEditMessage
+      this._unsubscribeSyncSet.push({
+        type: "onEditMessage",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //delete message(conversationId)
+    const onDeleteMessage = this.onDeleteMessage(
+      conversationId,
+      this._onDeleteMessageSync
+    )
+
+    if (!(onDeleteMessage instanceof QIError)) {
+      const { unsubscribe, uuid } = onDeleteMessage
+      this._unsubscribeSyncSet.push({
+        type: "onDeleteMessage",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //delete batch messages(conversationId)
+    const onBatchDeleteMessages = this.onBatchDeleteMessages(
+      conversationId,
+      this._onBatchDeleteMessagesSync
+    )
+
+    if (!(onBatchDeleteMessages instanceof QIError)) {
+      const { unsubscribe, uuid } = onBatchDeleteMessages
+      this._unsubscribeSyncSet.push({
+        type: "onBatchDeleteMessages",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //update settings group(conversationId)
+    //add message important(conversationId)
+    //eject member(conversationId)
+    //leave group/conversation(conversationId)
+    //mute conversation(conversationId)
+    //unmute conversation(conversationId)
+  }
+
   async sync(callback: Function) {
     if (!this._account)
       throw new Error("You must be authenticated before to sync.")
@@ -4816,27 +5339,25 @@ export class Chat
 
     await this._sync(this._syncingCounter)
 
-    //TODO define which tables and which fields should be updated by sync() and subscription methods
-
     //add member to conversation
-    //add reaction
-    //archive conversation
-    //archive conversations
-    //send message
-    //update settings group
-    //add message important
-    //delete message
-    //delete batch messages
-    //edit message
-    //eject member
+    const onAddMemberToConversation = this.onAddMemberToConversation(
+      this._account!.dynamoDBUserID,
+      this._onAddMemberToConversationSync
+    )
 
-    //remove reaction
-    //leave group/conversation
-    //mute conversation
-    //unmute conversation
+    if (!(onAddMemberToConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onAddMemberToConversation
+      this._unsubscribeSyncSet.push({
+        type: "onAddMemberToConversation",
+        unsubscribe,
+        uuid,
+        conversationId: "", //this value is updated inside the callback fired by the subscription
+      })
+    }
 
-    //unarchive conversation
-    //unarchive conversations
+    for (const { id: conversationId } of this._keyPairsMap!) {
+      this._addSubscriptionsSync(conversationId)
+    }
   }
 
   syncing(callback: (isSyncing: boolean, syncingCounter: number) => void) {

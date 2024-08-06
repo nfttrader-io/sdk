@@ -5,6 +5,7 @@ import {
   SubscriptionOnAddImportantMessageArgs,
   SubscriptionOnAddPinMessageArgs,
   SubscriptionOnAddReactionArgs,
+  SubscriptionOnBatchDeleteMessagesArgs,
   SubscriptionOnDeleteMessageArgs,
   SubscriptionOnEditMessageArgs,
   SubscriptionOnRemoveImportantMessageArgs,
@@ -12,7 +13,10 @@ import {
   SubscriptionOnRemoveReactionArgs,
   SubscriptionOnSendMessageArgs,
 } from "../../../../graphql/generated/graphql"
-import { Message as MessageGraphQL } from "../../../../graphql/generated/graphql"
+import {
+  Message as MessageGraphQL,
+  BatchDeleteMessagesResult as BatchDeleteMessagesResultGraphQL,
+} from "../../../../graphql/generated/graphql"
 
 /**
  * Interface for a Message Subscription Engine that provides methods to subscribe to various message-related events.
@@ -30,7 +34,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnSendMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onEditMessage(
@@ -44,7 +49,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnEditMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onDeleteMessage(
@@ -58,7 +64,23 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnDeleteMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
+    ) => void
+  ): SubscriptionGarbage | QIError
+  onBatchDeleteMessages(
+    conversationId: string,
+    callback: (
+      response: { conversationId: string; messagesIds: string[] } | QIError,
+      source: OperationResult<
+        {
+          onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL
+        },
+        SubscriptionOnBatchDeleteMessagesArgs & {
+          jwt: string
+        }
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onAddReaction(
@@ -72,7 +94,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnAddReactionArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onRemoveReaction(
@@ -86,7 +109,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnRemoveReactionArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onAddPinMessage(
@@ -100,7 +124,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnAddPinMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onRemovePinMessage(
@@ -114,7 +139,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnRemovePinMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onAddImportantMessage(
@@ -128,7 +154,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnAddImportantMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
   onRemoveImportantMessage(
@@ -142,7 +169,8 @@ export interface MessageSubscriptionEngine {
         SubscriptionOnRemoveImportantMessageArgs & {
           jwt: string
         }
-      >
+      >,
+      uuid: string
     ) => void
   ): SubscriptionGarbage | QIError
 }

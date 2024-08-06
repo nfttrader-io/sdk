@@ -84,8 +84,39 @@ export class DexieStorage extends Dexie implements BaseStorage {
     if (!this._enableStorage) return
   }
 
-  async deleteItem(): Promise<void> {
+  async deleteItem(
+    tableName: "user" | "conversation" | "message",
+    id: string
+  ): Promise<void> {
     if (!this._enableStorage) return
+    return new Promise(async (resolve, reject) => {
+      await this.transaction("rw", tableName, async () => {
+        if (tableName === "conversation") await this.conversation.delete(id)
+        else if (tableName === "user") await this.user.delete(id)
+        else if (tableName === "message") await this.message.delete(id)
+        resolve()
+      }).catch((error) => {
+        reject(error)
+      })
+    })
+  }
+
+  async deleteBulk(
+    tableName: "user" | "conversation" | "message",
+    ids: string[]
+  ): Promise<void> {
+    if (!this._enableStorage) return
+    return new Promise(async (resolve, reject) => {
+      await this.transaction("rw", tableName, async () => {
+        if (tableName === "conversation")
+          await this.conversation.bulkDelete(ids)
+        else if (tableName === "user") await this.user.bulkDelete(ids)
+        else if (tableName === "message") await this.message.bulkDelete(ids)
+        resolve()
+      }).catch((error) => {
+        reject(error)
+      })
+    })
   }
 
   async query<T>(

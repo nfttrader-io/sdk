@@ -1,7 +1,6 @@
 import { BaseStorage } from "../../interfaces/app"
 import * as Realm from "realm"
 import { Maybe } from "../../types"
-import Dexie from "dexie"
 
 export class RealmStorage implements BaseStorage {
   private realm: Maybe<Realm>
@@ -29,6 +28,13 @@ export class RealmStorage implements BaseStorage {
 
   async deleteItem(): Promise<void> {
     if (!this._enableStorage) return
+  }
+
+  async deleteBulk(
+    tableName: "user" | "conversation" | "message",
+    ids: string[]
+  ): Promise<void> {
+    throw new Error("Method not implemented.")
   }
 
   async query(): Promise<void> {

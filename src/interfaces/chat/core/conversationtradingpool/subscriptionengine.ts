@@ -20,7 +20,8 @@ export interface ConversationTradingPoolSubscriptionEngine {
       source: OperationResult<
         { onRequestTrade: ConversationTradingPoolGraphQL },
         SubscriptionOnRequestTradeArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onDeleteRequestTrade(
@@ -30,7 +31,8 @@ export interface ConversationTradingPoolSubscriptionEngine {
       source: OperationResult<
         { onDeleteRequestTrade: ConversationTradingPoolGraphQL },
         SubscriptionOnDeleteRequestTradeArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
 }

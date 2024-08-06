@@ -18,7 +18,8 @@ export interface UserSubscriptionEngine {
       source: OperationResult<
         { onUpdateUser: UserGraphQL },
         SubscriptionOnUpdateUserArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
 }

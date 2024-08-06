@@ -32,7 +32,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onUpdateConversationGroup: ConversationGraphQL },
         SubscriptionOnUpdateConversationGroupArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onEjectMember(
@@ -42,7 +43,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onEjectMember: ConversationGraphQL },
         SubscriptionOnEjectMemberArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onLeaveConversation(
@@ -52,7 +54,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onLeaveConversation: ConversationGraphQL },
         SubscriptionOnLeaveConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onMuteConversation(
@@ -62,7 +65,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onMuteConversation: ConversationGraphQL },
         SubscriptionOnMuteConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onUnmuteConversation(
@@ -72,7 +76,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onUnmuteConversation: ConversationGraphQL },
         SubscriptionOnUnmuteConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onAddPinConversation(
@@ -82,7 +87,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onAddPinConversation: ConversationGraphQL },
         SubscriptionOnAddPinConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onRemovePinConversation(
@@ -92,7 +98,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onRemovePinConversation: ConversationGraphQL },
         SubscriptionOnRemovePinConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onAddMembersToConversation(
@@ -104,7 +111,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onAddMembersToConversation: ListConversationMembersGraphQL },
         SubscriptionOnAddMembersToConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
   onAddMemberToConversation(
@@ -120,7 +128,8 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onAddMemberToConversation: AddMemberToConversationResultGraphQL },
         SubscriptionOnAddMemberToConversationArgs & { jwt: string }
-      >
+      >,
+      uuid: string
     ) => void
   ): QIError | SubscriptionGarbage
 }
