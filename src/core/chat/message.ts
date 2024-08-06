@@ -11,7 +11,6 @@ import {
 import {
   getConversationFromMessageById,
   getMessageRootFromMessageById,
-  getReactionsFromMessageById,
   getUserFromMessageById,
 } from "../../constants/chat/queries"
 import {
@@ -64,13 +63,21 @@ export class Message
    */
   readonly content: string
   /**
-   * @property {Maybe<string>} conversationId - The ID of the conversation the message belongs to.
+   * @property {string} conversationId - The ID of the conversation the message belongs to.
    */
-  readonly conversationId: Maybe<string>
+  readonly conversationId: string
   /**
-   *  @property {Maybe<string>} userId - The ID of the user who sent the message.
+   * @property {Maybe<Array<Reaction>>} reactions - The reactions related to this message.
    */
-  readonly userId: Maybe<string>
+  readonly reactions: Maybe<Array<Reaction>>
+  /**
+   *  @property {string} userId - The ID of the user who sent the message.
+   */
+  readonly userId: string
+  /**
+   * @property {Maybe<Omit<MessageSchema, "messageRoot">>} messageRoot - The root message in a thread.
+   */
+  readonly messageRoot: Maybe<Omit<Message, "messageRoot">>
   /**
    * @property {Maybe<string>} messageRootId - The ID of the root message in a thread.
    */
@@ -106,7 +113,9 @@ export class Message
     this.id = config.id
     this.content = config.content
     this.conversationId = config.conversationId
+    this.reactions = config.reactions
     this.userId = config.userId
+    this.messageRoot = config.messageRoot
     this.messageRootId = config.messageRootId
     this.type = config.type
     this.createdAt = config.createdAt
@@ -141,12 +150,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -191,12 +245,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -272,12 +371,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -320,12 +464,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
-      conversationId: response.conversation ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      content: response.content,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -370,12 +559,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -418,12 +652,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -467,12 +746,57 @@ export class Message
     return new Message({
       ...this._parentConfig!,
       id: response.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversationId),
-        response.content
-      ),
+      content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -507,15 +831,9 @@ export class Message
     return new Conversation({
       ...this._parentConfig!,
       id: response.conversation!.id,
-      name: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.conversation!.id),
-        response.conversation!.name
-      ),
+      name: response.conversation!.name,
       description: response.conversation!.description
-        ? Crypto.decryptStringOrFail(
-            this.findPrivateKeyById(response.conversation!.id),
-            response.conversation!.description
-          )
+        ? response.conversation!.description
         : null,
       imageURL: response.conversation!.imageURL
         ? response.conversation!.imageURL
@@ -541,99 +859,6 @@ export class Message
       deletedAt: response.deletedAt ? response.deletedAt : null,
       client: this._client!,
     })
-  }
-
-  /**
-   * Asynchronously retrieves a message root from the server.
-   * @returns A Promise that resolves to a Message object if successful, or a QIError object if there was an error.
-   */
-  async messageRoot(): Promise<Message | QIError> {
-    const response = await this._query<
-      null,
-      {
-        getMessageById: MessageGraphQL
-      },
-      MessageGraphQL
-    >(
-      "getMessageById",
-      getMessageRootFromMessageById,
-      "_query() -> messageRoot()",
-      null
-    )
-
-    if (response instanceof QIError) return response
-
-    return new Message({
-      ...this._parentConfig!,
-      id: response.messageRoot!.id,
-      content: Crypto.decryptStringOrFail(
-        this.findPrivateKeyById(response.messageRoot!.conversationId),
-        response.messageRoot!.content
-      ),
-      conversationId: response.messageRoot!.conversation
-        ? response.messageRoot!.conversationId
-        : null,
-      userId: response.messageRoot!.userId
-        ? response.messageRoot!.userId
-        : null,
-      messageRootId: response.messageRoot!.messageRootId
-        ? response.messageRoot!.messageRootId
-        : null,
-      type: response.messageRoot!.type
-        ? (response.messageRoot!.type as
-            | "TEXTUAL"
-            | "ATTACHMENT"
-            | "SWAP_PROPOSAL"
-            | "RENT")
-        : null,
-      createdAt: response.messageRoot!.createdAt,
-      updatedAt: response.messageRoot!.updatedAt
-        ? response.messageRoot!.updatedAt
-        : null,
-      deletedAt: response.messageRoot!.deletedAt
-        ? response.messageRoot!.deletedAt
-        : null,
-
-      client: this._client!,
-    })
-  }
-
-  /**
-   * Asynchronously retrieves reactions for a message.
-   * @returns {Promise<Array<Reaction> | QIError>} - An array of Reaction objects if successful, or a QIError object if there was an error.
-   */
-  async reactions(): Promise<Array<Reaction> | QIError> {
-    const response = await this._query<
-      null,
-      {
-        getMessageById: MessageGraphQL
-      },
-      MessageGraphQL
-    >(
-      "getMessageById",
-      getReactionsFromMessageById,
-      "_query() -> reactions()",
-      null
-    )
-
-    if (response instanceof QIError) return response
-
-    const reactions: Array<Reaction> = []
-
-    response.reactions?.forEach((item) => {
-      if (item)
-        reactions.push(
-          new Reaction({
-            ...this._parentConfig!,
-            content: item.content,
-            createdAt: item.createdAt,
-            userId: item.userId,
-            client: this._client!,
-          })
-        )
-    })
-
-    return reactions
   }
 
   /**
@@ -674,6 +899,9 @@ export class Message
         ? response.user!.allowNotificationSound
         : false,
       visibility: response.user!.visibility ? response.user!.visibility : false,
+      archivedConversations: response.user!.archivedConversations
+        ? response.user!.archivedConversations
+        : null,
       onlineStatus: response.user!.onlineStatus
         ? response.user!.onlineStatus
         : null,
@@ -704,7 +932,7 @@ export class Message
     })
   }
 
-  getContent(): Maybe<string> {
+  getContentDecrypted(): Maybe<string> {
     if (!this.conversationId) return null
     return Crypto.decryptStringOrFail(
       this.findPrivateKeyById(this.conversationId),

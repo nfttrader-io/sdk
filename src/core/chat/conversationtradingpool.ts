@@ -93,7 +93,7 @@ export class ConversationTradingPool
     this._client = config.client
   }
 
-  getOperation(): Maybe<JSON> {
+  getOperationDecrypted(): Maybe<JSON> {
     if (!this.conversationId || !this.operation) return null
     return JSON.parse(
       Crypto.decryptStringOrFail(

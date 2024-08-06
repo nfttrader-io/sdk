@@ -30,7 +30,6 @@ import {
   UserSubscriptionEngine,
 } from "./interfaces/chat/core/user"
 import {
-  ArchiveConversationsBatchResult as ArchiveConversationsBatchResultGraphQL,
   Conversation as ConversationGraphQL,
   ConversationReport as ConversationReportGraphQL,
   ListConversationMembers as ListConversationMembersGraphQL,
@@ -65,7 +64,6 @@ import {
   MutationSendMessageArgs,
   MutationUnarchiveConversationArgs,
   MutationUnarchiveConversationsArgs,
-  UnarchiveConversationsBatchResult as UnarchiveConversationsBatchResultGraphQL,
   MutationUnmuteConversationArgs,
   MutationUpdateConversationGroupArgs,
   MutationUpdateUserInfoArgs,
@@ -95,8 +93,6 @@ import {
   SubscriptionOnLeaveConversationArgs,
   SubscriptionOnAddPinConversationArgs,
   SubscriptionOnRemovePinConversationArgs,
-  SubscriptionOnArchiveConversationArgs,
-  SubscriptionOnUnarchiveConversationArgs,
   SubscriptionOnMuteConversationArgs,
   SubscriptionOnUpdateUserArgs,
   SubscriptionOnRequestTradeArgs,
@@ -108,6 +104,10 @@ import {
   ListConversationsPinnedByUserIdResult as ListConversationsPinnedByUserIdResultGraphQL,
   QueryListConversationMemberByUserIdArgs,
   ListConversationMemberByUserIdResult as ListConversationMemberByUserIdResultGraphQL,
+  SubscriptionOnUnmuteConversationArgs,
+  MutationAddMemberToConversationArgs,
+  AddMemberToConversationResult as AddMemberToConversationResultGraphQL,
+  SubscriptionOnAddMemberToConversationArgs,
 } from "./graphql/generated/graphql"
 import {
   addBlockedUser,
@@ -175,6 +175,7 @@ import {
   UpdateUserArgs,
   AddMembersToConversationArgs,
   EjectMemberArgs,
+  AddMemberToConversationArgs,
 } from "./types/chat/schema/args"
 import { UAMutationEngine, UAQueryEngine } from "./interfaces/chat/core/ua"
 import { Maybe } from "./types/base"
@@ -193,14 +194,13 @@ import {
   onLeaveConversation,
   onAddPinConversation,
   onRemovePinConversation,
-  onArchiveConversation,
-  onUnarchiveConversation,
   onMuteConversation,
   onUnmuteConversation,
   onUpdateUser,
   onRequestTrade,
   onDeleteRequestTrade,
   onAddMembersToConversation,
+  onAddMemberToConversation,
 } from "./constants/chat/subscriptions"
 import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
@@ -209,6 +209,7 @@ import { ActiveUserConversationType } from "./enums"
 import { WebConversation, WebUser } from "./interfaces/app/core/database"
 import { Account, Converter } from "./core"
 import Dexie from "dexie"
+import { Reaction } from "./core/chat/reaction"
 
 export class Chat
   extends Engine
@@ -278,6 +279,10 @@ export class Chat
     if (index > -1) this._eventsCallback[index].callbacks = []
   }
 
+  setCurrentAccount(account: Account) {
+    this._account = account
+  }
+
   /**
    * Blocks a user by their ID.
    * @param {string} [id] - The ID of the user to block.
@@ -321,6 +326,9 @@ export class Chat
         ? response.allowNotificationSound
         : false,
       visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
       onlineStatus: response.onlineStatus ? response.onlineStatus : null,
       allowReadReceipt: response.allowReadReceipt
         ? response.allowReadReceipt
@@ -359,7 +367,7 @@ export class Chat
       {
         input: {
           conversationId: (args as AddMembersToConversationArgs).id,
-          membersIds: (args as AddMembersToConversationArgs).membersIds,
+          members: (args as AddMembersToConversationArgs).members,
         },
       }
     )
@@ -389,6 +397,42 @@ export class Chat
     return listConversationMembers
   }
 
+  async addMemberToConversation(
+    args: AddMemberToConversationArgs
+  ): Promise<ConversationMember | QIError> {
+    const response = await this._query<
+      MutationAddMemberToConversationArgs,
+      { addMemberToConversation: AddMemberToConversationResultGraphQL },
+      AddMemberToConversationResultGraphQL
+    >(
+      "addMembersToConversation",
+      addMembersToConversation,
+      "_mutation() -> addMembersToConversation()",
+      {
+        input: {
+          conversationId: (args as AddMemberToConversationArgs).id,
+          member: (args as AddMemberToConversationArgs).member,
+        },
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new ConversationMember({
+      ...this._parentConfig!,
+      id: response.item.id,
+      conversationId: response.item.conversationId,
+      userId: response.item.userId,
+      type: response.item.type,
+      encryptedConversationPublicKey:
+        response.item.encryptedConversationPublicKey,
+      encryptedConversationPrivateKey:
+        response.item.encryptedConversationPrivateKey,
+      createdAt: response.item.createdAt,
+      client: this._client!,
+    })
+  }
+
   async pinMessage(): Promise<Message | QIError>
   async pinMessage(id: string): Promise<Message | QIError>
   async pinMessage(id?: unknown): Promise<Message | QIError> {
@@ -412,8 +456,56 @@ export class Chat
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
-      conversationId: response.conversationId ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -454,8 +546,56 @@ export class Chat
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
-      conversationId: response.conversationId ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -529,9 +669,9 @@ export class Chat
     })
   }
 
-  async archiveConversation(): Promise<Conversation | QIError>
-  async archiveConversation(id: string): Promise<Conversation | QIError>
-  async archiveConversation(id?: unknown): Promise<Conversation | QIError> {
+  async archiveConversation(): Promise<User | QIError>
+  async archiveConversation(id: string): Promise<User | QIError>
+  async archiveConversation(id?: unknown): Promise<User | QIError> {
     if (!id)
       throw new Error(
         "id argument can not be null or undefined. Consider to use archiveConversation(id : string) instead."
@@ -540,8 +680,8 @@ export class Chat
 
     const response = await this._mutation<
       MutationArchiveConversationArgs,
-      { archiveConversation: ConversationGraphQL },
-      ConversationGraphQL
+      { archiveConversation: UserGraphQL },
+      UserGraphQL
     >(
       "archiveConversation",
       archiveConversation,
@@ -553,36 +693,55 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
+    return new User({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
+      username: response.username ? response.username : null,
+      did: response.did,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
         : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
   }
 
-  async archiveConversations(
-    ids: Array<string>
-  ): Promise<
-    { concatConversationIds: string; items: Array<{ id: string }> } | QIError
-  > {
+  async archiveConversations(ids: Array<string>): Promise<User | QIError> {
     const response = await this._mutation<
       MutationArchiveConversationsArgs,
-      { archiveConversations: ArchiveConversationsBatchResultGraphQL },
-      ArchiveConversationsBatchResultGraphQL
+      { archiveConversations: UserGraphQL },
+      UserGraphQL
     >(
       "archiveConversations",
       archiveConversations,
@@ -594,10 +753,48 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return {
-      concatConversationIds: response.concatConversationIds,
-      items: response.items,
-    }
+    return new User({
+      ...this._parentConfig!,
+      id: response.id,
+      username: response.username ? response.username : null,
+      did: response.did,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
+      client: this._client!,
+    })
   }
 
   async createConversationGroup(
@@ -777,8 +974,56 @@ export class Chat
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
-      conversationId: response.conversationId ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -849,8 +1094,56 @@ export class Chat
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
-      conversationId: response.conversationId ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1054,6 +1347,9 @@ export class Chat
         ? response.allowNotificationSound
         : false,
       visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
       onlineStatus: response.onlineStatus ? response.onlineStatus : null,
       allowReadReceipt: response.allowReadReceipt
         ? response.allowReadReceipt
@@ -1105,7 +1401,55 @@ export class Chat
       id: response.id,
       content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1147,7 +1491,55 @@ export class Chat
       id: response.id,
       content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1222,7 +1614,55 @@ export class Chat
       id: response.id,
       content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1234,9 +1674,9 @@ export class Chat
     })
   }
 
-  async unarchiveConversation(): Promise<QIError | Conversation>
-  async unarchiveConversation(id: string): Promise<QIError | Conversation>
-  async unarchiveConversation(id?: unknown): Promise<QIError | Conversation> {
+  async unarchiveConversation(): Promise<QIError | User>
+  async unarchiveConversation(id: string): Promise<QIError | User>
+  async unarchiveConversation(id?: unknown): Promise<QIError | User> {
     if (!id)
       throw new Error(
         "id argument can not be null or undefined. Consider to use unarchiveConversation(id : string) instead."
@@ -1245,8 +1685,8 @@ export class Chat
 
     const response = await this._mutation<
       MutationUnarchiveConversationArgs,
-      { unarchiveConversation: ConversationGraphQL },
-      ConversationGraphQL
+      { unarchiveConversation: UserGraphQL },
+      UserGraphQL
     >(
       "unarchiveConversation",
       unarchiveConversation,
@@ -1258,36 +1698,55 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
+    return new User({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
+      username: response.username ? response.username : null,
+      did: response.did,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
         : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
   }
 
-  async unarchiveConversations(
-    ids: Array<string>
-  ): Promise<
-    { concatConversationIds: string; items: Array<{ id: string }> } | QIError
-  > {
+  async unarchiveConversations(ids: Array<string>): Promise<User | QIError> {
     const response = await this._mutation<
       MutationUnarchiveConversationsArgs,
-      { unarchiveConversations: UnarchiveConversationsBatchResultGraphQL },
-      UnarchiveConversationsBatchResultGraphQL
+      { unarchiveConversations: UserGraphQL },
+      UserGraphQL
     >(
       "unarchiveConversations",
       unarchiveConversations,
@@ -1299,10 +1758,48 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return {
-      concatConversationIds: response.concatConversationIds,
-      items: response.items,
-    }
+    return new User({
+      ...this._parentConfig!,
+      id: response.id,
+      username: response.username ? response.username : null,
+      did: response.did,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
+      client: this._client!,
+    })
   }
 
   async unmuteConversation(): Promise<QIError | Conversation>
@@ -1449,6 +1946,9 @@ export class Chat
         ? response.allowNotificationSound
         : false,
       visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
       onlineStatus: response.onlineStatus ? response.onlineStatus : null,
       allowReadReceipt: response.allowReadReceipt
         ? response.allowReadReceipt
@@ -1499,8 +1999,56 @@ export class Chat
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
-      conversationId: response.conversationId ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1540,8 +2088,56 @@ export class Chat
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
-      conversationId: response.conversationId ? response.conversationId : null,
-      userId: response.userId ? response.userId : null,
+      conversationId: response.conversationId,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       messageRootId: response.messageRootId ? response.messageRootId : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1809,7 +2405,55 @@ export class Chat
           id: item.id,
           content: item.content,
           conversationId: item.conversationId,
-          userId: item.userId ? item.userId : null,
+          reactions: item.reactions
+            ? item.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: item.userId,
+          messageRoot: item.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: item.messageRoot.id,
+                content: item.messageRoot.content,
+                conversationId: item.messageRoot.conversationId,
+                reactions: item.messageRoot.reactions
+                  ? item.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: item.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: item.messageRoot.type
+                  ? (item.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: item.messageRoot.createdAt,
+                updatedAt: item.messageRoot.updatedAt
+                  ? item.messageRoot.updatedAt
+                  : null,
+                deletedAt: item.messageRoot.deletedAt
+                  ? item.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           messageRootId: item.messageRootId ? item.messageRootId : null,
           type: item.type
             ? (item.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -1869,10 +2513,56 @@ export class Chat
             ...this._parentConfig!,
             id: item.message!.id,
             content: item.message!.content,
-            conversationId: item.message!.conversation
-              ? item.message!.conversationId
+            conversationId: item.message!.conversationId,
+            reactions: item.message!.reactions
+              ? item.message!.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
               : null,
-            userId: item.message!.userId ? item.message!.userId : null,
+            userId: item.message!.userId,
+            messageRoot: item.message!.messageRoot
+              ? new Message({
+                  ...this._parentConfig!,
+                  id: item.message!.messageRoot.id,
+                  content: item.message!.messageRoot.content,
+                  conversationId: item.message!.messageRoot.conversationId,
+                  reactions: item.message!.messageRoot.reactions
+                    ? item.message!.messageRoot.reactions.map((reaction) => {
+                        return new Reaction({
+                          ...this._parentConfig!,
+                          userId: reaction.userId,
+                          content: reaction.content,
+                          createdAt: reaction.createdAt,
+                          client: this._client!,
+                        })
+                      })
+                    : null,
+                  userId: item.message!.messageRoot.userId,
+                  messageRoot: null,
+                  messageRootId: null,
+                  type: item.message!.messageRoot.type
+                    ? (item.message!.messageRoot.type as
+                        | "TEXTUAL"
+                        | "ATTACHMENT"
+                        | "SWAP_PROPOSAL"
+                        | "RENT")
+                    : null,
+                  createdAt: item.message!.messageRoot.createdAt,
+                  updatedAt: item.message!.messageRoot.updatedAt
+                    ? item.message!.messageRoot.updatedAt
+                    : null,
+                  deletedAt: item.message!.messageRoot.deletedAt
+                    ? item.message!.messageRoot.deletedAt
+                    : null,
+                  client: this._client!,
+                })
+              : null,
             messageRootId: item.message!.messageRootId
               ? item.message!.messageRootId
               : null,
@@ -2024,6 +2714,9 @@ export class Chat
             ? item.allowNotificationSound
             : false,
           visibility: item.visibility ? item.visibility : false,
+          archivedConversations: item.archivedConversations
+            ? item.archivedConversations
+            : null,
           onlineStatus: item.onlineStatus ? item.onlineStatus : null,
           allowReadReceipt: item.allowReadReceipt
             ? item.allowReadReceipt
@@ -2080,6 +2773,9 @@ export class Chat
         ? response.allowNotificationSound
         : false,
       visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
       onlineStatus: response.onlineStatus ? response.onlineStatus : null,
       allowReadReceipt: response.allowReadReceipt
         ? response.allowReadReceipt
@@ -2184,7 +2880,55 @@ export class Chat
           id: r.id,
           content: r.content,
           conversationId: r.conversationId,
-          userId: r.userId ? r.userId : null,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -2237,8 +2981,56 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -2291,9 +3083,57 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
           messageRootId: r.messageRootId ? r.messageRootId : null,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
@@ -2345,9 +3185,57 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
           messageRootId: r.messageRootId ? r.messageRootId : null,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
@@ -2399,9 +3287,57 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
           messageRootId: r.messageRootId ? r.messageRootId : null,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
@@ -2453,9 +3389,57 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
           messageRootId: r.messageRootId ? r.messageRootId : null,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
@@ -2507,8 +3491,56 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           messageRootId: r.messageRootId ? r.messageRootId : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -2561,9 +3593,57 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
           messageRootId: r.messageRootId ? r.messageRootId : null,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
@@ -2615,9 +3695,57 @@ export class Chat
           ...this._parentConfig!,
           id: r.id,
           content: r.content,
-          conversationId: r.conversation ? r.conversationId : null,
-          userId: r.userId ? r.userId : null,
+          conversationId: r.conversationId,
+          reactions: r.reactions
+            ? r.reactions.map((reaction) => {
+                return new Reaction({
+                  ...this._parentConfig!,
+                  userId: reaction.userId,
+                  content: reaction.content,
+                  createdAt: reaction.createdAt,
+                  client: this._client!,
+                })
+              })
+            : null,
+          userId: r.userId,
           messageRootId: r.messageRootId ? r.messageRootId : null,
+          messageRoot: r.messageRoot
+            ? new Message({
+                ...this._parentConfig!,
+                id: r.messageRoot.id,
+                content: r.messageRoot.content,
+                conversationId: r.messageRoot.conversationId,
+                reactions: r.messageRoot.reactions
+                  ? r.messageRoot.reactions.map((reaction) => {
+                      return new Reaction({
+                        ...this._parentConfig!,
+                        userId: reaction.userId,
+                        content: reaction.content,
+                        createdAt: reaction.createdAt,
+                        client: this._client!,
+                      })
+                    })
+                  : null,
+                userId: r.messageRoot.userId,
+                messageRoot: null,
+                messageRootId: null,
+                type: r.messageRoot.type
+                  ? (r.messageRoot.type as
+                      | "TEXTUAL"
+                      | "ATTACHMENT"
+                      | "SWAP_PROPOSAL"
+                      | "RENT")
+                  : null,
+                createdAt: r.messageRoot.createdAt,
+                updatedAt: r.messageRoot.updatedAt
+                  ? r.messageRoot.updatedAt
+                  : null,
+                deletedAt: r.messageRoot.deletedAt
+                  ? r.messageRoot.deletedAt
+                  : null,
+                client: this._client!,
+              })
+            : null,
           type: r.type
             ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
             : null,
@@ -2913,118 +4041,6 @@ export class Chat
     return { unsubscribe, uuid }
   }
 
-  onArchiveConversation(
-    conversationId: string,
-    callback: (
-      response: QIError | Conversation,
-      source: OperationResult<
-        { onArchiveConversation: ConversationGraphQL },
-        SubscriptionOnArchiveConversationArgs & { jwt: string }
-      >
-    ) => void
-  ): QIError | SubscriptionGarbage {
-    const key = "onArchiveConversation"
-    const metasubcription = this._subscription<
-      SubscriptionOnArchiveConversationArgs,
-      { onArchiveConversation: ConversationGraphQL }
-    >(onArchiveConversation, key, { conversationId })
-
-    if (metasubcription instanceof QIError) return metasubcription
-
-    const { subscribe, uuid } = metasubcription
-    const { unsubscribe } = subscribe((result) => {
-      const r = this._handleResponse<
-        typeof key,
-        { onArchiveConversation: ConversationGraphQL },
-        ConversationGraphQL
-      >("onArchiveConversation", result)
-
-      if (r instanceof QIError) {
-        callback(r, result)
-        return
-      }
-
-      callback(
-        new Conversation({
-          ...this._parentConfig!,
-          id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? r.imageURL : null,
-          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
-          settings: r.settings ? r.settings : null,
-          membersIds: r.membersIds ? r.membersIds : null,
-          type: r.type,
-          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
-          ownerId: r.ownerId ? r.ownerId : null,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt ? r.updatedAt : null,
-          deletedAt: r.deletedAt ? r.deletedAt : null,
-          client: this._client!,
-        }),
-        result
-      )
-    })
-
-    return { unsubscribe, uuid }
-  }
-
-  onUnarchiveConversation(
-    conversationId: string,
-    callback: (
-      response: QIError | Conversation,
-      source: OperationResult<
-        { onUnarchiveConversation: ConversationGraphQL },
-        SubscriptionOnUnarchiveConversationArgs & { jwt: string }
-      >
-    ) => void
-  ): QIError | SubscriptionGarbage {
-    const key = "onUnarchiveConversation"
-    const metasubcription = this._subscription<
-      SubscriptionOnUnarchiveConversationArgs,
-      { onUnarchiveConversation: ConversationGraphQL }
-    >(onUnarchiveConversation, key, { conversationId })
-
-    if (metasubcription instanceof QIError) return metasubcription
-
-    const { subscribe, uuid } = metasubcription
-    const { unsubscribe } = subscribe((result) => {
-      const r = this._handleResponse<
-        typeof key,
-        { onUnarchiveConversation: ConversationGraphQL },
-        ConversationGraphQL
-      >("onUnarchiveConversation", result)
-
-      if (r instanceof QIError) {
-        callback(r, result)
-        return
-      }
-
-      callback(
-        new Conversation({
-          ...this._parentConfig!,
-          id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? r.imageURL : null,
-          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
-          settings: r.settings ? r.settings : null,
-          membersIds: r.membersIds ? r.membersIds : null,
-          type: r.type,
-          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
-          ownerId: r.ownerId ? r.ownerId : null,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt ? r.updatedAt : null,
-          deletedAt: r.deletedAt ? r.deletedAt : null,
-          client: this._client!,
-        }),
-        result
-      )
-    })
-
-    return { unsubscribe, uuid }
-  }
-
   onMuteConversation(
     conversationId: string,
     callback: (
@@ -3087,13 +4103,13 @@ export class Chat
       response: QIError | Conversation,
       source: OperationResult<
         { onUnmuteConversation: ConversationGraphQL },
-        SubscriptionOnUnarchiveConversationArgs & { jwt: string }
+        SubscriptionOnUnmuteConversationArgs & { jwt: string }
       >
     ) => void
   ): QIError | SubscriptionGarbage {
     const key = "onUnmuteConversation"
     const metasubcription = this._subscription<
-      SubscriptionOnUnarchiveConversationArgs,
+      SubscriptionOnUnmuteConversationArgs,
       { onUnmuteConversation: ConversationGraphQL }
     >(onUnmuteConversation, key, { conversationId })
 
@@ -3196,6 +4212,68 @@ export class Chat
     return { unsubscribe, uuid }
   }
 
+  onAddMemberToConversation(
+    memberId: string,
+    callback: (
+      response:
+        | QIError
+        | {
+            conversationId: string
+            memberId: string
+            item: ConversationMember
+          },
+      source: OperationResult<
+        { onAddMemberToConversation: AddMemberToConversationResultGraphQL },
+        SubscriptionOnAddMemberToConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage {
+    const key = "onAddMemberToConversation"
+    const metasubcription = this._subscription<
+      SubscriptionOnAddMemberToConversationArgs,
+      { onAddMemberToConversation: AddMemberToConversationResultGraphQL }
+    >(onAddMemberToConversation, key, { memberId })
+
+    if (metasubcription instanceof QIError) return metasubcription
+
+    const { subscribe, uuid } = metasubcription
+    const { unsubscribe } = subscribe((result) => {
+      const r = this._handleResponse<
+        typeof key,
+        { onAddMemberToConversation: AddMemberToConversationResultGraphQL },
+        AddMemberToConversationResultGraphQL
+      >("onAddMemberToConversation", result)
+
+      if (r instanceof QIError) {
+        callback(r, result)
+        return
+      }
+
+      callback(
+        {
+          conversationId: r.conversationId,
+          memberId: r.memberId,
+          item: new ConversationMember({
+            ...this._parentConfig!,
+            id: r.item.id,
+            conversationId: r.item.conversationId,
+            userId: r.item.userId,
+            type: r.item.type,
+            encryptedConversationPublicKey:
+              r.item.encryptedConversationPublicKey,
+            encryptedConversationPrivateKey:
+              r.item.encryptedConversationPrivateKey,
+            createdAt: r.item.createdAt,
+            client: this._client!,
+          }),
+        },
+        result
+      )
+    })
+
+    return { unsubscribe, uuid }
+  }
+
   onUpdateUser(
     id: string,
     callback: (
@@ -3245,6 +4323,9 @@ export class Chat
             ? r.allowNotificationSound
             : false,
           visibility: r.visibility ? r.visibility : false,
+          archivedConversations: r.archivedConversations
+            ? r.archivedConversations
+            : null,
           onlineStatus: r.onlineStatus ? r.onlineStatus : null,
           allowReadReceipt: r.allowReadReceipt ? r.allowReadReceipt : false,
           allowReceiveMessageFrom: r.allowReceiveMessageFrom
@@ -3379,10 +4460,6 @@ export class Chat
   }
 
   /** syncing data with backend*/
-
-  setCurrentAccount(account: Account) {
-    this._account = account
-  }
 
   private async recoverUserConversations(
     type: ActiveUserConversationType
@@ -3575,6 +4652,35 @@ export class Chat
 
         //let's see if the last message sent into the conversation is more recent than the last message stored in the database
         if (this._storage.typeOf() === "DexieStorage") {
+          //messages important handling
+          const messagesImportantFirstSet =
+            await this.listMessagesImportantByUserConversationId({
+              conversationId: id,
+            })
+
+          if (messagesImportantFirstSet instanceof QIError)
+            throw new Error(JSON.stringify(messagesImportantFirstSet))
+
+          let { nextToken, items } = messagesImportantFirstSet
+          let messagesImportant = [...items]
+
+          while (nextToken) {
+            const set = await this.listMessagesImportantByUserConversationId({
+              conversationId: id,
+              nextToken,
+            })
+
+            if (set instanceof QIError) break
+
+            const { nextToken: token, items } = set
+
+            messagesImportant = [...messagesImportant, ...items]
+
+            if (token) nextToken = token
+            else break
+          }
+
+          //messages handling
           const userTable = this._storage.getTable("user") as Dexie.Table<
             WebUser,
             string,
@@ -3618,9 +4724,25 @@ export class Chat
             }
 
             //let's store the messages without create duplicates
-            this._storage.insertBulkSafe("message", messages)
+            this._storage.insertBulkSafe(
+              "message",
+              messages.map((message) => {
+                const isMessageImportant =
+                  messagesImportant.findIndex((important) => {
+                    return important.messageId === message.id
+                  }) > -1
+
+                return Converter.fromMessageToWebMessage(
+                  message,
+                  this._account!.did,
+                  this._account!.organizationId,
+                  isMessageImportant
+                )
+              })
+            )
           }
         } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
         }
       }
 
@@ -3695,6 +4817,26 @@ export class Chat
     await this._sync(this._syncingCounter)
 
     //TODO define which tables and which fields should be updated by sync() and subscription methods
+
+    //add member to conversation
+    //add reaction
+    //archive conversation
+    //archive conversations
+    //send message
+    //update settings group
+    //add message important
+    //delete message
+    //delete batch messages
+    //edit message
+    //eject member
+
+    //remove reaction
+    //leave group/conversation
+    //mute conversation
+    //unmute conversation
+
+    //unarchive conversation
+    //unarchive conversations
   }
 
   syncing(callback: (isSyncing: boolean, syncingCounter: number) => void) {

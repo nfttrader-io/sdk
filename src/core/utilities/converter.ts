@@ -1,5 +1,5 @@
-import { WebConversation } from "@src/interfaces/app/core/database"
-import { Conversation } from "../chat"
+import { WebConversation, WebMessage } from "@src/interfaces/app/core/database"
+import { Conversation, Message } from "../chat"
 
 export class Converter {
   static fromConversationToWebConversation(
@@ -23,6 +23,43 @@ export class Converter {
       lastMessageSentAt: conversation.lastMessageSentAt,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
+    }
+  }
+
+  static fromMessageToWebMessage(
+    message: Message | Omit<Message, "messageRoot">,
+    userDid: string,
+    organizationId: string,
+    isImportant: boolean
+  ): WebMessage {
+    return {
+      id: message.id,
+      userId: message.userId,
+      userDid,
+      organizationId,
+      conversationId: message.conversationId,
+      content: message.content,
+      reactions: message.reactions
+        ? message.reactions.map((reaction) => {
+            return {
+              content: reaction.content,
+              userId: reaction.userId,
+              createdAt: reaction.createdAt,
+            }
+          })
+        : [],
+      isImportant,
+      type: message.type!,
+      messageRoot: Converter.fromMessageToWebMessage(
+        "messageRoot" in message ? message : message,
+        userDid,
+        organizationId,
+        false
+      ),
+      messageRootId: message.messageRootId,
+      createdAt: message.createdAt,
+      updateAt: message.updatedAt,
+      deletedAt: message.deletedAt,
     }
   }
 }

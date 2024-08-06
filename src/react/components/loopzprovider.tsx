@@ -41,7 +41,9 @@ export const LoopzProvider: React.FC<LoopzProviderProps> = ({
       //Loopz.boot(config, false) -> runAdapter arg is false. Why?
       //It is false because we are executing Loopz in a React/React Native context and there is no need to inject a React component in the DOM.
       //in this way we are sure we will handle all the Privy interaction directly from the components defined in this file.
-      Loopz.boot(config, false).then((loopz: Loopz) => {
+      Loopz.boot(config, {
+        runAdapter: false,
+      }).then((loopz: Loopz) => {
         const { auth, trade, oracle, post } = loopz.init()
 
         authRef.current = auth

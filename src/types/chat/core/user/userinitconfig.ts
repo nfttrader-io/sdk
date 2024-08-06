@@ -59,6 +59,10 @@ export type UserInitConfig = {
    */
   visibility: boolean
   /**
+   * @property {Maybe<Array<string>>} archivedConversations - Array of archived conversations by this user.
+   */
+  archivedConversations: Maybe<Array<string>>
+  /**
    * @property {Maybe<"ONLINE" | "OFFLINE" | "BUSY">} onlineStatus - The online status of the user.
    */
   onlineStatus: Maybe<"ONLINE" | "OFFLINE" | "BUSY">

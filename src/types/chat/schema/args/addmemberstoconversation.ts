@@ -13,7 +13,7 @@ export type AddMembersToConversationArgs = {
    * - encryptedConversationPrivateKey: The encrypted private key for the conversation.
    * - encryptedConversationPublicKey: The encrypted public key for the conversation.
    */
-  membersIds: [
+  members: [
     {
       memberId: string
       encryptedConversationPrivateKey: string

@@ -58,6 +58,10 @@ export interface UserSchema {
    */
   visibility: boolean
   /**
+   * @property {Maybe<Array<string>>} archivedConversations - Array of archived conversations by this user.
+   */
+  archivedConversations: Maybe<Array<string>>
+  /**
    * @property {Maybe<"ONLINE" | "OFFLINE" | "BUSY">} onlineStatus - User's online status.
    */
   onlineStatus: Maybe<"ONLINE" | "OFFLINE" | "BUSY">

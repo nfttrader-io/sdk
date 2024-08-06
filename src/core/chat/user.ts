@@ -84,6 +84,10 @@ export class User
    */
   readonly visibility: boolean
   /**
+   * @property {Maybe<Array<string>>} archivedConversations - Array of archived conversations by this user.
+   */
+  readonly archivedConversations: Maybe<Array<string>>
+  /**
    * @property onlineStatus - Indicates the online status of the user (ONLINE, OFFLINE, BUSY).
    */
   readonly onlineStatus: Maybe<"ONLINE" | "OFFLINE" | "BUSY">
@@ -150,6 +154,7 @@ export class User
     this.allowNotification = config.allowNotification
     this.allowNotificationSound = config.allowNotificationSound
     this.visibility = config.visibility
+    this.archivedConversations = config.archivedConversations
     this.onlineStatus = config.onlineStatus
     this.allowReadReceipt = config.allowReadReceipt
     this.allowReceiveMessageFrom = config.allowReceiveMessageFrom
@@ -206,6 +211,9 @@ export class User
         ? response.allowNotificationSound
         : false,
       visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
       onlineStatus: response.onlineStatus ? response.onlineStatus : null,
       allowReadReceipt: response.allowReadReceipt
         ? response.allowReadReceipt
@@ -270,6 +278,9 @@ export class User
         ? response.allowNotificationSound
         : false,
       visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
+        : null,
       onlineStatus: response.onlineStatus ? response.onlineStatus : null,
       allowReadReceipt: response.allowReadReceipt
         ? response.allowReadReceipt
@@ -351,6 +362,9 @@ export class User
               visibility: item.blockedUser.visibility
                 ? item.blockedUser.visibility
                 : false,
+              archivedConversations: item.blockedUser.archivedConversations
+                ? item.blockedUser.archivedConversations
+                : null,
               onlineStatus: item.blockedUser.onlineStatus
                 ? item.blockedUser.onlineStatus
                 : null,

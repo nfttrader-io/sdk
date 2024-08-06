@@ -12,11 +12,7 @@ import {
  * @interface UAMutationEngine
  */
 export interface UAMutationEngine {
-  archiveConversations(
-    ids: Array<string>
-  ): Promise<
-    { concatConversationIds: string; items: Array<{ id: string }> } | QIError
-  >
+  archiveConversations(ids: Array<string>): Promise<User | QIError>
   createConversationGroup(args: CreateConversationGroupArgs): Promise<
     | {
         keypairItem: KeyPairItem | null
@@ -37,10 +33,6 @@ export interface UAMutationEngine {
   eraseConversationByAdmin(
     id: string
   ): Promise<{ conversationId: string; items: Array<{ id: string }> } | QIError>
-  unarchiveConversations(
-    ids: Array<string>
-  ): Promise<
-    { concatConversationIds: string; items: Array<{ id: string }> } | QIError
-  >
+  unarchiveConversations(ids: Array<string>): Promise<User | QIError>
   updateUser(args: UpdateUserArgs): Promise<User | QIError>
 }

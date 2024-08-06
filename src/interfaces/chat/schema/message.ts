@@ -1,4 +1,6 @@
+import { Reaction } from "@src/core/chat/reaction"
 import { Maybe } from "../../../types/base"
+import { Message } from "@src/core"
 
 /**
  * Represents the schema for a message in a conversation.
@@ -14,13 +16,21 @@ export interface MessageSchema {
    */
   content: string
   /**
-   * @property {Maybe<string>} conversationId - The ID of the conversation the message belongs to.
+   * @property {string} conversationId - The ID of the conversation the message belongs to.
    */
-  conversationId: Maybe<string>
+  conversationId: string
   /**
-   * @property {Maybe<string>} userId - The ID of the user who sent the message.
+   * @property {Maybe<Array<Reaction>>} reactions - The reactions related to this message.
    */
-  userId: Maybe<string>
+  reactions: Maybe<Array<Reaction>>
+  /**
+   * @property {string} userId - The ID of the user who sent the message.
+   */
+  userId: string
+  /**
+   * @property {Maybe<Omit<Message, "messageRoot">>} messageRoot - The root message in a thread.
+   */
+  messageRoot: Maybe<Omit<Message, "messageRoot">>
   /**
    * @property {Maybe<string>} messageRootId - The ID of the root message in a thread.
    */

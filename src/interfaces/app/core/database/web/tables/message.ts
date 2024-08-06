@@ -13,6 +13,6 @@ export interface WebMessage {
   messageRoot: Maybe<WebMessage>
   messageRootId: Maybe<string>
   createdAt: Date
-  updateAt: Date
-  deletedAt: Date
+  updateAt: Maybe<Date>
+  deletedAt: Maybe<Date>
 }

@@ -4,9 +4,11 @@ import {
   ConversationReport,
   Message,
   QIError,
+  User,
 } from "../../../../core/chat"
 import {
   AddMembersToConversationArgs,
+  AddMemberToConversationArgs,
   AddReportToConversationArgs,
   EjectMemberArgs,
   MuteConversationArgs,
@@ -24,19 +26,22 @@ export interface ConversationMutationEngine {
   ): Promise<
     { conversationId: string; items: Array<ConversationMember> } | QIError
   >
+  addMemberToConversation(
+    args: AddMemberToConversationArgs
+  ): Promise<ConversationMember | QIError>
   addReportToConversation(
     args: AddReportToConversationArgs
   ): Promise<ConversationReport | QIError>
-  archiveConversation(): Promise<Conversation | QIError>
-  archiveConversation(id: string): Promise<Conversation | QIError>
+  archiveConversation(): Promise<User | QIError>
+  archiveConversation(id: string): Promise<User | QIError>
   deleteMessage(id: string): Promise<Message | QIError>
   ejectMember(args: EjectMemberArgs): Promise<Conversation | QIError>
   leaveConversation(): Promise<Conversation | QIError>
   leaveConversation(id: string): Promise<Conversation | QIError>
   muteConversation(args: MuteConversationArgs): Promise<Conversation | QIError>
   sendMessage(args: SendMessageArgs): Promise<Message | QIError>
-  unarchiveConversation(): Promise<Conversation | QIError>
-  unarchiveConversation(id: string): Promise<Conversation | QIError>
+  unarchiveConversation(): Promise<User | QIError>
+  unarchiveConversation(id: string): Promise<User | QIError>
   unmuteConversation(): Promise<Conversation | QIError>
   unmuteConversation(id: string): Promise<Conversation | QIError>
   updateConversationGroup(

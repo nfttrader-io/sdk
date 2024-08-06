@@ -31,6 +31,9 @@ import {
   MutationUnmuteConversationArgs,
   MutationAddPinToConversationArgs,
   MutationRemovePinFromConversationArgs,
+  User as UserGraphQL,
+  MutationAddMemberToConversationArgs,
+  AddMemberToConversationResult as AddMemberToConversationResultGraphQL,
 } from "../../graphql/generated/graphql"
 import {
   ConversationMutationEngine,
@@ -40,6 +43,7 @@ import { ConversationInitConfig } from "../../types/chat/core/conversation"
 import { ConversationSchema } from "../../interfaces/chat/schema"
 import {
   AddMembersToConversationArgs,
+  AddMemberToConversationArgs,
   AddReportToConversationArgs,
   EjectMemberArgs,
   MuteConversationArgs,
@@ -59,6 +63,7 @@ import {
   getOwnerFromConversationById,
 } from "../../constants/chat/queries"
 import { EngineInitConfig } from "../../types"
+import { Reaction } from "./reaction"
 
 /**
  * Represents a conversation in a chat application.
@@ -203,7 +208,7 @@ export class Conversation
    * @returns {Promise<QIError | { conversationId: string; items: ConversationMember[] }>} A promise that resolves to either a QIError object if there was an error, or an object containing the conversation ID and an array of ConversationMember objects.
    */
   async addMembersToConversation(
-    args: Pick<AddMembersToConversationArgs, "membersIds">
+    args: Pick<AddMembersToConversationArgs, "members">
   ): Promise<
     QIError | { conversationId: string; items: ConversationMember[] }
   > {
@@ -218,7 +223,7 @@ export class Conversation
       {
         input: {
           conversationId: this.id,
-          membersIds: args.membersIds,
+          members: args.members,
         },
       }
     )
@@ -246,6 +251,48 @@ export class Conversation
     }
 
     return listConversations
+  }
+
+  /**
+   * Asynchronously adds members to a conversation.
+   * @param {Pick<AddMemberToConversationArgs, "member">} args - An object containing the member IDs to add to the conversation.
+   * @returns {Promise<QIError | { conversationId: string; items: ConversationMember[] }>} A promise that resolves to either a QIError object if there was an error, or an object containing the conversation ID and an array of ConversationMember objects.
+   */
+
+  async addMemberToConversation(
+    args: AddMemberToConversationArgs
+  ): Promise<ConversationMember | QIError> {
+    const response = await this._query<
+      MutationAddMemberToConversationArgs,
+      { addMemberToConversation: AddMemberToConversationResultGraphQL },
+      AddMemberToConversationResultGraphQL
+    >(
+      "addMembersToConversation",
+      addMembersToConversation,
+      "_mutation() -> addMembersToConversation()",
+      {
+        input: {
+          conversationId: (args as AddMemberToConversationArgs).id,
+          member: (args as AddMemberToConversationArgs).member,
+        },
+      }
+    )
+
+    if (response instanceof QIError) return response
+
+    return new ConversationMember({
+      ...this._parentConfig!,
+      id: response.item.id,
+      conversationId: response.item.conversationId,
+      userId: response.item.userId,
+      type: response.item.type,
+      encryptedConversationPublicKey:
+        response.item.encryptedConversationPublicKey,
+      encryptedConversationPrivateKey:
+        response.item.encryptedConversationPrivateKey,
+      createdAt: response.item.createdAt,
+      client: this._client!,
+    })
   }
 
   /**
@@ -288,12 +335,12 @@ export class Conversation
    * Archives a conversation by calling the archiveConversation mutation.
    * If an id is provided, it throws an error.
    * If no id is provided, it archives the conversation associated with the current instance.
-   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful,
+   * @returns {Promise<User | QIError>} A Promise that resolves to a Conversation object if successful,
    * or a QIError object if an error occurs.
    */
-  async archiveConversation(): Promise<Conversation | QIError>
-  async archiveConversation(id: string): Promise<Conversation | QIError>
-  async archiveConversation(id?: unknown): Promise<Conversation | QIError> {
+  async archiveConversation(): Promise<User | QIError>
+  async archiveConversation(id: string): Promise<User | QIError>
+  async archiveConversation(id?: unknown): Promise<User | QIError> {
     if (id)
       throw new Error(
         "id argument can not be defined. Consider to use archiveConversation() instead."
@@ -301,8 +348,8 @@ export class Conversation
 
     const response = await this._mutation<
       MutationArchiveConversationArgs,
-      { archiveConversation: ConversationGraphQL },
-      ConversationGraphQL
+      { archiveConversation: UserGraphQL },
+      UserGraphQL
     >(
       "archiveConversation",
       archiveConversation,
@@ -314,23 +361,46 @@ export class Conversation
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
+    return new User({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
+      username: response.username ? response.username : null,
+      did: response.did,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
         : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
   }
@@ -364,8 +434,56 @@ export class Conversation
       id: response.id,
       content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
       messageRootId: response.messageRootId ? response.messageRootId : null,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
         : null,
@@ -502,8 +620,56 @@ export class Conversation
       id: response.id,
       content: response.content,
       conversationId: response.conversationId,
-      userId: response.userId ? response.userId : null,
+      reactions: response.reactions
+        ? response.reactions.map((reaction) => {
+            return new Reaction({
+              ...this._parentConfig!,
+              userId: reaction.userId,
+              content: reaction.content,
+              createdAt: reaction.createdAt,
+              client: this._client!,
+            })
+          })
+        : null,
+      userId: response.userId,
       messageRootId: response.messageRootId ? response.messageRootId : null,
+      messageRoot: response.messageRoot
+        ? new Message({
+            ...this._parentConfig!,
+            id: response.messageRoot.id,
+            content: response.messageRoot.content,
+            conversationId: response.messageRoot.conversationId,
+            reactions: response.messageRoot.reactions
+              ? response.messageRoot.reactions.map((reaction) => {
+                  return new Reaction({
+                    ...this._parentConfig!,
+                    userId: reaction.userId,
+                    content: reaction.content,
+                    createdAt: reaction.createdAt,
+                    client: this._client!,
+                  })
+                })
+              : null,
+            userId: response.messageRoot.userId,
+            messageRoot: null,
+            messageRootId: null,
+            type: response.messageRoot.type
+              ? (response.messageRoot.type as
+                  | "TEXTUAL"
+                  | "ATTACHMENT"
+                  | "SWAP_PROPOSAL"
+                  | "RENT")
+              : null,
+            createdAt: response.messageRoot.createdAt,
+            updatedAt: response.messageRoot.updatedAt
+              ? response.messageRoot.updatedAt
+              : null,
+            deletedAt: response.messageRoot.deletedAt
+              ? response.messageRoot.deletedAt
+              : null,
+            client: this._client!,
+          })
+        : null,
       type: response.type
         ? (response.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
         : null,
@@ -517,11 +683,11 @@ export class Conversation
   /**
    * Asynchronously unarchives a conversation based on the current conversation's object.
    * If an id is provided, it throws an error.
-   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   * @returns {Promise<User | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
    */
-  async unarchiveConversation(): Promise<Conversation | QIError>
-  async unarchiveConversation(id: string): Promise<Conversation | QIError>
-  async unarchiveConversation(id?: unknown): Promise<Conversation | QIError> {
+  async unarchiveConversation(): Promise<User | QIError>
+  async unarchiveConversation(id: string): Promise<User | QIError>
+  async unarchiveConversation(id?: unknown): Promise<User | QIError> {
     if (id)
       throw new Error(
         "id argument can not be defined. Consider to use unarchiveConversation() instead."
@@ -529,8 +695,8 @@ export class Conversation
 
     const response = await this._mutation<
       MutationUnarchiveConversationArgs,
-      { unarchiveConversation: ConversationGraphQL },
-      ConversationGraphQL
+      { unarchiveConversation: UserGraphQL },
+      UserGraphQL
     >(
       "unarchiveConversation",
       unarchiveConversation,
@@ -542,23 +708,46 @@ export class Conversation
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
+    return new User({
       ...this._parentConfig!,
       id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
+      username: response.username ? response.username : null,
+      did: response.did,
+      address: response.address,
+      email: response.email ? response.email : null,
+      bio: response.bio ? response.bio : null,
+      avatarUrl: response.avatarUrl ? new URL(response.avatarUrl) : null,
+      isVerified: response.isVerified ? response.isVerified : false,
+      isNft: response.isNft ? response.isNft : false,
+      blacklistIds: response.blacklistIds ? response.blacklistIds : null,
+      allowNotification: response.allowNotification
+        ? response.allowNotification
+        : false,
+      allowNotificationSound: response.allowNotificationSound
+        ? response.allowNotificationSound
+        : false,
+      visibility: response.visibility ? response.visibility : false,
+      archivedConversations: response.archivedConversations
+        ? response.archivedConversations
         : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
+      onlineStatus: response.onlineStatus ? response.onlineStatus : null,
+      allowReadReceipt: response.allowReadReceipt
+        ? response.allowReadReceipt
+        : false,
+      allowReceiveMessageFrom: response.allowReceiveMessageFrom
+        ? response.allowReceiveMessageFrom
+        : null,
+      allowAddToGroupsFrom: response.allowAddToGroupsFrom
+        ? response.allowAddToGroupsFrom
+        : null,
+      allowGroupsSuggestion: response.allowGroupsSuggestion
+        ? response.allowGroupsSuggestion
+        : false,
+      e2ePublicKey: response.e2ePublicKey ? response.e2ePublicKey : null,
+      e2eSecret: response.e2eSecret ? response.e2eSecret : null,
+      e2eSecretIV: response.e2eSecretIV ? response.e2eSecretIV : null,
+      createdAt: new Date(response.createdAt),
+      updatedAt: response.updatedAt ? new Date(response.updatedAt) : null,
       client: this._client!,
     })
   }
@@ -827,6 +1016,9 @@ export class Conversation
       visibility: response.owner!.visibility
         ? response.owner!.visibility
         : false,
+      archivedConversations: response.owner!.archivedConversations
+        ? response.owner!.archivedConversations
+        : null,
       onlineStatus: response.owner!.onlineStatus
         ? response.owner!.onlineStatus
         : null,
@@ -922,7 +1114,55 @@ export class Conversation
         id: response.id,
         content: item!.content,
         conversationId: item!.conversationId,
-        userId: item!.userId ? item!.userId : null,
+        reactions: item!.reactions
+          ? item!.reactions.map((reaction) => {
+              return new Reaction({
+                ...this._parentConfig!,
+                userId: reaction.userId,
+                content: reaction.content,
+                createdAt: reaction.createdAt,
+                client: this._client!,
+              })
+            })
+          : null,
+        userId: item!.userId,
+        messageRoot: item!.messageRoot
+          ? new Message({
+              ...this._parentConfig!,
+              id: item!.messageRoot.id,
+              content: item!.messageRoot.content,
+              conversationId: item!.messageRoot.conversationId,
+              reactions: item!.messageRoot.reactions
+                ? item!.messageRoot.reactions.map((reaction) => {
+                    return new Reaction({
+                      ...this._parentConfig!,
+                      userId: reaction.userId,
+                      content: reaction.content,
+                      createdAt: reaction.createdAt,
+                      client: this._client!,
+                    })
+                  })
+                : null,
+              userId: item!.messageRoot.userId,
+              messageRoot: null,
+              messageRootId: null,
+              type: item!.messageRoot.type
+                ? (item!.messageRoot.type as
+                    | "TEXTUAL"
+                    | "ATTACHMENT"
+                    | "SWAP_PROPOSAL"
+                    | "RENT")
+                : null,
+              createdAt: item!.messageRoot.createdAt,
+              updatedAt: item!.messageRoot.updatedAt
+                ? item!.messageRoot.updatedAt
+                : null,
+              deletedAt: item!.messageRoot.deletedAt
+                ? item!.messageRoot.deletedAt
+                : null,
+              client: this._client!,
+            })
+          : null,
         messageRootId: item!.messageRootId ? item!.messageRootId : null,
         type: item!.type
           ? (item!.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
@@ -937,7 +1177,7 @@ export class Conversation
     return listMessages
   }
 
-  getSettings(): Maybe<JSON> {
+  getSettingsDecrypted(): Maybe<JSON> {
     if (!this.settings) return null
     return JSON.parse(
       Crypto.decryptStringOrFail(
@@ -947,7 +1187,7 @@ export class Conversation
     )
   }
 
-  getImageURL(): Maybe<URL> {
+  getImageURLDecrypted(): Maybe<URL> {
     if (!this.imageURL) return null
     return new URL(
       Crypto.decryptStringOrFail(
@@ -957,7 +1197,7 @@ export class Conversation
     )
   }
 
-  getBannerImageURL(): Maybe<URL> {
+  getBannerImageURLDecrypted(): Maybe<URL> {
     if (!this.bannerImageURL) return null
     return new URL(
       Crypto.decryptStringOrFail(
@@ -967,14 +1207,14 @@ export class Conversation
     )
   }
 
-  getName(): string {
+  getNameDecrypted(): string {
     return Crypto.decryptStringOrFail(
       this.findPrivateKeyById(this.id),
       this.name
     )
   }
 
-  getDescription(): Maybe<string> {
+  getDescriptionDecrypted(): Maybe<string> {
     if (!this.description) return null
     return Crypto.decryptStringOrFail(
       this.findPrivateKeyById(this.id),

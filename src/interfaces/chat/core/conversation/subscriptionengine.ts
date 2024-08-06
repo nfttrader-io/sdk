@@ -9,14 +9,15 @@ import {
   Conversation as ConversationGraphQL,
   ListConversationMembers as ListConversationMembersGraphQL,
   SubscriptionOnAddMembersToConversationArgs,
+  SubscriptionOnAddMemberToConversationArgs,
   SubscriptionOnAddPinConversationArgs,
-  SubscriptionOnArchiveConversationArgs,
   SubscriptionOnEjectMemberArgs,
   SubscriptionOnLeaveConversationArgs,
   SubscriptionOnMuteConversationArgs,
   SubscriptionOnRemovePinConversationArgs,
-  SubscriptionOnUnarchiveConversationArgs,
+  SubscriptionOnUnmuteConversationArgs,
   SubscriptionOnUpdateConversationGroupArgs,
+  AddMemberToConversationResult as AddMemberToConversationResultGraphQL,
 } from "../../../../graphql/generated/graphql"
 
 /**
@@ -64,33 +65,13 @@ export interface ConversationSubscriptionEngine {
       >
     ) => void
   ): QIError | SubscriptionGarbage
-  onArchiveConversation(
-    conversationId: string,
-    callback: (
-      response: QIError | Conversation,
-      source: OperationResult<
-        { onArchiveConversation: ConversationGraphQL },
-        SubscriptionOnArchiveConversationArgs & { jwt: string }
-      >
-    ) => void
-  ): QIError | SubscriptionGarbage
-  onUnarchiveConversation(
-    conversationId: string,
-    callback: (
-      response: QIError | Conversation,
-      source: OperationResult<
-        { onUnarchiveConversation: ConversationGraphQL },
-        SubscriptionOnUnarchiveConversationArgs & { jwt: string }
-      >
-    ) => void
-  ): QIError | SubscriptionGarbage
   onUnmuteConversation(
     conversationId: string,
     callback: (
       response: QIError | Conversation,
       source: OperationResult<
         { onUnmuteConversation: ConversationGraphQL },
-        SubscriptionOnUnarchiveConversationArgs & { jwt: string }
+        SubscriptionOnUnmuteConversationArgs & { jwt: string }
       >
     ) => void
   ): QIError | SubscriptionGarbage
@@ -123,6 +104,22 @@ export interface ConversationSubscriptionEngine {
       source: OperationResult<
         { onAddMembersToConversation: ListConversationMembersGraphQL },
         SubscriptionOnAddMembersToConversationArgs & { jwt: string }
+      >
+    ) => void
+  ): QIError | SubscriptionGarbage
+  onAddMemberToConversation(
+    conversationId: string,
+    callback: (
+      response:
+        | QIError
+        | {
+            conversationId: string
+            memberId: string
+            item: ConversationMember
+          },
+      source: OperationResult<
+        { onAddMemberToConversation: AddMemberToConversationResultGraphQL },
+        SubscriptionOnAddMemberToConversationArgs & { jwt: string }
       >
     ) => void
   ): QIError | SubscriptionGarbage
