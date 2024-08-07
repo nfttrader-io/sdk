@@ -20,7 +20,7 @@ import { SubscriptionGarbage } from "../../types/chat/subscriptiongarbage"
 import forge from "node-forge"
 import { KeyPairItem } from "../../types/chat/keypairitem"
 import { EngineInitConfig } from "../../types"
-import { DexieStorage, RealmStorage } from "../app"
+import { Account, DexieStorage, RealmStorage } from "../app"
 
 /**
  * Represents an Engine class that extends HTTPClient and implements IEngine interface.
@@ -64,6 +64,8 @@ export class Engine extends HTTPClient implements IEngine {
   protected _keyPairsMap: Maybe<Array<KeyPairItem>> = null
 
   protected _storage: DexieStorage | RealmStorage
+
+  protected _account: Maybe<Account> = null
   /**
    * @property {Maybe<Function>} _connectCallback - The callback function for connecting to real-time services.
    */
@@ -362,6 +364,10 @@ export class Engine extends HTTPClient implements IEngine {
         }
       )
     }
+  }
+
+  protected setCurrentAccount(account: Account) {
+    this._account = account
   }
 
   /**

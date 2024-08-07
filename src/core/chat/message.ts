@@ -10,7 +10,6 @@ import {
 } from "../../constants/chat/mutations"
 import {
   getConversationFromMessageById,
-  getMessageRootFromMessageById,
   getUserFromMessageById,
 } from "../../constants/chat/queries"
 import {
@@ -42,6 +41,7 @@ import { QIError } from "./qierror"
 import { Reaction } from "./reaction"
 import { User } from "./user"
 import { Crypto } from "./crypto"
+import { Converter } from "../utilities"
 
 /**
  * Represents a Message object that can be used to interact with messages in a chat application.
@@ -649,7 +649,7 @@ export class Message
 
     if (response instanceof QIError) return response
 
-    return new Message({
+    const message = new Message({
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
@@ -712,6 +712,17 @@ export class Message
       deletedAt: response.deletedAt ? response.deletedAt : null,
       client: this._client!,
     })
+
+    this._storage.insertBulkSafe("message", [
+      Converter.fromMessageToWebMessage(
+        message,
+        this._account!.did,
+        this._account!.organizationId,
+        true
+      ),
+    ])
+
+    return message
   }
 
   /**
@@ -743,7 +754,7 @@ export class Message
 
     if (response instanceof QIError) return response
 
-    return new Message({
+    const message = new Message({
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
@@ -806,6 +817,17 @@ export class Message
       deletedAt: response.deletedAt ? response.deletedAt : null,
       client: this._client!,
     })
+
+    this._storage.insertBulkSafe("message", [
+      Converter.fromMessageToWebMessage(
+        message,
+        this._account!.did,
+        this._account!.organizationId,
+        false
+      ),
+    ])
+
+    return message
   }
 
   /**
@@ -846,6 +868,9 @@ export class Message
         : null,
       membersIds: response.conversation!.membersIds
         ? response.conversation!.membersIds
+        : null,
+      mutedBy: response.conversation!.mutedBy
+        ? response.conversation!.mutedBy
         : null,
       type: response.conversation!.type,
       lastMessageSentAt: response.conversation!.lastMessageSentAt

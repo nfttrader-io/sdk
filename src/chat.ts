@@ -207,7 +207,7 @@ import { KeyPairItem } from "./types/chat/keypairitem"
 import { ActiveUserConversationType } from "./enums"
 import { WebConversation, WebUser } from "./interfaces/app/core/database"
 import { Account, Converter, findAddedAndRemovedConversation } from "./core"
-import Dexie from "dexie"
+import Dexie, { Table } from "dexie"
 import { Reaction } from "./core/chat/reaction"
 
 export class Chat
@@ -234,8 +234,6 @@ export class Chat
     event: "sync" | "syncing" | "syncError" | "syncUpdate"
     callbacks: Array<Function>
   }> = []
-
-  private _account: Maybe<Account> = null
 
   private _unsubscribeSyncSet: Array<{
     type:
@@ -303,10 +301,6 @@ export class Chat
     })
 
     if (index > -1) this._eventsCallback[index].callbacks = []
-  }
-
-  setCurrentAccount(account: Account) {
-    this._account = account
   }
 
   /**
@@ -2028,7 +2022,7 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return new Message({
+    const message = new Message({
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
@@ -2091,6 +2085,18 @@ export class Chat
       deletedAt: response.deletedAt ? response.deletedAt : null,
       client: this._client!,
     })
+
+    //let's update the local db
+    this._storage.insertBulkSafe("message", [
+      Converter.fromMessageToWebMessage(
+        message,
+        this._account!.did,
+        this._account!.organizationId,
+        true
+      ),
+    ])
+
+    return message
   }
 
   async unmarkImportantMessage(): Promise<QIError | Message>
@@ -2117,7 +2123,7 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return new Message({
+    const message = new Message({
       ...this._parentConfig!,
       id: response.id,
       content: response.content,
@@ -2180,6 +2186,18 @@ export class Chat
       deletedAt: response.deletedAt ? response.deletedAt : null,
       client: this._client!,
     })
+
+    //let's update the local db
+    this._storage.insertBulkSafe("message", [
+      Converter.fromMessageToWebMessage(
+        message,
+        this._account!.did,
+        this._account!.organizationId,
+        false
+      ),
+    ])
+
+    return message
   }
 
   async pinConversation(): Promise<Conversation | QIError>
@@ -4641,6 +4659,11 @@ export class Chat
             (lastMessageStored &&
               lastMessageStored.createdAt < lastMessageSentAt)
 
+          //TODO add check here to get the setting of the conversation.
+          //basically if the conversation let people download all the messages is fine
+          //otherwise we need to take the date when the user joined the group and do a query
+          //taking all the messages sent after that date and not before
+
           if (canDownloadMessages) {
             const messagesFirstSet = await this.listMessagesByConversationId({
               id,
@@ -5008,6 +5031,7 @@ export class Chat
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
+          //let's insert the new message
           this._storage.insertBulkSafe("message", [
             Converter.fromMessageToWebMessage(
               response,
@@ -5016,6 +5040,20 @@ export class Chat
               false
             ),
           ])
+
+          //let's update the conversation in the case it was deleted locally by the user.
+          //the conversation if it is deleted, returns visible for the user.
+          this._storage.query(
+            (
+              db: Dexie,
+              table: Table<WebConversation, string, WebConversation>
+            ) => {
+              table.update(response.conversationId, {
+                deletedAt: null,
+              })
+            },
+            "conversation"
+          )
         } else if (this._storage.typeOf() === "RealmStorage") {
           //TODO
         }
