@@ -86,8 +86,6 @@ import {
   SubscriptionOnAddReactionArgs,
   SubscriptionOnAddPinMessageArgs,
   SubscriptionOnRemovePinMessageArgs,
-  SubscriptionOnAddImportantMessageArgs,
-  SubscriptionOnRemoveImportantMessageArgs,
   SubscriptionOnUpdateConversationGroupArgs,
   SubscriptionOnEjectMemberArgs,
   SubscriptionOnLeaveConversationArgs,
@@ -189,8 +187,6 @@ import {
   onAddReaction,
   onAddPinMessage,
   onRemovePinMessage,
-  onAddImportantMessage,
-  onRemoveImportantMessage,
   onUpdateConversationGroup,
   onEjectMember,
   onLeaveConversation,
@@ -210,7 +206,7 @@ import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 import { KeyPairItem } from "./types/chat/keypairitem"
 import { ActiveUserConversationType } from "./enums"
 import { WebConversation, WebUser } from "./interfaces/app/core/database"
-import { Account, Converter } from "./core"
+import { Account, Converter, findAddedAndRemovedConversation } from "./core"
 import Dexie from "dexie"
 import { Reaction } from "./core/chat/reaction"
 
@@ -255,9 +251,17 @@ export class Chat
       | "onAddReaction"
       | "onRemoveReaction"
       | "onBatchDeleteMessages"
+      | "onUpdateConversationGroup"
+
     unsubscribe: Function
     uuid: string
     conversationId: string
+  }> = []
+
+  private _conversationsMap: Array<{
+    type: "CANCELED" | "ACTIVE"
+    conversationId: string
+    conversation: Conversation
   }> = []
 
   static readonly SYNCING_TIME = 60000
@@ -872,6 +876,7 @@ export class Chat
           : null,
         settings: response.settings ? response.settings : null,
         membersIds: response.membersIds ? response.membersIds : null,
+        mutedBy: response.mutedBy ? response.mutedBy : null,
         type: response.type,
         lastMessageSentAt: response.lastMessageSentAt
           ? response.lastMessageSentAt
@@ -935,6 +940,7 @@ export class Chat
           : null,
         settings: response.settings ? response.settings : null,
         membersIds: response.membersIds ? response.membersIds : null,
+        mutedBy: response.mutedBy ? response.mutedBy : null,
         type: response.type,
         lastMessageSentAt: response.lastMessageSentAt
           ? response.lastMessageSentAt
@@ -1203,6 +1209,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -1279,6 +1286,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -1304,10 +1312,7 @@ export class Chat
       muteConversation,
       "_mutation() -> muteConversation()",
       {
-        input: {
-          conversationId: (args as MuteConversationArgs).id,
-          duration: (args as MuteConversationArgs).duration,
-        },
+        conversationId: (args as MuteConversationArgs).id,
       }
     )
 
@@ -1322,6 +1327,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -1860,6 +1866,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -1918,6 +1925,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -2207,6 +2215,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -2252,6 +2261,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -2380,6 +2390,7 @@ export class Chat
           bannerImageURL: item.bannerImageURL ? item.bannerImageURL : null,
           settings: item.settings ? item.settings : null,
           membersIds: item.membersIds ? item.membersIds : null,
+          mutedBy: item.mutedBy ? item.mutedBy : null,
           type: item.type,
           lastMessageSentAt: item.lastMessageSentAt
             ? item.lastMessageSentAt
@@ -2666,6 +2677,9 @@ export class Chat
             membersIds: item.conversation!.membersIds
               ? item.conversation!.membersIds
               : null,
+            mutedBy: item.conversation!.mutedBy
+              ? item.conversation!.mutedBy
+              : null,
             type: item.conversation!.type,
             lastMessageSentAt: item.conversation!.lastMessageSentAt
               ? item.conversation!.lastMessageSentAt
@@ -2848,6 +2862,7 @@ export class Chat
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -3641,214 +3656,6 @@ export class Chat
     return { unsubscribe, uuid }
   }
 
-  onAddImportantMessage(
-    conversationId: string,
-    callback: (
-      response: QIError | Message,
-      source: OperationResult<
-        { onAddImportantMessage: MessageGraphQL },
-        SubscriptionOnAddImportantMessageArgs & { jwt: string }
-      >,
-      uuid: string
-    ) => void
-  ): QIError | SubscriptionGarbage {
-    const key = "onAddImportantMessage"
-    const metasubcription = this._subscription<
-      SubscriptionOnAddImportantMessageArgs,
-      { onAddImportantMessage: MessageGraphQL }
-    >(onAddImportantMessage, key, { conversationId })
-
-    if (metasubcription instanceof QIError) return metasubcription
-
-    const { subscribe, uuid } = metasubcription
-    const { unsubscribe } = subscribe((result) => {
-      const r = this._handleResponse<
-        typeof key,
-        { onAddImportantMessage: MessageGraphQL },
-        MessageGraphQL
-      >("onAddImportantMessage", result)
-
-      if (r instanceof QIError) {
-        callback(r, result, uuid)
-        return
-      }
-
-      callback(
-        new Message({
-          ...this._parentConfig!,
-          id: r.id,
-          content: r.content,
-          conversationId: r.conversationId,
-          reactions: r.reactions
-            ? r.reactions.map((reaction) => {
-                return new Reaction({
-                  ...this._parentConfig!,
-                  userId: reaction.userId,
-                  content: reaction.content,
-                  createdAt: reaction.createdAt,
-                  client: this._client!,
-                })
-              })
-            : null,
-          userId: r.userId,
-          messageRootId: r.messageRootId ? r.messageRootId : null,
-          messageRoot: r.messageRoot
-            ? new Message({
-                ...this._parentConfig!,
-                id: r.messageRoot.id,
-                content: r.messageRoot.content,
-                conversationId: r.messageRoot.conversationId,
-                reactions: r.messageRoot.reactions
-                  ? r.messageRoot.reactions.map((reaction) => {
-                      return new Reaction({
-                        ...this._parentConfig!,
-                        userId: reaction.userId,
-                        content: reaction.content,
-                        createdAt: reaction.createdAt,
-                        client: this._client!,
-                      })
-                    })
-                  : null,
-                userId: r.messageRoot.userId,
-                messageRoot: null,
-                messageRootId: null,
-                type: r.messageRoot.type
-                  ? (r.messageRoot.type as
-                      | "TEXTUAL"
-                      | "ATTACHMENT"
-                      | "SWAP_PROPOSAL"
-                      | "RENT")
-                  : null,
-                createdAt: r.messageRoot.createdAt,
-                updatedAt: r.messageRoot.updatedAt
-                  ? r.messageRoot.updatedAt
-                  : null,
-                deletedAt: r.messageRoot.deletedAt
-                  ? r.messageRoot.deletedAt
-                  : null,
-                client: this._client!,
-              })
-            : null,
-          type: r.type
-            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
-            : null,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt ? r.updatedAt : null,
-          deletedAt: r.deletedAt ? r.deletedAt : null,
-          client: this._client!,
-        }),
-        result,
-        uuid
-      )
-    })
-
-    return { unsubscribe, uuid }
-  }
-
-  onRemoveImportantMessage(
-    conversationId: string,
-    callback: (
-      response: QIError | Message,
-      source: OperationResult<
-        { onRemoveImportantMessage: MessageGraphQL },
-        SubscriptionOnRemoveImportantMessageArgs & { jwt: string }
-      >,
-      uuid: string
-    ) => void
-  ): QIError | SubscriptionGarbage {
-    const key = "onRemoveImportantMessage"
-    const metasubcription = this._subscription<
-      SubscriptionOnRemoveImportantMessageArgs,
-      { onRemoveImportantMessage: MessageGraphQL }
-    >(onRemoveImportantMessage, key, { conversationId })
-
-    if (metasubcription instanceof QIError) return metasubcription
-
-    const { subscribe, uuid } = metasubcription
-    const { unsubscribe } = subscribe((result) => {
-      const r = this._handleResponse<
-        typeof key,
-        { onRemoveImportantMessage: MessageGraphQL },
-        MessageGraphQL
-      >("onRemoveImportantMessage", result)
-
-      if (r instanceof QIError) {
-        callback(r, result, uuid)
-        return
-      }
-
-      callback(
-        new Message({
-          ...this._parentConfig!,
-          id: r.id,
-          content: r.content,
-          conversationId: r.conversationId,
-          reactions: r.reactions
-            ? r.reactions.map((reaction) => {
-                return new Reaction({
-                  ...this._parentConfig!,
-                  userId: reaction.userId,
-                  content: reaction.content,
-                  createdAt: reaction.createdAt,
-                  client: this._client!,
-                })
-              })
-            : null,
-          userId: r.userId,
-          messageRootId: r.messageRootId ? r.messageRootId : null,
-          messageRoot: r.messageRoot
-            ? new Message({
-                ...this._parentConfig!,
-                id: r.messageRoot.id,
-                content: r.messageRoot.content,
-                conversationId: r.messageRoot.conversationId,
-                reactions: r.messageRoot.reactions
-                  ? r.messageRoot.reactions.map((reaction) => {
-                      return new Reaction({
-                        ...this._parentConfig!,
-                        userId: reaction.userId,
-                        content: reaction.content,
-                        createdAt: reaction.createdAt,
-                        client: this._client!,
-                      })
-                    })
-                  : null,
-                userId: r.messageRoot.userId,
-                messageRoot: null,
-                messageRootId: null,
-                type: r.messageRoot.type
-                  ? (r.messageRoot.type as
-                      | "TEXTUAL"
-                      | "ATTACHMENT"
-                      | "SWAP_PROPOSAL"
-                      | "RENT")
-                  : null,
-                createdAt: r.messageRoot.createdAt,
-                updatedAt: r.messageRoot.updatedAt
-                  ? r.messageRoot.updatedAt
-                  : null,
-                deletedAt: r.messageRoot.deletedAt
-                  ? r.messageRoot.deletedAt
-                  : null,
-                client: this._client!,
-              })
-            : null,
-          type: r.type
-            ? (r.type as "TEXTUAL" | "ATTACHMENT" | "SWAP_PROPOSAL" | "RENT")
-            : null,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt ? r.updatedAt : null,
-          deletedAt: r.deletedAt ? r.deletedAt : null,
-          client: this._client!,
-        }),
-        result,
-        uuid
-      )
-    })
-
-    return { unsubscribe, uuid }
-  }
-
   onUpdateConversationGroup(
     id: string,
     callback: (
@@ -3891,6 +3698,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -3949,6 +3757,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -4007,6 +3816,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -4065,6 +3875,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -4123,6 +3934,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -4181,6 +3993,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -4239,6 +4052,7 @@ export class Chat
           bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
           settings: r.settings ? r.settings : null,
           membersIds: r.membersIds ? r.membersIds : null,
+          mutedBy: r.mutedBy ? r.mutedBy : null,
           type: r.type,
           lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
           ownerId: r.ownerId ? r.ownerId : null,
@@ -4885,12 +4699,12 @@ export class Chat
     return false
   }
 
-  private async _sync(syncingCounter: number) {
+  private async _sync(syncingCounter: number): Promise<void> {
     this._isSyncing = true
     this._emit("syncing", this._syncingCounter)
 
     //first operation. Recover the list of the conversations in which the user is a member.
-    //unactive conversations are the convos in which the user left the group or was ejected
+    //unactive conversations are the convos in which the user left the group or has been ejected
     const activeConversations = await this.recoverUserConversations(
       ActiveUserConversationType.Active
     )
@@ -4923,6 +4737,49 @@ export class Chat
         error: `error during recovering of the messages from conversations.`,
       })
       return
+    }
+
+    //let's setup an array of the conversations in the first sync cycle.
+    //This will allow to map the conversations in every single cycle that comes after the first one.
+    if (syncingCounter === 0) {
+      for (const activeConversation of activeConversations)
+        this._conversationsMap.push({
+          type: "ACTIVE",
+          conversationId: activeConversation.id,
+          conversation: activeConversation,
+        })
+
+      for (const unactiveConversation of unactiveConversations)
+        this._conversationsMap.push({
+          type: "CANCELED",
+          conversationId: unactiveConversation.id,
+          conversation: unactiveConversation,
+        })
+    } else {
+      //this situation happens when a subscription between onAddMemberToConversation, onEjectMember, onLeaveConversation doesn't fire properly.
+      //here we can check if there are differences between the previous sync and the current one
+      //theoretically since we have subscriptions, we should be in a situation in which we don't have any difference
+      //since the subscription role is to keep the array _conversationsMap synchronized.
+      //But it can be also the opposite. So inside this block we will check if there are conversations that need
+      //subscriptions to be added or the opposite (so subscriptions that need to be removed)
+
+      const conversations = [...activeConversations, ...unactiveConversations]
+      const flatConversationMap = this._conversationsMap.map(
+        (item) => item.conversation
+      )
+
+      const { added, removed } = findAddedAndRemovedConversation(
+        conversations,
+        flatConversationMap
+      )
+
+      if (added.length > 0)
+        for (const conversation of added)
+          this._addSubscriptionsSync(conversation.id)
+
+      if (removed.length > 0)
+        for (const conversation of removed)
+          this._removeSubscribtionsSync(conversation.id)
     }
 
     if (syncingCounter === 0) this._emit("sync")
@@ -4975,6 +4832,7 @@ export class Chat
           conversationPrivateKeyPem
         )
 
+        //this add a key pair only if it doesn't exist. if it does, then internally skip this operation
         this.addKeyPairItem({
           id: conversationId,
           keypair: keypair!,
@@ -4997,6 +4855,33 @@ export class Chat
         if (!(responseConversation instanceof QIError)) {
           const { items } = responseConversation
           const conversation = items[0]
+
+          //we need to check if the conversation was already inside the _conversationsMap array. If it exists then we update the array
+          //otherwise we add a new element
+          const index = this._conversationsMap.findIndex((conversationItem) => {
+            return conversationItem.conversationId === conversation.id
+          })
+
+          //this is an additional check that it's used to avoid to add the subscriptions to a conversation that potentially
+          //could have them already. This could happen potentially if the _sync() is executed
+          //immediately before the _onAddMemberToConversationSync() in the javascript event loop
+          const subscriptionConversationCheck = {
+            conversationWasActive: false,
+          }
+
+          if (index > -1) {
+            //it should never be ACTIVE at this point, but this is for more safety
+            if (this._conversationsMap[index].type === "ACTIVE")
+              subscriptionConversationCheck.conversationWasActive = true
+
+            this._conversationsMap[index].type = "ACTIVE"
+            this._conversationsMap[index].conversation = conversation
+          } else
+            this._conversationsMap.push({
+              conversation,
+              conversationId: conversation.id,
+              type: "ACTIVE",
+            })
 
           const currentUser = await this.getCurrentUser()
 
@@ -5031,6 +4916,15 @@ export class Chat
           } else if (this._storage.typeOf() === "RealmStorage") {
             //mobile insert TODO
           }
+
+          //let's remove all the subscriptions previously added
+          if (subscriptionConversationCheck.conversationWasActive) {
+            this._removeSubscribtionsSync(conversationId)
+            this._conversationsMap[index].type = "ACTIVE" //assign again "type" the value "ACTIVE" because _removeSubscribtionsSync() turns type to "CANCELED"
+          }
+
+          //let's add the subscriptions in order to keep synchronized this conversation
+          this._addSubscriptionsSync(conversationId)
         }
       }
     } catch (error) {
@@ -5217,11 +5111,145 @@ export class Chat
         }
       }
     } catch (error) {
-      console.log("[ERROR]: _onDeleteMessageSync() -> ", error)
+      console.log("[ERROR]: _onBatchDeleteMessagesSync() -> ", error)
     }
   }
 
-  private async _addSubscriptionsSync(conversationId: string) {
+  private async _onUpdateConversationGroupSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onUpdateConversationGroup: ConversationGraphQL
+      },
+      SubscriptionOnUpdateConversationGroupArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const conversationStored = (await this._storage.get(
+            "conversation",
+            "id",
+            response.id
+          )) as Maybe<WebConversation>
+
+          await this._storage.insertBulkSafe("conversation", [
+            Converter.fromConversationToWebConversation(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              conversationStored ? conversationStored.isArchived : false
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onUpdateConversationGroupSync() -> ", error)
+    }
+  }
+
+  private _onEjectMemberSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onEjectMember: ConversationGraphQL
+      },
+      SubscriptionOnEjectMemberArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO handling system messages that shows the user was ejected
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const conversationId = response.id
+          this._removeSubscribtionsSync(conversationId)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onEjectMemberSync() -> ", error)
+    }
+  }
+
+  private _onLeaveConversationSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onLeaveConversation: ConversationGraphQL
+      },
+      SubscriptionOnLeaveConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO handling system messages that shows the user left the conversation
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const conversationId = response.id
+          this._removeSubscribtionsSync(conversationId)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onLeaveConversationSync() -> ", error)
+    }
+  }
+
+  private _onMuteConversationSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onMuteConversation: ConversationGraphQL
+      },
+      SubscriptionOnMuteConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO socket notification handling
+    try {
+      if (!(response instanceof QIError)) {
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onMuteConversationSync() -> ", error)
+    }
+  }
+
+  private _onUnmuteConversationSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onUnmuteConversation: ConversationGraphQL
+      },
+      SubscriptionOnUnmuteConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO socket notification handling
+    try {
+      if (!(response instanceof QIError)) {
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onUnmuteConversationSync() -> ", error)
+    }
+  }
+
+  private _addSubscriptionsSync(conversationId: string) {
     //add reaction(conversationId)
     const onAddReaction = this.onAddReaction(
       conversationId,
@@ -5319,11 +5347,111 @@ export class Chat
     }
 
     //update settings group(conversationId)
-    //add message important(conversationId)
+    const onUpdateConversationGroup = this.onUpdateConversationGroup(
+      conversationId,
+      this._onUpdateConversationGroupSync
+    )
+
+    if (!(onUpdateConversationGroup instanceof QIError)) {
+      const { unsubscribe, uuid } = onUpdateConversationGroup
+      this._unsubscribeSyncSet.push({
+        type: "onUpdateConversationGroup",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
     //eject member(conversationId)
+    const onEjectMember = this.onEjectMember(
+      conversationId,
+      this._onEjectMemberSync
+    )
+
+    if (!(onEjectMember instanceof QIError)) {
+      const { unsubscribe, uuid } = onEjectMember
+      this._unsubscribeSyncSet.push({
+        type: "onEjectMember",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
     //leave group/conversation(conversationId)
+    const onLeaveConversation = this.onLeaveConversation(
+      conversationId,
+      this._onLeaveConversationSync
+    )
+
+    if (!(onLeaveConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onLeaveConversation
+      this._unsubscribeSyncSet.push({
+        type: "onLeaveConversation",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
     //mute conversation(conversationId)
+    const onMuteConversation = this.onMuteConversation(
+      conversationId,
+      this._onMuteConversationSync
+    )
+
+    if (!(onMuteConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onMuteConversation
+      this._unsubscribeSyncSet.push({
+        type: "onMuteConversation",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
     //unmute conversation(conversationId)
+    const onUnmuteConversation = this.onUnmuteConversation(
+      conversationId,
+      this._onUnmuteConversationSync
+    )
+
+    if (!(onUnmuteConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onUnmuteConversation
+      this._unsubscribeSyncSet.push({
+        type: "onUnmuteConversation",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+  }
+
+  private _removeSubscribtionsSync(conversationId: string) {
+    //let's remove first the subscriptions
+    const unsubscribeItems = this._unsubscribeSyncSet.filter((item) => {
+      return item.conversationId === conversationId
+    })
+
+    unsubscribeItems.forEach((item) => {
+      try {
+        item.unsubscribe()
+      } catch (error) {
+        console.log("[ERROR]: unsubscribe() -> ", item.uuid, item.type)
+      }
+    })
+
+    //let's remove the unsubscriptions functions from the _unsubscribeSyncSet since we have unsubscribed everything
+    this._unsubscribeSyncSet = this._unsubscribeSyncSet.filter((item) => {
+      return item.conversationId !== conversationId
+    })
+
+    //let's update also the _conversationsMap and turn this conversation as unactive
+    const index = this._conversationsMap.findIndex((conversation) => {
+      return conversation.conversationId === conversationId
+    })
+
+    if (index > -1) this._conversationsMap[index].type = "CANCELED"
   }
 
   async sync(callback: Function) {
@@ -5331,6 +5459,8 @@ export class Chat
       throw new Error("You must be authenticated before to sync.")
     if (!this._storage.isStorageEnabled())
       throw new Error("sync() is available only if you enable the storage.")
+    if (this._syncingCounter > 0)
+      throw new Error("You have already launched sync().")
 
     this._on("sync", () => {
       this._isSyncing = false
@@ -5339,7 +5469,8 @@ export class Chat
 
     await this._sync(this._syncingCounter)
 
-    //add member to conversation
+    //add member to conversation. This event is global, basically the user is always listening if
+    //someone wants to add him into a conversation.
     const onAddMemberToConversation = this.onAddMemberToConversation(
       this._account!.dynamoDBUserID,
       this._onAddMemberToConversationSync
@@ -5355,7 +5486,10 @@ export class Chat
       })
     }
 
-    for (const { id: conversationId } of this._keyPairsMap!) {
+    //now that we have a _conversationsMap array filled, we can add subscription for every conversation that is currently active
+    for (const { conversationId } of this._conversationsMap.filter(
+      (conversation) => conversation.type === "ACTIVE"
+    )) {
       this._addSubscriptionsSync(conversationId)
     }
   }

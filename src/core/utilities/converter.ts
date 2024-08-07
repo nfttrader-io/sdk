@@ -23,6 +23,7 @@ export class Converter {
       lastMessageSentAt: conversation.lastMessageSentAt,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
+      deletedAt: null,
     }
   }
 

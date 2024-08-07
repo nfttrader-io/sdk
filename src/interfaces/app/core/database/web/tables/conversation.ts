@@ -13,4 +13,5 @@ export interface WebConversation {
   lastMessageSentAt: Maybe<Date>
   createdAt: Date
   updatedAt: Maybe<Date>
+  deletedAt: Maybe<Date>
 }

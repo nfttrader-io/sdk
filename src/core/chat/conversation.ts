@@ -108,6 +108,10 @@ export class Conversation
    */
   readonly membersIds: Maybe<Array<string>>
   /**
+   * @property {Maybe<Array<{userId: string, createdAt: Date}>>} mutedBy - An array of member IDs in the conversation.
+   */
+  readonly mutedBy: Maybe<Array<{ userId: string; createdAt: Date }>>
+  /**
    * @property {"GROUP" | "ONE_TO_ONE" | "COMMUNITY"} type - The type of chat group.
    */
   readonly type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"
@@ -150,6 +154,7 @@ export class Conversation
     this.bannerImageURL = config.bannerImageURL
     this.settings = config.settings
     this.membersIds = config.membersIds
+    this.mutedBy = config.mutedBy
     this.type = config.type
     this.lastMessageSentAt = config.lastMessageSentAt
     this.ownerId = config.ownerId
@@ -190,6 +195,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -531,6 +537,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -545,11 +552,11 @@ export class Conversation
 
   /**
    * Mutes a conversation for a specified duration.
-   * @param {Pick<MuteConversationArgs, "duration">} args - An object containing the duration to mute the conversation for.
+   * @param {MuteConversationArgs} args - An object containing the duration to mute the conversation for.
    * @returns {Promise<Conversation | QIError>} - A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
    */
   async muteConversation(
-    args: Pick<MuteConversationArgs, "duration">
+    args: MuteConversationArgs
   ): Promise<Conversation | QIError> {
     const response = await this._mutation<
       MutationMuteConversationArgs,
@@ -560,10 +567,7 @@ export class Conversation
       muteConversation,
       "_mutation() -> muteConversation()",
       {
-        input: {
-          conversationId: this.id,
-          duration: args.duration,
-        },
+        conversationId: this.id,
       }
     )
 
@@ -578,6 +582,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -789,6 +794,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -859,6 +865,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -908,6 +915,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt
@@ -957,6 +965,7 @@ export class Conversation
       bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
       settings: response.settings ? response.settings : null,
       membersIds: response.membersIds ? response.membersIds : null,
+      mutedBy: response.mutedBy ? response.mutedBy : null,
       type: response.type,
       lastMessageSentAt: response.lastMessageSentAt
         ? response.lastMessageSentAt

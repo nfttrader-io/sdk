@@ -35,6 +35,10 @@ export type ConversationInitConfig = {
    */
   membersIds: Maybe<Array<string>>
   /**
+   * @property {Maybe<Array<{userId: string, createdAt: Date}>>} mutedBy - An array of member IDs in the conversation.
+   */
+  mutedBy: Maybe<Array<{ userId: string; createdAt: Date }>>
+  /**
    * @property {"GROUP" | "ONE_TO_ONE" | "COMMUNITY"} type - The type of the chat group.
    */
   type: "GROUP" | "ONE_TO_ONE" | "COMMUNITY"

@@ -2,13 +2,11 @@ import { OperationResult } from "@urql/core"
 import { Message, QIError } from "../../../../core/chat"
 import { SubscriptionGarbage } from "../../../../types/chat/subscriptiongarbage"
 import {
-  SubscriptionOnAddImportantMessageArgs,
   SubscriptionOnAddPinMessageArgs,
   SubscriptionOnAddReactionArgs,
   SubscriptionOnBatchDeleteMessagesArgs,
   SubscriptionOnDeleteMessageArgs,
   SubscriptionOnEditMessageArgs,
-  SubscriptionOnRemoveImportantMessageArgs,
   SubscriptionOnRemovePinMessageArgs,
   SubscriptionOnRemoveReactionArgs,
   SubscriptionOnSendMessageArgs,
@@ -137,36 +135,6 @@ export interface MessageSubscriptionEngine {
           onRemovePinMessage: MessageGraphQL
         },
         SubscriptionOnRemovePinMessageArgs & {
-          jwt: string
-        }
-      >,
-      uuid: string
-    ) => void
-  ): SubscriptionGarbage | QIError
-  onAddImportantMessage(
-    conversationId: string,
-    callback: (
-      response: Message | QIError,
-      source: OperationResult<
-        {
-          onAddImportantMessage: MessageGraphQL
-        },
-        SubscriptionOnAddImportantMessageArgs & {
-          jwt: string
-        }
-      >,
-      uuid: string
-    ) => void
-  ): SubscriptionGarbage | QIError
-  onRemoveImportantMessage(
-    conversationId: string,
-    callback: (
-      response: Message | QIError,
-      source: OperationResult<
-        {
-          onRemoveImportantMessage: MessageGraphQL
-        },
-        SubscriptionOnRemoveImportantMessageArgs & {
           jwt: string
         }
       >,
