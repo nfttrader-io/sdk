@@ -4902,17 +4902,14 @@ export class Chat
               if (index > -1) isConversationArchived = true
             }
 
-            await this._storage.insertBulkSafe<WebConversation>(
-              "conversation",
-              [
-                Converter.fromConversationToWebConversation(
-                  conversation,
-                  this._account!.did,
-                  this._account!.organizationId,
-                  isConversationArchived
-                ),
-              ]
-            )
+            this._storage.insertBulkSafe<WebConversation>("conversation", [
+              Converter.fromConversationToWebConversation(
+                conversation,
+                this._account!.did,
+                this._account!.organizationId,
+                isConversationArchived
+              ),
+            ])
           } else if (this._storage.typeOf() === "RealmStorage") {
             //mobile insert TODO
           }
@@ -4947,7 +4944,7 @@ export class Chat
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.insertBulkSafe("message", [
+          this._storage.insertBulkSafe("message", [
             Converter.fromMessageToWebMessage(
               response,
               this._account!.did,
@@ -4979,7 +4976,7 @@ export class Chat
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.insertBulkSafe("message", [
+          this._storage.insertBulkSafe("message", [
             Converter.fromMessageToWebMessage(
               response,
               this._account!.did,
@@ -5011,7 +5008,7 @@ export class Chat
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.insertBulkSafe("message", [
+          this._storage.insertBulkSafe("message", [
             Converter.fromMessageToWebMessage(
               response,
               this._account!.did,
@@ -5043,7 +5040,7 @@ export class Chat
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.insertBulkSafe("message", [
+          this._storage.insertBulkSafe("message", [
             Converter.fromMessageToWebMessage(
               response,
               this._account!.did,
@@ -5136,7 +5133,7 @@ export class Chat
             response.id
           )) as Maybe<WebConversation>
 
-          await this._storage.insertBulkSafe("conversation", [
+          this._storage.insertBulkSafe("conversation", [
             Converter.fromConversationToWebConversation(
               response,
               this._account!.did,

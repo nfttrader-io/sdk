@@ -57,7 +57,7 @@ export class DexieStorage extends Dexie implements BaseStorage {
       try {
         if (!this._enableStorage) return
 
-        await this.transaction("r", tableName, async () => {
+        this.transaction("r", tableName, async () => {
           if (tableName === "user") {
             resolve(await this.user.where(key).equals(value).first())
           } else if (tableName === "conversation") {
@@ -90,7 +90,7 @@ export class DexieStorage extends Dexie implements BaseStorage {
   ): Promise<void> {
     if (!this._enableStorage) return
     return new Promise(async (resolve, reject) => {
-      await this.transaction("rw", tableName, async () => {
+      this.transaction("rw", tableName, async () => {
         if (tableName === "conversation") await this.conversation.delete(id)
         else if (tableName === "user") await this.user.delete(id)
         else if (tableName === "message") await this.message.delete(id)
@@ -107,11 +107,10 @@ export class DexieStorage extends Dexie implements BaseStorage {
   ): Promise<void> {
     if (!this._enableStorage) return
     return new Promise(async (resolve, reject) => {
-      await this.transaction("rw", tableName, async () => {
-        if (tableName === "conversation")
-          await this.conversation.bulkDelete(ids)
-        else if (tableName === "user") await this.user.bulkDelete(ids)
-        else if (tableName === "message") await this.message.bulkDelete(ids)
+      this.transaction("rw", tableName, async () => {
+        if (tableName === "conversation") this.conversation.bulkDelete(ids)
+        else if (tableName === "user") this.user.bulkDelete(ids)
+        else if (tableName === "message") this.message.bulkDelete(ids)
         resolve()
       }).catch((error) => {
         reject(error)
@@ -135,7 +134,7 @@ export class DexieStorage extends Dexie implements BaseStorage {
     items: T[]
   ): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      await this.transaction("rw", tableName, async () => {
+      this.transaction("rw", tableName, async () => {
         if (tableName === "conversation")
           await this.conversation.bulkPut(items as WebConversation[])
         else if (tableName === "user")
