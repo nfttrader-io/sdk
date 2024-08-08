@@ -718,7 +718,8 @@ export class Message
         message,
         this._account!.did,
         this._account!.organizationId,
-        true
+        true,
+        "USER"
       ),
     ])
 
@@ -823,7 +824,8 @@ export class Message
         message,
         this._account!.did,
         this._account!.organizationId,
-        false
+        false,
+        "USER"
       ),
     ])
 

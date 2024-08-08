@@ -31,7 +31,11 @@ export class RealmStorage implements BaseStorage {
   }
 
   async deleteBulk(
-    tableName: "user" | "conversation" | "message",
+    tableName:
+      | "user"
+      | "conversation"
+      | "message"
+      | "conversationSystemMessage",
     ids: string[]
   ): Promise<void> {
     throw new Error("Method not implemented.")
@@ -69,7 +73,9 @@ export class RealmStorage implements BaseStorage {
     return this._enableStorage === true
   }
 
-  getTable<T>(tableName: "user" | "conversation" | "message") {
+  getTable<T>(
+    tableName: "user" | "conversation" | "message" | "conversationSystemMessage"
+  ) {
     return "" as T
   }
 }

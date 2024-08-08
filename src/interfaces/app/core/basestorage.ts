@@ -1,5 +1,3 @@
-import Dexie from "dexie"
-
 export interface BaseStorage {
   disableStorage(): void
   enableStorage(): void

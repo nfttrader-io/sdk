@@ -108,6 +108,7 @@ import {
   SubscriptionOnAddMemberToConversationArgs,
   BatchDeleteMessagesResult as BatchDeleteMessagesResultGraphQL,
   SubscriptionOnBatchDeleteMessagesArgs,
+  MemberOutResult as MemberOutResultGraphQL,
 } from "./graphql/generated/graphql"
 import {
   addBlockedUser,
@@ -205,10 +206,15 @@ import { OperationResult } from "@urql/core"
 import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 import { KeyPairItem } from "./types/chat/keypairitem"
 import { ActiveUserConversationType } from "./enums"
-import { WebConversation, WebUser } from "./interfaces/app/core/database"
+import {
+  WebConversation,
+  WebMessage,
+  WebUser,
+} from "./interfaces/app/core/database"
 import { Account, Converter, findAddedAndRemovedConversation } from "./core"
 import Dexie, { Table } from "dexie"
 import { Reaction } from "./core/chat/reaction"
+import { v4 as uuidv4 } from "uuid"
 
 export class Chat
   extends Engine
@@ -1180,11 +1186,16 @@ export class Chat
     })
   }
 
-  async ejectMember(args: EjectMemberArgs): Promise<QIError | Conversation> {
+  async ejectMember(
+    args: EjectMemberArgs
+  ): Promise<
+    | QIError
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+  > {
     const response = await this._mutation<
       MutationEjectMemberArgs,
-      { ejectMember: ConversationGraphQL },
-      ConversationGraphQL
+      { ejectMember: MemberOutResultGraphQL },
+      MemberOutResultGraphQL
     >("ejectMember", ejectMember, "_mutation() -> ejectMember()", {
       input: {
         conversationId: args.id,
@@ -1194,26 +1205,109 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
-      ...this._parentConfig!,
-      id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      mutedBy: response.mutedBy ? response.mutedBy : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
-        : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
-      client: this._client!,
-    })
+    return {
+      conversationId: response.conversationId,
+      conversation: new Conversation({
+        ...this._parentConfig!,
+        id: response.conversation.id,
+        name: response.conversation.name,
+        description: response.conversation.description
+          ? response.conversation.description
+          : null,
+        imageURL: response.conversation.imageURL
+          ? response.conversation.imageURL
+          : null,
+        bannerImageURL: response.conversation.bannerImageURL
+          ? response.conversation.bannerImageURL
+          : null,
+        settings: response.conversation.settings
+          ? response.conversation.settings
+          : null,
+        membersIds: response.conversation.membersIds
+          ? response.conversation.membersIds
+          : null,
+        mutedBy: response.conversation.mutedBy
+          ? response.conversation.mutedBy
+          : null,
+        type: response.conversation.type,
+        lastMessageSentAt: response.conversation.lastMessageSentAt
+          ? response.conversation.lastMessageSentAt
+          : null,
+        ownerId: response.conversation.ownerId
+          ? response.conversation.ownerId
+          : null,
+        createdAt: response.conversation.createdAt,
+        updatedAt: response.conversation.updatedAt
+          ? response.conversation.updatedAt
+          : null,
+        deletedAt: response.conversation.deletedAt
+          ? response.conversation.deletedAt
+          : null,
+        client: this._client!,
+      }),
+      memberOut: new User({
+        ...this._parentConfig!,
+        id: response.memberOut.id,
+        username: response.memberOut.username
+          ? response.memberOut.username
+          : null,
+        did: response.memberOut.did,
+        address: response.memberOut.address,
+        email: response.memberOut.email ? response.memberOut.email : null,
+        bio: response.memberOut.bio ? response.memberOut.bio : null,
+        avatarUrl: response.memberOut.avatarUrl
+          ? new URL(response.memberOut.avatarUrl)
+          : null,
+        isVerified: response.memberOut.isVerified
+          ? response.memberOut.isVerified
+          : false,
+        isNft: response.memberOut.isNft ? response.memberOut.isNft : false,
+        blacklistIds: response.memberOut.blacklistIds
+          ? response.memberOut.blacklistIds
+          : null,
+        allowNotification: response.memberOut.allowNotification
+          ? response.memberOut.allowNotification
+          : false,
+        allowNotificationSound: response.memberOut.allowNotificationSound
+          ? response.memberOut.allowNotificationSound
+          : false,
+        visibility: response.memberOut.visibility
+          ? response.memberOut.visibility
+          : false,
+        archivedConversations: response.memberOut.archivedConversations
+          ? response.memberOut.archivedConversations
+          : null,
+        onlineStatus: response.memberOut.onlineStatus
+          ? response.memberOut.onlineStatus
+          : null,
+        allowReadReceipt: response.memberOut.allowReadReceipt
+          ? response.memberOut.allowReadReceipt
+          : false,
+        allowReceiveMessageFrom: response.memberOut.allowReceiveMessageFrom
+          ? response.memberOut.allowReceiveMessageFrom
+          : null,
+        allowAddToGroupsFrom: response.memberOut.allowAddToGroupsFrom
+          ? response.memberOut.allowAddToGroupsFrom
+          : null,
+        allowGroupsSuggestion: response.memberOut.allowGroupsSuggestion
+          ? response.memberOut.allowGroupsSuggestion
+          : false,
+        e2ePublicKey: response.memberOut.e2ePublicKey
+          ? response.memberOut.e2ePublicKey
+          : null,
+        e2eSecret: response.memberOut.e2eSecret
+          ? response.memberOut.e2eSecret
+          : null,
+        e2eSecretIV: response.memberOut.e2eSecretIV
+          ? response.memberOut.e2eSecretIV
+          : null,
+        createdAt: new Date(response.memberOut.createdAt),
+        updatedAt: response.memberOut.updatedAt
+          ? new Date(response.memberOut.updatedAt)
+          : null,
+        client: this._client!,
+      }),
+    }
   }
 
   async eraseConversationByAdmin(
@@ -1247,9 +1341,22 @@ export class Chat
     return listConversations
   }
 
-  async leaveConversation(): Promise<Conversation | QIError>
-  async leaveConversation(id: string): Promise<Conversation | QIError>
-  async leaveConversation(id?: unknown): Promise<Conversation | QIError> {
+  async leaveConversation(): Promise<
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+    | QIError
+  >
+  async leaveConversation(
+    id: string
+  ): Promise<
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+    | QIError
+  >
+  async leaveConversation(
+    id?: unknown
+  ): Promise<
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+    | QIError
+  > {
     if (!id)
       throw new Error(
         "id argument can not be null or undefined. Consider to use leaveConversation(id : string) instead."
@@ -1258,8 +1365,8 @@ export class Chat
 
     const response = await this._mutation<
       MutationLeaveConversationArgs,
-      { leaveConversation: ConversationGraphQL },
-      ConversationGraphQL
+      { leaveConversation: MemberOutResultGraphQL },
+      MemberOutResultGraphQL
     >(
       "leaveConversation",
       leaveConversation,
@@ -1271,26 +1378,109 @@ export class Chat
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
-      ...this._parentConfig!,
-      id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      mutedBy: response.mutedBy ? response.mutedBy : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
-        : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
-      client: this._client!,
-    })
+    return {
+      conversationId: response.conversationId,
+      conversation: new Conversation({
+        ...this._parentConfig!,
+        id: response.conversation.id,
+        name: response.conversation.name,
+        description: response.conversation.description
+          ? response.conversation.description
+          : null,
+        imageURL: response.conversation.imageURL
+          ? response.conversation.imageURL
+          : null,
+        bannerImageURL: response.conversation.bannerImageURL
+          ? response.conversation.bannerImageURL
+          : null,
+        settings: response.conversation.settings
+          ? response.conversation.settings
+          : null,
+        membersIds: response.conversation.membersIds
+          ? response.conversation.membersIds
+          : null,
+        mutedBy: response.conversation.mutedBy
+          ? response.conversation.mutedBy
+          : null,
+        type: response.conversation.type,
+        lastMessageSentAt: response.conversation.lastMessageSentAt
+          ? response.conversation.lastMessageSentAt
+          : null,
+        ownerId: response.conversation.ownerId
+          ? response.conversation.ownerId
+          : null,
+        createdAt: response.conversation.createdAt,
+        updatedAt: response.conversation.updatedAt
+          ? response.conversation.updatedAt
+          : null,
+        deletedAt: response.conversation.deletedAt
+          ? response.conversation.deletedAt
+          : null,
+        client: this._client!,
+      }),
+      memberOut: new User({
+        ...this._parentConfig!,
+        id: response.memberOut.id,
+        username: response.memberOut.username
+          ? response.memberOut.username
+          : null,
+        did: response.memberOut.did,
+        address: response.memberOut.address,
+        email: response.memberOut.email ? response.memberOut.email : null,
+        bio: response.memberOut.bio ? response.memberOut.bio : null,
+        avatarUrl: response.memberOut.avatarUrl
+          ? new URL(response.memberOut.avatarUrl)
+          : null,
+        isVerified: response.memberOut.isVerified
+          ? response.memberOut.isVerified
+          : false,
+        isNft: response.memberOut.isNft ? response.memberOut.isNft : false,
+        blacklistIds: response.memberOut.blacklistIds
+          ? response.memberOut.blacklistIds
+          : null,
+        allowNotification: response.memberOut.allowNotification
+          ? response.memberOut.allowNotification
+          : false,
+        allowNotificationSound: response.memberOut.allowNotificationSound
+          ? response.memberOut.allowNotificationSound
+          : false,
+        visibility: response.memberOut.visibility
+          ? response.memberOut.visibility
+          : false,
+        archivedConversations: response.memberOut.archivedConversations
+          ? response.memberOut.archivedConversations
+          : null,
+        onlineStatus: response.memberOut.onlineStatus
+          ? response.memberOut.onlineStatus
+          : null,
+        allowReadReceipt: response.memberOut.allowReadReceipt
+          ? response.memberOut.allowReadReceipt
+          : false,
+        allowReceiveMessageFrom: response.memberOut.allowReceiveMessageFrom
+          ? response.memberOut.allowReceiveMessageFrom
+          : null,
+        allowAddToGroupsFrom: response.memberOut.allowAddToGroupsFrom
+          ? response.memberOut.allowAddToGroupsFrom
+          : null,
+        allowGroupsSuggestion: response.memberOut.allowGroupsSuggestion
+          ? response.memberOut.allowGroupsSuggestion
+          : false,
+        e2ePublicKey: response.memberOut.e2ePublicKey
+          ? response.memberOut.e2ePublicKey
+          : null,
+        e2eSecret: response.memberOut.e2eSecret
+          ? response.memberOut.e2eSecret
+          : null,
+        e2eSecretIV: response.memberOut.e2eSecretIV
+          ? response.memberOut.e2eSecretIV
+          : null,
+        createdAt: new Date(response.memberOut.createdAt),
+        updatedAt: response.memberOut.updatedAt
+          ? new Date(response.memberOut.updatedAt)
+          : null,
+        client: this._client!,
+      }),
+    }
   }
 
   async muteConversation(
@@ -2092,7 +2282,8 @@ export class Chat
         message,
         this._account!.did,
         this._account!.organizationId,
-        true
+        true,
+        "USER"
       ),
     ])
 
@@ -2193,7 +2384,8 @@ export class Chat
         message,
         this._account!.did,
         this._account!.organizationId,
-        false
+        false,
+        "USER"
       ),
     ])
 
@@ -3736,9 +3928,15 @@ export class Chat
   onEjectMember(
     conversationId: string,
     callback: (
-      response: QIError | Conversation,
+      response:
+        | QIError
+        | {
+            conversationId: string
+            conversation: Conversation
+            memberOut: User
+          },
       source: OperationResult<
-        { onEjectMember: ConversationGraphQL },
+        { onEjectMember: MemberOutResultGraphQL },
         SubscriptionOnEjectMemberArgs & { jwt: string }
       >,
       uuid: string
@@ -3747,7 +3945,7 @@ export class Chat
     const key = "onEjectMember"
     const metasubcription = this._subscription<
       SubscriptionOnEjectMemberArgs,
-      { onEjectMember: ConversationGraphQL }
+      { onEjectMember: MemberOutResultGraphQL }
     >(onEjectMember, key, { conversationId })
 
     if (metasubcription instanceof QIError) return metasubcription
@@ -3756,8 +3954,8 @@ export class Chat
     const { unsubscribe } = subscribe((result) => {
       const r = this._handleResponse<
         typeof key,
-        { onEjectMember: ConversationGraphQL },
-        ConversationGraphQL
+        { onEjectMember: MemberOutResultGraphQL },
+        MemberOutResultGraphQL
       >("onEjectMember", result)
 
       if (r instanceof QIError) {
@@ -3766,24 +3964,93 @@ export class Chat
       }
 
       callback(
-        new Conversation({
-          ...this._parentConfig!,
-          id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? r.imageURL : null,
-          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
-          settings: r.settings ? r.settings : null,
-          membersIds: r.membersIds ? r.membersIds : null,
-          mutedBy: r.mutedBy ? r.mutedBy : null,
-          type: r.type,
-          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
-          ownerId: r.ownerId ? r.ownerId : null,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt ? r.updatedAt : null,
-          deletedAt: r.deletedAt ? r.deletedAt : null,
-          client: this._client!,
-        }),
+        {
+          conversationId: r.conversationId,
+          conversation: new Conversation({
+            ...this._parentConfig!,
+            id: r.conversation.id,
+            name: r.conversation.name,
+            description: r.conversation.description
+              ? r.conversation.description
+              : null,
+            imageURL: r.conversation.imageURL ? r.conversation.imageURL : null,
+            bannerImageURL: r.conversation.bannerImageURL
+              ? r.conversation.bannerImageURL
+              : null,
+            settings: r.conversation.settings ? r.conversation.settings : null,
+            membersIds: r.conversation.membersIds
+              ? r.conversation.membersIds
+              : null,
+            mutedBy: r.conversation.mutedBy ? r.conversation.mutedBy : null,
+            type: r.conversation.type,
+            lastMessageSentAt: r.conversation.lastMessageSentAt
+              ? r.conversation.lastMessageSentAt
+              : null,
+            ownerId: r.conversation.ownerId ? r.conversation.ownerId : null,
+            createdAt: r.conversation.createdAt,
+            updatedAt: r.conversation.updatedAt
+              ? r.conversation.updatedAt
+              : null,
+            deletedAt: r.conversation.deletedAt
+              ? r.conversation.deletedAt
+              : null,
+            client: this._client!,
+          }),
+          memberOut: new User({
+            ...this._parentConfig!,
+            id: r.memberOut.id,
+            username: r.memberOut.username ? r.memberOut.username : null,
+            did: r.memberOut.did,
+            address: r.memberOut.address,
+            email: r.memberOut.email ? r.memberOut.email : null,
+            bio: r.memberOut.bio ? r.memberOut.bio : null,
+            avatarUrl: r.memberOut.avatarUrl
+              ? new URL(r.memberOut.avatarUrl)
+              : null,
+            isVerified: r.memberOut.isVerified ? r.memberOut.isVerified : false,
+            isNft: r.memberOut.isNft ? r.memberOut.isNft : false,
+            blacklistIds: r.memberOut.blacklistIds
+              ? r.memberOut.blacklistIds
+              : null,
+            allowNotification: r.memberOut.allowNotification
+              ? r.memberOut.allowNotification
+              : false,
+            allowNotificationSound: r.memberOut.allowNotificationSound
+              ? r.memberOut.allowNotificationSound
+              : false,
+            visibility: r.memberOut.visibility ? r.memberOut.visibility : false,
+            archivedConversations: r.memberOut.archivedConversations
+              ? r.memberOut.archivedConversations
+              : null,
+            onlineStatus: r.memberOut.onlineStatus
+              ? r.memberOut.onlineStatus
+              : null,
+            allowReadReceipt: r.memberOut.allowReadReceipt
+              ? r.memberOut.allowReadReceipt
+              : false,
+            allowReceiveMessageFrom: r.memberOut.allowReceiveMessageFrom
+              ? r.memberOut.allowReceiveMessageFrom
+              : null,
+            allowAddToGroupsFrom: r.memberOut.allowAddToGroupsFrom
+              ? r.memberOut.allowAddToGroupsFrom
+              : null,
+            allowGroupsSuggestion: r.memberOut.allowGroupsSuggestion
+              ? r.memberOut.allowGroupsSuggestion
+              : false,
+            e2ePublicKey: r.memberOut.e2ePublicKey
+              ? r.memberOut.e2ePublicKey
+              : null,
+            e2eSecret: r.memberOut.e2eSecret ? r.memberOut.e2eSecret : null,
+            e2eSecretIV: r.memberOut.e2eSecretIV
+              ? r.memberOut.e2eSecretIV
+              : null,
+            createdAt: new Date(r.memberOut.createdAt),
+            updatedAt: r.memberOut.updatedAt
+              ? new Date(r.memberOut.updatedAt)
+              : null,
+            client: this._client!,
+          }),
+        },
         result,
         uuid
       )
@@ -3795,9 +4062,15 @@ export class Chat
   onLeaveConversation(
     conversationId: string,
     callback: (
-      response: QIError | Conversation,
+      response:
+        | QIError
+        | {
+            conversationId: string
+            conversation: Conversation
+            memberOut: User
+          },
       source: OperationResult<
-        { onLeaveConversation: ConversationGraphQL },
+        { onLeaveConversation: MemberOutResultGraphQL },
         SubscriptionOnLeaveConversationArgs & { jwt: string }
       >,
       uuid: string
@@ -3806,7 +4079,7 @@ export class Chat
     const key = "onLeaveConversation"
     const metasubcription = this._subscription<
       SubscriptionOnLeaveConversationArgs,
-      { onLeaveConversation: ConversationGraphQL }
+      { onLeaveConversation: MemberOutResultGraphQL }
     >(onLeaveConversation, key, { conversationId })
 
     if (metasubcription instanceof QIError) return metasubcription
@@ -3815,8 +4088,8 @@ export class Chat
     const { unsubscribe } = subscribe((result) => {
       const r = this._handleResponse<
         typeof key,
-        { onLeaveConversation: ConversationGraphQL },
-        ConversationGraphQL
+        { onLeaveConversation: MemberOutResultGraphQL },
+        MemberOutResultGraphQL
       >("onLeaveConversation", result)
 
       if (r instanceof QIError) {
@@ -3825,24 +4098,93 @@ export class Chat
       }
 
       callback(
-        new Conversation({
-          ...this._parentConfig!,
-          id: r.id,
-          name: r.name,
-          description: r.description ? r.description : null,
-          imageURL: r.imageURL ? r.imageURL : null,
-          bannerImageURL: r.bannerImageURL ? r.bannerImageURL : null,
-          settings: r.settings ? r.settings : null,
-          membersIds: r.membersIds ? r.membersIds : null,
-          mutedBy: r.mutedBy ? r.mutedBy : null,
-          type: r.type,
-          lastMessageSentAt: r.lastMessageSentAt ? r.lastMessageSentAt : null,
-          ownerId: r.ownerId ? r.ownerId : null,
-          createdAt: r.createdAt,
-          updatedAt: r.updatedAt ? r.updatedAt : null,
-          deletedAt: r.deletedAt ? r.deletedAt : null,
-          client: this._client!,
-        }),
+        {
+          conversationId: r.conversationId,
+          conversation: new Conversation({
+            ...this._parentConfig!,
+            id: r.conversation.id,
+            name: r.conversation.name,
+            description: r.conversation.description
+              ? r.conversation.description
+              : null,
+            imageURL: r.conversation.imageURL ? r.conversation.imageURL : null,
+            bannerImageURL: r.conversation.bannerImageURL
+              ? r.conversation.bannerImageURL
+              : null,
+            settings: r.conversation.settings ? r.conversation.settings : null,
+            membersIds: r.conversation.membersIds
+              ? r.conversation.membersIds
+              : null,
+            mutedBy: r.conversation.mutedBy ? r.conversation.mutedBy : null,
+            type: r.conversation.type,
+            lastMessageSentAt: r.conversation.lastMessageSentAt
+              ? r.conversation.lastMessageSentAt
+              : null,
+            ownerId: r.conversation.ownerId ? r.conversation.ownerId : null,
+            createdAt: r.conversation.createdAt,
+            updatedAt: r.conversation.updatedAt
+              ? r.conversation.updatedAt
+              : null,
+            deletedAt: r.conversation.deletedAt
+              ? r.conversation.deletedAt
+              : null,
+            client: this._client!,
+          }),
+          memberOut: new User({
+            ...this._parentConfig!,
+            id: r.memberOut.id,
+            username: r.memberOut.username ? r.memberOut.username : null,
+            did: r.memberOut.did,
+            address: r.memberOut.address,
+            email: r.memberOut.email ? r.memberOut.email : null,
+            bio: r.memberOut.bio ? r.memberOut.bio : null,
+            avatarUrl: r.memberOut.avatarUrl
+              ? new URL(r.memberOut.avatarUrl)
+              : null,
+            isVerified: r.memberOut.isVerified ? r.memberOut.isVerified : false,
+            isNft: r.memberOut.isNft ? r.memberOut.isNft : false,
+            blacklistIds: r.memberOut.blacklistIds
+              ? r.memberOut.blacklistIds
+              : null,
+            allowNotification: r.memberOut.allowNotification
+              ? r.memberOut.allowNotification
+              : false,
+            allowNotificationSound: r.memberOut.allowNotificationSound
+              ? r.memberOut.allowNotificationSound
+              : false,
+            visibility: r.memberOut.visibility ? r.memberOut.visibility : false,
+            archivedConversations: r.memberOut.archivedConversations
+              ? r.memberOut.archivedConversations
+              : null,
+            onlineStatus: r.memberOut.onlineStatus
+              ? r.memberOut.onlineStatus
+              : null,
+            allowReadReceipt: r.memberOut.allowReadReceipt
+              ? r.memberOut.allowReadReceipt
+              : false,
+            allowReceiveMessageFrom: r.memberOut.allowReceiveMessageFrom
+              ? r.memberOut.allowReceiveMessageFrom
+              : null,
+            allowAddToGroupsFrom: r.memberOut.allowAddToGroupsFrom
+              ? r.memberOut.allowAddToGroupsFrom
+              : null,
+            allowGroupsSuggestion: r.memberOut.allowGroupsSuggestion
+              ? r.memberOut.allowGroupsSuggestion
+              : false,
+            e2ePublicKey: r.memberOut.e2ePublicKey
+              ? r.memberOut.e2ePublicKey
+              : null,
+            e2eSecret: r.memberOut.e2eSecret ? r.memberOut.e2eSecret : null,
+            e2eSecretIV: r.memberOut.e2eSecretIV
+              ? r.memberOut.e2eSecretIV
+              : null,
+            createdAt: new Date(r.memberOut.createdAt),
+            updatedAt: r.memberOut.updatedAt
+              ? new Date(r.memberOut.updatedAt)
+              : null,
+            client: this._client!,
+          }),
+        },
         result,
         uuid
       )
@@ -4644,13 +4986,18 @@ export class Chat
           }
 
           //messages handling
-          const userTable = this._storage.getTable("user") as Dexie.Table<
-            WebUser,
+          const messageTable = this._storage.getTable("message") as Dexie.Table<
+            WebMessage,
             string,
-            WebUser
+            WebMessage
           >
-          const lastMessageStored = await userTable
+          const lastMessageStored = await messageTable
             .orderBy("createdAt")
+            .filter(
+              (element) =>
+                element.origin === "USER" &&
+                element.userDid === this._account!.did
+            )
             .reverse()
             .first()
 
@@ -4659,10 +5006,7 @@ export class Chat
             (lastMessageStored &&
               lastMessageStored.createdAt < lastMessageSentAt)
 
-          //TODO add check here to get the setting of the conversation.
-          //basically if the conversation let people download all the messages is fine
-          //otherwise we need to take the date when the user joined the group and do a query
-          //taking all the messages sent after that date and not before
+          //the check of history message is already done on backend side
 
           if (canDownloadMessages) {
             const messagesFirstSet = await this.listMessagesByConversationId({
@@ -4692,22 +5036,25 @@ export class Chat
             }
 
             //let's store the messages without create duplicates
-            this._storage.insertBulkSafe(
-              "message",
-              messages.map((message) => {
-                const isMessageImportant =
-                  messagesImportant.findIndex((important) => {
-                    return important.messageId === message.id
-                  }) > -1
+            if (messages.length > 0)
+              //it's possible this array is empty when the chat history settings has value 'false'
+              this._storage.insertBulkSafe(
+                "message",
+                messages.map((message) => {
+                  const isMessageImportant =
+                    messagesImportant.findIndex((important) => {
+                      return important.messageId === message.id
+                    }) > -1
 
-                return Converter.fromMessageToWebMessage(
-                  message,
-                  this._account!.did,
-                  this._account!.organizationId,
-                  isMessageImportant
-                )
-              })
-            )
+                  return Converter.fromMessageToWebMessage(
+                    message,
+                    this._account!.did,
+                    this._account!.organizationId,
+                    isMessageImportant,
+                    "USER"
+                  )
+                })
+              )
           }
         } else if (this._storage.typeOf() === "RealmStorage") {
           //TODO
@@ -4972,7 +5319,8 @@ export class Chat
               response,
               this._account!.did,
               this._account!.organizationId,
-              false
+              false,
+              "USER"
             ),
           ])
         } else if (this._storage.typeOf() === "RealmStorage") {
@@ -5004,7 +5352,8 @@ export class Chat
               response,
               this._account!.did,
               this._account!.organizationId,
-              false
+              false,
+              "USER"
             ),
           ])
         } else if (this._storage.typeOf() === "RealmStorage") {
@@ -5037,7 +5386,8 @@ export class Chat
               response,
               this._account!.did,
               this._account!.organizationId,
-              false
+              false,
+              "USER"
             ),
           ])
 
@@ -5083,7 +5433,8 @@ export class Chat
               response,
               this._account!.did,
               this._account!.organizationId,
-              false
+              false,
+              "USER"
             ),
           ])
         } else if (this._storage.typeOf() === "RealmStorage") {
@@ -5189,10 +5540,12 @@ export class Chat
   }
 
   private _onEjectMemberSync(
-    response: QIError | Conversation,
+    response:
+      | QIError
+      | { conversationId: string; conversation: Conversation; memberOut: User },
     source: OperationResult<
       {
-        onEjectMember: ConversationGraphQL
+        onEjectMember: MemberOutResultGraphQL
       },
       SubscriptionOnEjectMemberArgs & {
         jwt: string
@@ -5200,12 +5553,32 @@ export class Chat
     >,
     uuid: string
   ) {
-    //TODO handling system messages that shows the user was ejected
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
-          const conversationId = response.id
+          const conversationId = response.conversationId
           this._removeSubscribtionsSync(conversationId)
+
+          //handling system messages that shows the user was ejected
+          this._storage.insertBulkSafe("message", [
+            {
+              id: uuidv4(),
+              userId: response.memberOut.id,
+              organizationId: this._account!.organizationId,
+              userDid: this._account!.did,
+              conversationId: response.conversationId,
+              content: "",
+              reactions: [],
+              isImportant: false,
+              type: "EJECTED",
+              origin: "SYSTEM",
+              messageRoot: null,
+              messageRootId: null,
+              createdAt: new Date(),
+              updateAt: null,
+              deletedAt: null,
+            },
+          ])
         } else if (this._storage.typeOf() === "RealmStorage") {
           //TODO
         }
@@ -5216,10 +5589,12 @@ export class Chat
   }
 
   private _onLeaveConversationSync(
-    response: QIError | Conversation,
+    response:
+      | QIError
+      | { conversationId: string; conversation: Conversation; memberOut: User },
     source: OperationResult<
       {
-        onLeaveConversation: ConversationGraphQL
+        onLeaveConversation: MemberOutResultGraphQL
       },
       SubscriptionOnLeaveConversationArgs & {
         jwt: string
@@ -5231,7 +5606,7 @@ export class Chat
     try {
       if (!(response instanceof QIError)) {
         if (this._storage.typeOf() === "DexieStorage") {
-          const conversationId = response.id
+          const conversationId = response.conversationId
           this._removeSubscribtionsSync(conversationId)
         } else if (this._storage.typeOf() === "RealmStorage") {
           //TODO

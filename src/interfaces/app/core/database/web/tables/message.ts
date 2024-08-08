@@ -9,7 +9,15 @@ export interface WebMessage {
   content: string
   reactions: Array<{ content: string; userId: string; createdAt: Date }>
   isImportant: boolean
-  type: "TEXTUAL" | "ATTACHMENT" | "NFT" | "SWAP_PROPOSAL" | "RENT"
+  type:
+    | "TEXTUAL"
+    | "ATTACHMENT"
+    | "NFT"
+    | "SWAP_PROPOSAL"
+    | "RENT"
+    | "EJECTED"
+    | "LEFT"
+  origin: "SYSTEM" | "USER"
   messageRoot: Maybe<WebMessage>
   messageRootId: Maybe<string>
   createdAt: Date

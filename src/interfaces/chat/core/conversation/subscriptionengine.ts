@@ -3,6 +3,7 @@ import {
   Conversation,
   ConversationMember,
   QIError,
+  User,
 } from "../../../../core/chat"
 import { SubscriptionGarbage } from "../../../../types/chat/subscriptiongarbage"
 import {
@@ -18,6 +19,7 @@ import {
   SubscriptionOnUnmuteConversationArgs,
   SubscriptionOnUpdateConversationGroupArgs,
   AddMemberToConversationResult as AddMemberToConversationResultGraphQL,
+  MemberOutResult as MemberOutResultGraphQL,
 } from "../../../../graphql/generated/graphql"
 
 /**
@@ -39,9 +41,15 @@ export interface ConversationSubscriptionEngine {
   onEjectMember(
     conversationId: string,
     callback: (
-      response: QIError | Conversation,
+      response:
+        | QIError
+        | {
+            conversationId: string
+            conversation: Conversation
+            memberOut: User
+          },
       source: OperationResult<
-        { onEjectMember: ConversationGraphQL },
+        { onEjectMember: MemberOutResultGraphQL },
         SubscriptionOnEjectMemberArgs & { jwt: string }
       >,
       uuid: string
@@ -50,9 +58,15 @@ export interface ConversationSubscriptionEngine {
   onLeaveConversation(
     conversationId: string,
     callback: (
-      response: QIError | Conversation,
+      response:
+        | QIError
+        | {
+            conversationId: string
+            conversation: Conversation
+            memberOut: User
+          },
       source: OperationResult<
-        { onLeaveConversation: ConversationGraphQL },
+        { onLeaveConversation: MemberOutResultGraphQL },
         SubscriptionOnLeaveConversationArgs & { jwt: string }
       >,
       uuid: string

@@ -35,9 +35,22 @@ export interface ConversationMutationEngine {
   archiveConversation(): Promise<User | QIError>
   archiveConversation(id: string): Promise<User | QIError>
   deleteMessage(id: string): Promise<Message | QIError>
-  ejectMember(args: EjectMemberArgs): Promise<Conversation | QIError>
-  leaveConversation(): Promise<Conversation | QIError>
-  leaveConversation(id: string): Promise<Conversation | QIError>
+  ejectMember(
+    args: EjectMemberArgs
+  ): Promise<
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+    | QIError
+  >
+  leaveConversation(): Promise<
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+    | QIError
+  >
+  leaveConversation(
+    id: string
+  ): Promise<
+    | { conversationId: string; conversation: Conversation; memberOut: User }
+    | QIError
+  >
   muteConversation(args: MuteConversationArgs): Promise<Conversation | QIError>
   sendMessage(args: SendMessageArgs): Promise<Message | QIError>
   unarchiveConversation(): Promise<User | QIError>

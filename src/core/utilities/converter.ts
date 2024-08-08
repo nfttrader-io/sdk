@@ -31,7 +31,8 @@ export class Converter {
     message: Message | Omit<Message, "messageRoot">,
     userDid: string,
     organizationId: string,
-    isImportant: boolean
+    isImportant: boolean,
+    origin: "SYSTEM" | "USER"
   ): WebMessage {
     return {
       id: message.id,
@@ -51,11 +52,13 @@ export class Converter {
         : [],
       isImportant,
       type: message.type!,
+      origin,
       messageRoot: Converter.fromMessageToWebMessage(
         "messageRoot" in message ? message : message,
         userDid,
         organizationId,
-        false
+        false,
+        "USER"
       ),
       messageRootId: message.messageRootId,
       createdAt: message.createdAt,

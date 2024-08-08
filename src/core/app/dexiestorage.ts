@@ -28,7 +28,7 @@ export class DexieStorage extends Dexie implements BaseStorage {
     this.version(this._dbVersion).stores({
       user: "++id, did, organizationId",
       conversation: "++id, name, description, createdAt",
-      message: "++id, content, createdAt",
+      message: "++id, content, origin, userDid, type, createdAt",
       migration: "key",
     })
 
@@ -85,7 +85,11 @@ export class DexieStorage extends Dexie implements BaseStorage {
   }
 
   async deleteItem(
-    tableName: "user" | "conversation" | "message",
+    tableName:
+      | "user"
+      | "conversation"
+      | "message"
+      | "conversationSystemMessage",
     id: string
   ): Promise<void> {
     if (!this._enableStorage) return
@@ -126,7 +130,8 @@ export class DexieStorage extends Dexie implements BaseStorage {
     if (tableName === "user") callback(this, this.user as Table<T, string, T>)
     else if (tableName === "conversation")
       callback(this, this.conversation as Table<T, string, T>)
-    else callback(this, this.message as Table<T, string, T>)
+    else if (tableName === "message")
+      callback(this, this.message as Table<T, string, T>)
   }
 
   async insertBulkSafe<T>(
@@ -175,10 +180,9 @@ export class DexieStorage extends Dexie implements BaseStorage {
 
   getTable<T>(tableName: "user" | "conversation" | "message") {
     if (tableName === "user") return this.user as T
-    else if (tableName === "conversation") {
-      return this.conversation as T
-    } else {
-      return this.message as T
-    }
+    else if (tableName === "conversation") return this.conversation as T
+    else if (tableName === "message") return this.message as T
+
+    throw new Error(`Table ${tableName} not found`)
   }
 }

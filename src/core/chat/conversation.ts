@@ -34,6 +34,7 @@ import {
   User as UserGraphQL,
   MutationAddMemberToConversationArgs,
   AddMemberToConversationResult as AddMemberToConversationResultGraphQL,
+  MemberOutResult as MemberOutResultGraphQL,
 } from "../../graphql/generated/graphql"
 import {
   ConversationMutationEngine,
@@ -168,15 +169,24 @@ export class Conversation
   /**
    * Ejects a member from the conversation based on the provided userId.
    * @param {Pick<EjectMemberArgs, "userId">} args - An object containing the userId of the member to eject.
-   * @returns {Promise<Conversation | QIError>} - A Promise that resolves to a Conversation object if successful, or a QIError object if there was an error.
+   * @returns {Promise<{
+        conversationId: string
+        conversation: Conversation
+        memberOut: User
+      } | QIError>} - A Promise that resolves to an object that contains Conversation, the conversation id and the user that was ejected if successful, or a QIError object if there was an error.
    */
-  async ejectMember(
-    args: Pick<EjectMemberArgs, "userId">
-  ): Promise<Conversation | QIError> {
+  async ejectMember(args: Pick<EjectMemberArgs, "userId">): Promise<
+    | {
+        conversationId: string
+        conversation: Conversation
+        memberOut: User
+      }
+    | QIError
+  > {
     const response = await this._mutation<
       MutationEjectMemberArgs,
-      { ejectMember: ConversationGraphQL },
-      ConversationGraphQL
+      { ejectMember: MemberOutResultGraphQL },
+      MemberOutResultGraphQL
     >("ejectMember", ejectMember, "_mutation() -> ejectMember()", {
       input: {
         conversationId: this.id,
@@ -186,26 +196,109 @@ export class Conversation
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
-      ...this._parentConfig!,
-      id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      mutedBy: response.mutedBy ? response.mutedBy : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
-        : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
-      client: this._client!,
-    })
+    return {
+      conversationId: response.conversationId,
+      conversation: new Conversation({
+        ...this._parentConfig!,
+        id: response.conversation.id,
+        name: response.conversation.name,
+        description: response.conversation.description
+          ? response.conversation.description
+          : null,
+        imageURL: response.conversation.imageURL
+          ? response.conversation.imageURL
+          : null,
+        bannerImageURL: response.conversation.bannerImageURL
+          ? response.conversation.bannerImageURL
+          : null,
+        settings: response.conversation.settings
+          ? response.conversation.settings
+          : null,
+        membersIds: response.conversation.membersIds
+          ? response.conversation.membersIds
+          : null,
+        mutedBy: response.conversation.mutedBy
+          ? response.conversation.mutedBy
+          : null,
+        type: response.conversation.type,
+        lastMessageSentAt: response.conversation.lastMessageSentAt
+          ? response.conversation.lastMessageSentAt
+          : null,
+        ownerId: response.conversation.ownerId
+          ? response.conversation.ownerId
+          : null,
+        createdAt: response.conversation.createdAt,
+        updatedAt: response.conversation.updatedAt
+          ? response.conversation.updatedAt
+          : null,
+        deletedAt: response.conversation.deletedAt
+          ? response.conversation.deletedAt
+          : null,
+        client: this._client!,
+      }),
+      memberOut: new User({
+        ...this._parentConfig!,
+        id: response.memberOut.id,
+        username: response.memberOut.username
+          ? response.memberOut.username
+          : null,
+        did: response.memberOut.did,
+        address: response.memberOut.address,
+        email: response.memberOut.email ? response.memberOut.email : null,
+        bio: response.memberOut.bio ? response.memberOut.bio : null,
+        avatarUrl: response.memberOut.avatarUrl
+          ? new URL(response.memberOut.avatarUrl)
+          : null,
+        isVerified: response.memberOut.isVerified
+          ? response.memberOut.isVerified
+          : false,
+        isNft: response.memberOut.isNft ? response.memberOut.isNft : false,
+        blacklistIds: response.memberOut.blacklistIds
+          ? response.memberOut.blacklistIds
+          : null,
+        allowNotification: response.memberOut.allowNotification
+          ? response.memberOut.allowNotification
+          : false,
+        allowNotificationSound: response.memberOut.allowNotificationSound
+          ? response.memberOut.allowNotificationSound
+          : false,
+        visibility: response.memberOut.visibility
+          ? response.memberOut.visibility
+          : false,
+        archivedConversations: response.memberOut.archivedConversations
+          ? response.memberOut.archivedConversations
+          : null,
+        onlineStatus: response.memberOut.onlineStatus
+          ? response.memberOut.onlineStatus
+          : null,
+        allowReadReceipt: response.memberOut.allowReadReceipt
+          ? response.memberOut.allowReadReceipt
+          : false,
+        allowReceiveMessageFrom: response.memberOut.allowReceiveMessageFrom
+          ? response.memberOut.allowReceiveMessageFrom
+          : null,
+        allowAddToGroupsFrom: response.memberOut.allowAddToGroupsFrom
+          ? response.memberOut.allowAddToGroupsFrom
+          : null,
+        allowGroupsSuggestion: response.memberOut.allowGroupsSuggestion
+          ? response.memberOut.allowGroupsSuggestion
+          : false,
+        e2ePublicKey: response.memberOut.e2ePublicKey
+          ? response.memberOut.e2ePublicKey
+          : null,
+        e2eSecret: response.memberOut.e2eSecret
+          ? response.memberOut.e2eSecret
+          : null,
+        e2eSecretIV: response.memberOut.e2eSecretIV
+          ? response.memberOut.e2eSecretIV
+          : null,
+        createdAt: new Date(response.memberOut.createdAt),
+        updatedAt: response.memberOut.updatedAt
+          ? new Date(response.memberOut.updatedAt)
+          : null,
+        client: this._client!,
+      }),
+    }
   }
 
   /**
@@ -503,11 +596,36 @@ export class Conversation
   /**
    * Asynchronously leaves the current conversation.
    * If an id is provided, it throws an error.
-   * @returns {Promise<Conversation | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if an error occurs.
+   * @returns {Promise<{
+        conversationId: string
+        conversation: Conversation
+        memberOut: User
+      } | QIError>} A Promise that resolves to a Conversation object if successful, or a QIError object if an error occurs.
    */
-  async leaveConversation(): Promise<Conversation | QIError>
-  async leaveConversation(id: string): Promise<Conversation | QIError>
-  async leaveConversation(id?: unknown): Promise<Conversation | QIError> {
+  async leaveConversation(): Promise<
+    | {
+        conversationId: string
+        conversation: Conversation
+        memberOut: User
+      }
+    | QIError
+  >
+  async leaveConversation(id: string): Promise<
+    | {
+        conversationId: string
+        conversation: Conversation
+        memberOut: User
+      }
+    | QIError
+  >
+  async leaveConversation(id?: unknown): Promise<
+    | {
+        conversationId: string
+        conversation: Conversation
+        memberOut: User
+      }
+    | QIError
+  > {
     if (id)
       throw new Error(
         "id argument can not be null or undefined. Consider to use leaveConversation() instead."
@@ -515,8 +633,8 @@ export class Conversation
 
     const response = await this._mutation<
       MutationLeaveConversationArgs,
-      { leaveConversation: ConversationGraphQL },
-      ConversationGraphQL
+      { leaveConversation: MemberOutResultGraphQL },
+      MemberOutResultGraphQL
     >(
       "leaveConversation",
       leaveConversation,
@@ -528,26 +646,109 @@ export class Conversation
 
     if (response instanceof QIError) return response
 
-    return new Conversation({
-      ...this._parentConfig!,
-      id: response.id,
-      name: response.name,
-      description: response.description ? response.description : null,
-      imageURL: response.imageURL ? response.imageURL : null,
-      bannerImageURL: response.bannerImageURL ? response.bannerImageURL : null,
-      settings: response.settings ? response.settings : null,
-      membersIds: response.membersIds ? response.membersIds : null,
-      mutedBy: response.mutedBy ? response.mutedBy : null,
-      type: response.type,
-      lastMessageSentAt: response.lastMessageSentAt
-        ? response.lastMessageSentAt
-        : null,
-      ownerId: response.ownerId ? response.ownerId : null,
-      createdAt: response.createdAt,
-      updatedAt: response.updatedAt ? response.updatedAt : null,
-      deletedAt: response.deletedAt ? response.deletedAt : null,
-      client: this._client!,
-    })
+    return {
+      conversationId: response.conversationId,
+      conversation: new Conversation({
+        ...this._parentConfig!,
+        id: response.conversation.id,
+        name: response.conversation.name,
+        description: response.conversation.description
+          ? response.conversation.description
+          : null,
+        imageURL: response.conversation.imageURL
+          ? response.conversation.imageURL
+          : null,
+        bannerImageURL: response.conversation.bannerImageURL
+          ? response.conversation.bannerImageURL
+          : null,
+        settings: response.conversation.settings
+          ? response.conversation.settings
+          : null,
+        membersIds: response.conversation.membersIds
+          ? response.conversation.membersIds
+          : null,
+        mutedBy: response.conversation.mutedBy
+          ? response.conversation.mutedBy
+          : null,
+        type: response.conversation.type,
+        lastMessageSentAt: response.conversation.lastMessageSentAt
+          ? response.conversation.lastMessageSentAt
+          : null,
+        ownerId: response.conversation.ownerId
+          ? response.conversation.ownerId
+          : null,
+        createdAt: response.conversation.createdAt,
+        updatedAt: response.conversation.updatedAt
+          ? response.conversation.updatedAt
+          : null,
+        deletedAt: response.conversation.deletedAt
+          ? response.conversation.deletedAt
+          : null,
+        client: this._client!,
+      }),
+      memberOut: new User({
+        ...this._parentConfig!,
+        id: response.memberOut.id,
+        username: response.memberOut.username
+          ? response.memberOut.username
+          : null,
+        did: response.memberOut.did,
+        address: response.memberOut.address,
+        email: response.memberOut.email ? response.memberOut.email : null,
+        bio: response.memberOut.bio ? response.memberOut.bio : null,
+        avatarUrl: response.memberOut.avatarUrl
+          ? new URL(response.memberOut.avatarUrl)
+          : null,
+        isVerified: response.memberOut.isVerified
+          ? response.memberOut.isVerified
+          : false,
+        isNft: response.memberOut.isNft ? response.memberOut.isNft : false,
+        blacklistIds: response.memberOut.blacklistIds
+          ? response.memberOut.blacklistIds
+          : null,
+        allowNotification: response.memberOut.allowNotification
+          ? response.memberOut.allowNotification
+          : false,
+        allowNotificationSound: response.memberOut.allowNotificationSound
+          ? response.memberOut.allowNotificationSound
+          : false,
+        visibility: response.memberOut.visibility
+          ? response.memberOut.visibility
+          : false,
+        archivedConversations: response.memberOut.archivedConversations
+          ? response.memberOut.archivedConversations
+          : null,
+        onlineStatus: response.memberOut.onlineStatus
+          ? response.memberOut.onlineStatus
+          : null,
+        allowReadReceipt: response.memberOut.allowReadReceipt
+          ? response.memberOut.allowReadReceipt
+          : false,
+        allowReceiveMessageFrom: response.memberOut.allowReceiveMessageFrom
+          ? response.memberOut.allowReceiveMessageFrom
+          : null,
+        allowAddToGroupsFrom: response.memberOut.allowAddToGroupsFrom
+          ? response.memberOut.allowAddToGroupsFrom
+          : null,
+        allowGroupsSuggestion: response.memberOut.allowGroupsSuggestion
+          ? response.memberOut.allowGroupsSuggestion
+          : false,
+        e2ePublicKey: response.memberOut.e2ePublicKey
+          ? response.memberOut.e2ePublicKey
+          : null,
+        e2eSecret: response.memberOut.e2eSecret
+          ? response.memberOut.e2eSecret
+          : null,
+        e2eSecretIV: response.memberOut.e2eSecretIV
+          ? response.memberOut.e2eSecretIV
+          : null,
+        createdAt: new Date(response.memberOut.createdAt),
+        updatedAt: response.memberOut.updatedAt
+          ? new Date(response.memberOut.updatedAt)
+          : null,
+        client: this._client!,
+      }),
+    }
   }
 
   /**
