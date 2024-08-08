@@ -109,6 +109,8 @@ import {
   BatchDeleteMessagesResult as BatchDeleteMessagesResultGraphQL,
   SubscriptionOnBatchDeleteMessagesArgs,
   MemberOutResult as MemberOutResultGraphQL,
+  QueryListUsersByIdsArgs,
+  ListUsersByIdsResult as ListUsersByIdsResultGraphQL,
 } from "./graphql/generated/graphql"
 import {
   addBlockedUser,
@@ -154,6 +156,7 @@ import {
   listMessagesByConversationId,
   listMessagesImportantByUserConversationId,
   listConversationMemberByUserId,
+  listUsersByIds,
 } from "./constants/chat/queries"
 import { ConversationMember } from "./core/chat/conversationmember"
 import {
@@ -2563,6 +2566,77 @@ export class Chat
     }
 
     return listConversationMember
+  }
+
+  async listUsersByIds(ids: string[]): Promise<
+    | QIError
+    | {
+        items: User[]
+        unprocessedKeys?: Maybe<string[]> | undefined
+      }
+  > {
+    const response = await this._query<
+      QueryListUsersByIdsArgs,
+      { listUsersByIds: ListUsersByIdsResultGraphQL },
+      ListUsersByIdsResultGraphQL
+    >("listUsersByIds", listUsersByIds, "_query() -> listUsersByIds()", {
+      usersIds: ids,
+    })
+
+    if (response instanceof QIError) return response
+
+    const listUsers: {
+      unprocessedKeys?: Maybe<string[]>
+      items: Array<User>
+    } = {
+      unprocessedKeys: response.unprocessedKeys,
+      items: response.items.map((item) => {
+        return new User({
+          ...this._parentConfig!,
+          id: item.id,
+          username: item.username ? item.username : null,
+          did: item.did,
+          address: item.address,
+          email: item.email ? item.email : null,
+          bio: item.bio ? item.bio : null,
+          avatarUrl: item.avatarUrl ? new URL(item.avatarUrl) : null,
+          isVerified: item.isVerified ? item.isVerified : false,
+          isNft: item.isNft ? item.isNft : false,
+          blacklistIds: item.blacklistIds ? item.blacklistIds : null,
+          allowNotification: item.allowNotification
+            ? item.allowNotification
+            : false,
+          allowNotificationSound: item.allowNotificationSound
+            ? item.allowNotificationSound
+            : false,
+          visibility: item.visibility ? item.visibility : false,
+          archivedConversations: item.archivedConversations
+            ? item.archivedConversations
+            : null,
+          onlineStatus: item.onlineStatus ? item.onlineStatus : null,
+          allowReadReceipt: item.allowReadReceipt
+            ? item.allowReadReceipt
+            : false,
+          allowReceiveMessageFrom: item.allowReceiveMessageFrom
+            ? item.allowReceiveMessageFrom
+            : null,
+          allowAddToGroupsFrom: item.allowAddToGroupsFrom
+            ? item.allowAddToGroupsFrom
+            : null,
+          allowGroupsSuggestion: item.allowGroupsSuggestion
+            ? item.allowGroupsSuggestion
+            : false,
+          e2ePublicKey: item.e2ePublicKey ? item.e2ePublicKey : null,
+          e2eSecret: item.e2eSecret ? item.e2eSecret : null,
+          e2eSecretIV: item.e2eSecretIV ? item.e2eSecretIV : null,
+          createdAt: new Date(item.createdAt),
+          updatedAt: item.updatedAt ? new Date(item.updatedAt) : null,
+          client: this._client!,
+        })
+      }),
+    }
+
+    return listUsers
   }
 
   async listConversationsByIds(ids: string[]): Promise<

@@ -46,6 +46,11 @@ export interface UAQueryEngine {
   ): Promise<
     { items: Array<ConversationPin>; nextToken?: Maybe<string> } | QIError
   >
+  listUsersByIds(
+    ids: Array<string>
+  ): Promise<
+    { items: Array<User>; unprocessedKeys?: Maybe<string[]> } | QIError
+  >
   getConversationById(id: string): Promise<Conversation | QIError>
   findUsersByUsernameOrAddress(
     args: FindUsersByUsernameOrAddressArgs
