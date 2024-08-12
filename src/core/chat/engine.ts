@@ -366,10 +366,6 @@ export class Engine extends HTTPClient implements IEngine {
     }
   }
 
-  protected setCurrentAccount(account: Account) {
-    this._account = account
-  }
-
   /**
    * Handles the response from an operation result and returns the data or an error.
    * @param {K} queryName - The name of the query.
@@ -531,6 +527,10 @@ export class Engine extends HTTPClient implements IEngine {
         `Internal error: ${__functionName}() thrown an exception. See the console to have more information.`
       )
     }
+  }
+
+  setCurrentAccount(account: Account) {
+    this._account = account
   }
 
   /**

@@ -1,7 +1,7 @@
 import {
-  WebConversation,
-  WebMessage,
-  WebUser,
+  LocalDBConversation,
+  LocalDBMessage,
+  LocalDBUser,
 } from "@src/interfaces/app/core/database"
 import { BaseStorage } from "../../interfaces/app"
 import { CreateOrConnectDexieArgs } from "../../types/app"
@@ -15,9 +15,9 @@ export class DexieStorage extends Dexie implements BaseStorage {
 
   //tables
   migration!: Dexie.Table<{ key: string; value: any }, string>
-  user!: Dexie.Table<WebUser, string>
-  message!: Dexie.Table<WebMessage, string>
-  conversation!: Dexie.Table<WebConversation, string>
+  user!: Dexie.Table<LocalDBUser, string>
+  message!: Dexie.Table<LocalDBMessage, string>
+  conversation!: Dexie.Table<LocalDBConversation, string>
 
   private constructor(dbName: string, dbVersion: number) {
     super(dbName)
@@ -27,8 +27,8 @@ export class DexieStorage extends Dexie implements BaseStorage {
 
     this.version(this._dbVersion).stores({
       user: "++id, did, organizationId",
-      conversation: "++id, name, description, createdAt",
-      message: "++id, content, origin, userDid, type, createdAt",
+      conversation: "[id+userDid], name, description, createdAt",
+      message: "[id+userDid], content, origin, userDid, type, createdAt",
       migration: "key",
     })
 
@@ -74,14 +74,6 @@ export class DexieStorage extends Dexie implements BaseStorage {
         reject(error)
       }
     })
-  }
-
-  async insert(): Promise<void> {
-    if (!this._enableStorage) return
-  }
-
-  async insertSafe(): Promise<void> {
-    if (!this._enableStorage) return
   }
 
   async deleteItem(
@@ -141,11 +133,11 @@ export class DexieStorage extends Dexie implements BaseStorage {
     return new Promise(async (resolve, reject) => {
       this.transaction("rw", tableName, async () => {
         if (tableName === "conversation")
-          await this.conversation.bulkPut(items as WebConversation[])
+          await this.conversation.bulkPut(items as LocalDBConversation[])
         else if (tableName === "user")
-          await this.user.bulkPut(items as WebUser[])
+          await this.user.bulkPut(items as LocalDBUser[])
         else if (tableName === "message")
-          await this.message.bulkPut(items as WebMessage[])
+          await this.message.bulkPut(items as LocalDBMessage[])
 
         resolve()
       }).catch((error) => {
@@ -182,6 +174,20 @@ export class DexieStorage extends Dexie implements BaseStorage {
     if (tableName === "user") return this.user as T
     else if (tableName === "conversation") return this.conversation as T
     else if (tableName === "message") return this.message as T
+
+    throw new Error(`Table ${tableName} not found`)
+  }
+
+  async truncate(
+    tableName: "user" | "conversation" | "message"
+  ): Promise<void> {
+    if (tableName === "user") {
+      await this.user.clear()
+    } else if (tableName === "conversation") {
+      await this.conversation.clear()
+    } else if (tableName === "message") {
+      await this.message.clear()
+    }
 
     throw new Error(`Table ${tableName} not found`)
   }

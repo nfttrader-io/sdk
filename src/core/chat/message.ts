@@ -714,7 +714,7 @@ export class Message
     })
 
     this._storage.insertBulkSafe("message", [
-      Converter.fromMessageToWebMessage(
+      Converter.fromMessageToLocalDBMessage(
         message,
         this._account!.did,
         this._account!.organizationId,
@@ -820,7 +820,7 @@ export class Message
     })
 
     this._storage.insertBulkSafe("message", [
-      Converter.fromMessageToWebMessage(
+      Converter.fromMessageToLocalDBMessage(
         message,
         this._account!.did,
         this._account!.organizationId,

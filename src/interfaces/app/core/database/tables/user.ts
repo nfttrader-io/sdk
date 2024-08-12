@@ -1,6 +1,6 @@
 import { Maybe } from "@src/types"
 
-export interface WebUser {
+export interface LocalDBUser {
   did: string
   organizationId: string
   username: string

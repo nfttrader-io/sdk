@@ -78,4 +78,8 @@ export class RealmStorage implements BaseStorage {
   ) {
     return "" as T
   }
+
+  truncate(tableName: "user" | "conversation" | "message"): Promise<void> {
+    throw new Error("Method not implemented.")
+  }
 }

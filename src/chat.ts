@@ -210,9 +210,9 @@ import { SubscriptionGarbage } from "./types/chat/subscriptiongarbage"
 import { KeyPairItem } from "./types/chat/keypairitem"
 import { ActiveUserConversationType } from "./enums"
 import {
-  WebConversation,
-  WebMessage,
-  WebUser,
+  LocalDBConversation,
+  LocalDBMessage,
+  LocalDBUser,
 } from "./interfaces/app/core/database"
 import { Account, Converter, findAddedAndRemovedConversation } from "./core"
 import Dexie, { Table } from "dexie"
@@ -311,6 +311,1127 @@ export class Chat
 
     if (index > -1) this._eventsCallback[index].callbacks = []
   }
+
+  /** syncing data with backend*/
+
+  private async recoverUserConversations(
+    type: ActiveUserConversationType
+  ): Promise<Maybe<Array<Conversation>>> {
+    try {
+      let AUCfirstSet = await this.listAllActiveUserConversationIds({
+        type,
+      })
+
+      if (AUCfirstSet instanceof QIError)
+        throw new Error(JSON.stringify(AUCfirstSet))
+
+      let { nextToken, items } = AUCfirstSet
+      let activeIds = [...items]
+
+      while (nextToken) {
+        const set = await this.listAllActiveUserConversationIds({
+          type,
+          nextToken,
+        })
+
+        if (set instanceof QIError) break
+
+        const { nextToken: token, items } = set
+
+        activeIds = [...activeIds, ...items]
+
+        if (token) nextToken = token
+        else break
+      }
+
+      let conversationfirstSet = await this.listConversationsByIds(activeIds)
+
+      if (conversationfirstSet instanceof QIError)
+        throw new Error(JSON.stringify(conversationfirstSet))
+
+      let { unprocessedKeys, items: conversations } = conversationfirstSet
+      let conversationsItems = [...conversations]
+
+      while (unprocessedKeys) {
+        const set = await this.listConversationsByIds(unprocessedKeys)
+
+        if (set instanceof QIError) break
+
+        const { unprocessedKeys: ids, items } = set
+
+        conversationsItems = [...conversationsItems, ...items]
+
+        if (ids) unprocessedKeys = ids
+        else break
+      }
+
+      const currentUser = await this.getCurrentUser()
+
+      if (currentUser instanceof QIError)
+        throw new Error(JSON.stringify(currentUser))
+
+      //stores/update the conversations into the local db
+      if (this._storage.typeOf() === "DexieStorage") {
+        await this._storage.insertBulkSafe<LocalDBConversation>(
+          "conversation",
+          conversationsItems.map((conversation: Conversation) => {
+            let isConversationArchived = false
+
+            if (currentUser.archivedConversations) {
+              const index = currentUser.archivedConversations.findIndex(
+                (id) => {
+                  return id === conversation.id
+                }
+              )
+
+              if (index > -1) isConversationArchived = true
+            }
+
+            return Converter.fromConversationToLocalDBConversation(
+              conversation,
+              this._account!.did,
+              this._account!.organizationId,
+              isConversationArchived
+            )
+          })
+        )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+        //mobile insert TODO
+      }
+
+      return conversationsItems
+      //TODO, still thinking how to integrate the local db objects with Chat, Conversation object that comes from GraphQL
+    } catch (error) {
+      console.log("[ERROR]: recoverUserConversations() -> ", error)
+    }
+
+    return null
+  }
+
+  private async recoverKeysFromConversations(): Promise<boolean> {
+    try {
+      let firstConversationMemberSet =
+        await this.listConversationMemberByUserId()
+
+      if (firstConversationMemberSet instanceof QIError)
+        throw new Error(JSON.stringify(firstConversationMemberSet))
+
+      let { nextToken, items } = firstConversationMemberSet
+      let conversationMemberItems = [...items]
+
+      while (nextToken) {
+        const set = await this.listConversationMemberByUserId(nextToken)
+
+        if (set instanceof QIError) break
+
+        const { nextToken: token, items } = set
+
+        conversationMemberItems = [...conversationMemberItems, ...items]
+
+        if (token) nextToken = token
+        else break
+      }
+
+      //let's take all the information related to our keys into _userKeyPair object. These are the public and private key of the current user.
+      //To do that, let's do a query on the local user table. If the _userKeyPair is already set, we skip this operation.
+      if (!this._userKeyPair) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const user = (await this._storage.get(
+            "user",
+            "did",
+            this._account!.did
+          )) as LocalDBUser
+
+          const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user
+          const { e2eSecret } = this._account!
+          const { e2eSecretIV } = this._account!
+
+          const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
+            e2eEncryptedPrivateKey,
+            Buffer.from(e2eSecret).toString("base64"),
+            Buffer.from(e2eSecretIV).toString("base64")
+          )
+
+          const userKeyPair = await Crypto.generateKeyPairFromPem(
+            e2ePublicKeyPem,
+            e2ePrivateKeyPem
+          )
+
+          if (!userKeyPair)
+            throw new Error("Impossible to recover the user key pair.")
+
+          this.setUserKeyPair(userKeyPair)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      }
+
+      //now, from the private key of the user, we will decrypt all the information about the conversation member.
+      //we will store these decrypted pairs public keys/private keys into the _keyPairsMap array.
+      const _keyPairsMap: Array<KeyPairItem> = []
+      let isError: boolean = false
+
+      for (const conversationMember of conversationMemberItems) {
+        const {
+          encryptedConversationPrivateKey,
+          encryptedConversationPublicKey,
+        } = conversationMember
+        const privateKeyPem = Crypto.decryptStringOrFail(
+          this.getUserKeyPair()!.privateKey,
+          encryptedConversationPrivateKey
+        )
+        const publicKeyPem = Crypto.decryptStringOrFail(
+          this.getUserKeyPair()!.privateKey,
+          encryptedConversationPublicKey
+        )
+        const keypair = await Crypto.generateKeyPairFromPem(
+          privateKeyPem,
+          publicKeyPem
+        )
+
+        if (!keypair) {
+          isError = true
+          break
+        }
+
+        _keyPairsMap.push({
+          id: conversationMember.conversationId,
+          keypair,
+        })
+      }
+
+      if (isError)
+        throw new Error("Failed to convert a public/private key pair.")
+
+      this.setKeyPairMap(_keyPairsMap)
+
+      return true
+    } catch (error) {
+      console.log("[ERROR]: recoverKeysFromConversations() -> ", error)
+    }
+
+    return false
+  }
+
+  private async recoverMessagesFromConversations(
+    conversations: Array<Conversation>
+  ): Promise<boolean> {
+    try {
+      for (const conversation of conversations) {
+        const { id, lastMessageSentAt } = conversation
+
+        //if the conversation hasn't any message it's useless to download the messages.
+        if (!lastMessageSentAt) continue
+
+        //let's see if the last message sent into the conversation is more recent than the last message stored in the database
+        if (this._storage.typeOf() === "DexieStorage") {
+          //messages important handling
+          const messagesImportantFirstSet =
+            await this.listMessagesImportantByUserConversationId({
+              conversationId: id,
+            })
+
+          if (messagesImportantFirstSet instanceof QIError)
+            throw new Error(JSON.stringify(messagesImportantFirstSet))
+
+          let { nextToken, items } = messagesImportantFirstSet
+          let messagesImportant = [...items]
+
+          while (nextToken) {
+            const set = await this.listMessagesImportantByUserConversationId({
+              conversationId: id,
+              nextToken,
+            })
+
+            if (set instanceof QIError) break
+
+            const { nextToken: token, items } = set
+
+            messagesImportant = [...messagesImportant, ...items]
+
+            if (token) nextToken = token
+            else break
+          }
+
+          //messages handling
+          const messageTable = this._storage.getTable("message") as Dexie.Table<
+            LocalDBMessage,
+            string,
+            LocalDBMessage
+          >
+          const lastMessageStored = await messageTable
+            .orderBy("createdAt")
+            .filter(
+              (element) =>
+                element.origin === "USER" &&
+                element.userDid === this._account!.did
+            )
+            .reverse()
+            .first()
+
+          const canDownloadMessages =
+            !lastMessageStored ||
+            (lastMessageStored &&
+              lastMessageStored.createdAt < lastMessageSentAt)
+
+          //the check of history message is already done on backend side
+
+          if (canDownloadMessages) {
+            const messagesFirstSet = await this.listMessagesByConversationId({
+              id,
+            })
+
+            if (messagesFirstSet instanceof QIError)
+              throw new Error(JSON.stringify(messagesFirstSet))
+
+            let { nextToken, items } = messagesFirstSet
+            let messages = [...items]
+
+            while (nextToken) {
+              const set = await this.listMessagesByConversationId({
+                id,
+                nextToken,
+              })
+
+              if (set instanceof QIError) break
+
+              const { nextToken: token, items } = set
+
+              messages = [...messages, ...items]
+
+              if (token) nextToken = token
+              else break
+            }
+
+            //let's store the messages without create duplicates
+            if (messages.length > 0)
+              //it's possible this array is empty when the chat history settings has value 'false'
+              this._storage.insertBulkSafe(
+                "message",
+                messages.map((message) => {
+                  const isMessageImportant =
+                    messagesImportant.findIndex((important) => {
+                      return important.messageId === message.id
+                    }) > -1
+
+                  return Converter.fromMessageToLocalDBMessage(
+                    message,
+                    this._account!.did,
+                    this._account!.organizationId,
+                    isMessageImportant,
+                    "USER"
+                  )
+                })
+              )
+          }
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.log("[ERROR]: recoverMessagesFromConversations() -> ", error)
+    }
+
+    return false
+  }
+
+  private async _sync(syncingCounter: number): Promise<void> {
+    this._isSyncing = true
+    this._emit("syncing", this._syncingCounter)
+
+    //first operation. Recover the list of the conversations in which the user is a member.
+    //unactive conversations are the convos in which the user left the group or has been ejected
+    const activeConversations = await this.recoverUserConversations(
+      ActiveUserConversationType.Active
+    )
+    const unactiveConversations = await this.recoverUserConversations(
+      ActiveUserConversationType.Canceled
+    )
+
+    if (!activeConversations || !unactiveConversations) {
+      this._emit("syncError", { error: `error during conversation sincying.` })
+      return
+    }
+
+    //second operation. Recover the list of conversation member objects, in order to retrieve the public & private keys of all conversations.
+    const keysRecovered = await this.recoverKeysFromConversations()
+    if (!keysRecovered) {
+      this._emit("syncError", {
+        error: `error during recovering of the keys from conversations.`,
+      })
+      return
+    }
+
+    //third operation. For each conversation, we need to download the messages if the lastMessageSentAt of the conversation is != null
+    //and the date of the last message stored in the local db is less recent than the lastMessageSentAt date.
+    const messagesRecovered = await this.recoverMessagesFromConversations([
+      ...activeConversations,
+      ...unactiveConversations,
+    ])
+    if (!messagesRecovered) {
+      this._emit("syncError", {
+        error: `error during recovering of the messages from conversations.`,
+      })
+      return
+    }
+
+    //let's setup an array of the conversations in the first sync cycle.
+    //This will allow to map the conversations in every single cycle that comes after the first one.
+    if (syncingCounter === 0) {
+      for (const activeConversation of activeConversations)
+        this._conversationsMap.push({
+          type: "ACTIVE",
+          conversationId: activeConversation.id,
+          conversation: activeConversation,
+        })
+
+      for (const unactiveConversation of unactiveConversations)
+        this._conversationsMap.push({
+          type: "CANCELED",
+          conversationId: unactiveConversation.id,
+          conversation: unactiveConversation,
+        })
+    } else {
+      //this situation happens when a subscription between onAddMemberToConversation, onEjectMember, onLeaveConversation doesn't fire properly.
+      //here we can check if there are differences between the previous sync and the current one
+      //theoretically since we have subscriptions, we should be in a situation in which we don't have any difference
+      //since the subscription role is to keep the array _conversationsMap synchronized.
+      //But it can be also the opposite. So inside this block we will check if there are conversations that need
+      //subscriptions to be added or the opposite (so subscriptions that need to be removed)
+
+      const conversations = [...activeConversations, ...unactiveConversations]
+      const flatConversationMap = this._conversationsMap.map(
+        (item) => item.conversation
+      )
+
+      const { added, removed } = findAddedAndRemovedConversation(
+        conversations,
+        flatConversationMap
+      )
+
+      if (added.length > 0)
+        for (const conversation of added)
+          this._addSubscriptionsSync(conversation.id)
+
+      if (removed.length > 0)
+        for (const conversation of removed)
+          this._removeSubscribtionsSync(conversation.id)
+    }
+
+    if (syncingCounter === 0) this._emit("sync")
+    else this._emit("syncUpdate", this._syncingCounter)
+
+    this._syncingCounter++
+
+    setTimeout(async () => {
+      await this._sync(this._syncingCounter)
+    }, Chat.SYNCING_TIME)
+  }
+
+  private async _onAddMemberToConversationSync(
+    response:
+      | QIError
+      | {
+          conversationId: string
+          memberId: string
+          item: ConversationMember
+        },
+    source: OperationResult<
+      {
+        onAddMemberToConversation: AddMemberToConversationResultGraphQL
+      },
+      SubscriptionOnAddMemberToConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        //we need to update the _keyPairsMap with the new keys of the new conversation
+        const { conversationId } = response
+        const {
+          encryptedConversationPrivateKey,
+          encryptedConversationPublicKey,
+        } = response.item
+        //these pair is encrypted with the public key of the current user, so we need to decrypt them
+        const conversationPrivateKeyPem = Crypto.decryptStringOrFail(
+          this._userKeyPair!.privateKey,
+          encryptedConversationPrivateKey
+        )
+        const conversationPublicKeyPem = Crypto.decryptStringOrFail(
+          this._userKeyPair!.privateKey,
+          encryptedConversationPublicKey
+        )
+        const keypair = await Crypto.generateKeyPairFromPem(
+          conversationPublicKeyPem,
+          conversationPrivateKeyPem
+        )
+
+        //this add a key pair only if it doesn't exist. if it does, then internally skip this operation
+        this.addKeyPairItem({
+          id: conversationId,
+          keypair: keypair!,
+        })
+
+        //we update also the _unsubscribeSyncSet array using the uuid emitted by the subscription
+        //in order to map the unsubscribe function with the conversation
+        const index = this._unsubscribeSyncSet.findIndex((item) => {
+          return item.uuid === uuid
+        })
+
+        if (index > -1)
+          this._unsubscribeSyncSet[index].conversationId = conversationId
+
+        //now we store the conversation in the local database
+        const responseConversation = await this.listConversationsByIds([
+          conversationId,
+        ])
+
+        if (!(responseConversation instanceof QIError)) {
+          const { items } = responseConversation
+          const conversation = items[0]
+
+          //we need to check if the conversation was already inside the _conversationsMap array. If it exists then we update the array
+          //otherwise we add a new element
+          const index = this._conversationsMap.findIndex((conversationItem) => {
+            return conversationItem.conversationId === conversation.id
+          })
+
+          //this is an additional check that it's used to avoid to add the subscriptions to a conversation that potentially
+          //could have them already. This could happen potentially if the _sync() is executed
+          //immediately before the _onAddMemberToConversationSync() in the javascript event loop
+          const subscriptionConversationCheck = {
+            conversationWasActive: false,
+          }
+
+          if (index > -1) {
+            //it should never be ACTIVE at this point, but this is for more safety
+            if (this._conversationsMap[index].type === "ACTIVE")
+              subscriptionConversationCheck.conversationWasActive = true
+
+            this._conversationsMap[index].type = "ACTIVE"
+            this._conversationsMap[index].conversation = conversation
+          } else
+            this._conversationsMap.push({
+              conversation,
+              conversationId: conversation.id,
+              type: "ACTIVE",
+            })
+
+          const currentUser = await this.getCurrentUser()
+
+          if (currentUser instanceof QIError)
+            throw new Error(JSON.stringify(currentUser))
+
+          //stores/update the conversations into the local db
+          if (this._storage.typeOf() === "DexieStorage") {
+            let isConversationArchived = false
+
+            if (currentUser.archivedConversations) {
+              const index = currentUser.archivedConversations.findIndex(
+                (id) => {
+                  return id === conversationId
+                }
+              )
+
+              if (index > -1) isConversationArchived = true
+            }
+
+            this._storage.insertBulkSafe<LocalDBConversation>("conversation", [
+              Converter.fromConversationToLocalDBConversation(
+                conversation,
+                this._account!.did,
+                this._account!.organizationId,
+                isConversationArchived
+              ),
+            ])
+          } else if (this._storage.typeOf() === "RealmStorage") {
+            //mobile insert TODO
+          }
+
+          //let's remove all the subscriptions previously added
+          if (subscriptionConversationCheck.conversationWasActive) {
+            this._removeSubscribtionsSync(conversationId)
+            this._conversationsMap[index].type = "ACTIVE" //assign again "type" the value "ACTIVE" because _removeSubscribtionsSync() turns type to "CANCELED"
+          }
+
+          //let's add the subscriptions in order to keep synchronized this conversation
+          this._addSubscriptionsSync(conversationId)
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onAddMemberToConversationSync() -> ", error)
+    }
+  }
+
+  private async _onAddReactionSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onAddReaction: MessageGraphQL
+      },
+      SubscriptionOnAddReactionArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToLocalDBMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false,
+              "USER"
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onAddReactionSync() -> ", error)
+    }
+  }
+
+  private async _onRemoveReactionSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onRemoveReaction: MessageGraphQL
+      },
+      SubscriptionOnRemoveReactionArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToLocalDBMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false,
+              "USER"
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onRemoveReactionSync() -> ", error)
+    }
+  }
+
+  private async _onSendMessageSync(
+    response: Message | QIError,
+    source: OperationResult<
+      {
+        onSendMessage: MessageGraphQL
+      },
+      SubscriptionOnSendMessageArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          //let's insert the new message
+          this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToLocalDBMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false,
+              "USER"
+            ),
+          ])
+
+          //let's update the conversation in the case it was deleted locally by the user.
+          //the conversation if it is deleted, returns visible for the user.
+          this._storage.query(
+            (
+              db: Dexie,
+              table: Table<LocalDBConversation, string, LocalDBConversation>
+            ) => {
+              table.update(response.conversationId, {
+                deletedAt: null,
+              })
+            },
+            "conversation"
+          )
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onSendMessageSync() -> ", error)
+    }
+  }
+
+  private async _onEditMessageSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onEditMessage: MessageGraphQL
+      },
+      SubscriptionOnEditMessageArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.insertBulkSafe("message", [
+            Converter.fromMessageToLocalDBMessage(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              false,
+              "USER"
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onEditMessageSync() -> ", error)
+    }
+  }
+
+  private async _onDeleteMessageSync(
+    response: QIError | Message,
+    source: OperationResult<
+      {
+        onDeleteMessage: MessageGraphQL
+      },
+      SubscriptionOnDeleteMessageArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.deleteItem("message", response.id)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onDeleteMessageSync() -> ", error)
+    }
+  }
+
+  private async _onBatchDeleteMessagesSync(
+    response:
+      | QIError
+      | {
+          conversationId: string
+          messagesIds: string[]
+        },
+    source: OperationResult<
+      {
+        onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL
+      },
+      SubscriptionOnBatchDeleteMessagesArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          await this._storage.deleteBulk("message", response.messagesIds)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onBatchDeleteMessagesSync() -> ", error)
+    }
+  }
+
+  private async _onUpdateConversationGroupSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onUpdateConversationGroup: ConversationGraphQL
+      },
+      SubscriptionOnUpdateConversationGroupArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const conversationStored = (await this._storage.get(
+            "conversation",
+            "id",
+            response.id
+          )) as Maybe<LocalDBConversation>
+
+          this._storage.insertBulkSafe("conversation", [
+            Converter.fromConversationToLocalDBConversation(
+              response,
+              this._account!.did,
+              this._account!.organizationId,
+              conversationStored ? conversationStored.isArchived : false
+            ),
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onUpdateConversationGroupSync() -> ", error)
+    }
+  }
+
+  private _onEjectMemberSync(
+    response:
+      | QIError
+      | { conversationId: string; conversation: Conversation; memberOut: User },
+    source: OperationResult<
+      {
+        onEjectMember: MemberOutResultGraphQL
+      },
+      SubscriptionOnEjectMemberArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const conversationId = response.conversationId
+          this._removeSubscribtionsSync(conversationId)
+
+          //handling system messages that shows the user was ejected
+          this._storage.insertBulkSafe("message", [
+            {
+              id: uuidv4(),
+              userId: response.memberOut.id,
+              organizationId: this._account!.organizationId,
+              userDid: this._account!.did,
+              conversationId: response.conversationId,
+              content: "",
+              reactions: [],
+              isImportant: false,
+              type: "EJECTED",
+              origin: "SYSTEM",
+              messageRoot: null,
+              messageRootId: null,
+              createdAt: new Date(),
+              updateAt: null,
+              deletedAt: null,
+            },
+          ])
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onEjectMemberSync() -> ", error)
+    }
+  }
+
+  private _onLeaveConversationSync(
+    response:
+      | QIError
+      | { conversationId: string; conversation: Conversation; memberOut: User },
+    source: OperationResult<
+      {
+        onLeaveConversation: MemberOutResultGraphQL
+      },
+      SubscriptionOnLeaveConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO handling system messages that shows the user left the conversation
+    try {
+      if (!(response instanceof QIError)) {
+        if (this._storage.typeOf() === "DexieStorage") {
+          const conversationId = response.conversationId
+          this._removeSubscribtionsSync(conversationId)
+        } else if (this._storage.typeOf() === "RealmStorage") {
+          //TODO
+        }
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onLeaveConversationSync() -> ", error)
+    }
+  }
+
+  private _onMuteConversationSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onMuteConversation: ConversationGraphQL
+      },
+      SubscriptionOnMuteConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO socket notification handling
+    try {
+      if (!(response instanceof QIError)) {
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onMuteConversationSync() -> ", error)
+    }
+  }
+
+  private _onUnmuteConversationSync(
+    response: QIError | Conversation,
+    source: OperationResult<
+      {
+        onUnmuteConversation: ConversationGraphQL
+      },
+      SubscriptionOnUnmuteConversationArgs & {
+        jwt: string
+      }
+    >,
+    uuid: string
+  ) {
+    //TODO socket notification handling
+    try {
+      if (!(response instanceof QIError)) {
+      }
+    } catch (error) {
+      console.log("[ERROR]: _onUnmuteConversationSync() -> ", error)
+    }
+  }
+
+  private _addSubscriptionsSync(conversationId: string) {
+    //add reaction(conversationId)
+    const onAddReaction = this.onAddReaction(
+      conversationId,
+      this._onAddReactionSync
+    )
+
+    if (!(onAddReaction instanceof QIError)) {
+      const { unsubscribe, uuid } = onAddReaction
+      this._unsubscribeSyncSet.push({
+        type: "onAddReaction",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //remove reaction(conversationId)
+    const onRemoveReaction = this.onRemoveReaction(
+      conversationId,
+      this._onRemoveReactionSync
+    )
+
+    if (!(onRemoveReaction instanceof QIError)) {
+      const { unsubscribe, uuid } = onRemoveReaction
+      this._unsubscribeSyncSet.push({
+        type: "onRemoveReaction",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //send message(conversationId)
+    const onSendMessage = this.onSendMessage(
+      conversationId,
+      this._onSendMessageSync
+    )
+
+    if (!(onSendMessage instanceof QIError)) {
+      const { unsubscribe, uuid } = onSendMessage
+      this._unsubscribeSyncSet.push({
+        type: "onSendMessage",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //edit message(conversationId)
+    const onEditMessage = this.onEditMessage(
+      conversationId,
+      this._onEditMessageSync
+    )
+
+    if (!(onEditMessage instanceof QIError)) {
+      const { unsubscribe, uuid } = onEditMessage
+      this._unsubscribeSyncSet.push({
+        type: "onEditMessage",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //delete message(conversationId)
+    const onDeleteMessage = this.onDeleteMessage(
+      conversationId,
+      this._onDeleteMessageSync
+    )
+
+    if (!(onDeleteMessage instanceof QIError)) {
+      const { unsubscribe, uuid } = onDeleteMessage
+      this._unsubscribeSyncSet.push({
+        type: "onDeleteMessage",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //delete batch messages(conversationId)
+    const onBatchDeleteMessages = this.onBatchDeleteMessages(
+      conversationId,
+      this._onBatchDeleteMessagesSync
+    )
+
+    if (!(onBatchDeleteMessages instanceof QIError)) {
+      const { unsubscribe, uuid } = onBatchDeleteMessages
+      this._unsubscribeSyncSet.push({
+        type: "onBatchDeleteMessages",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //update settings group(conversationId)
+    const onUpdateConversationGroup = this.onUpdateConversationGroup(
+      conversationId,
+      this._onUpdateConversationGroupSync
+    )
+
+    if (!(onUpdateConversationGroup instanceof QIError)) {
+      const { unsubscribe, uuid } = onUpdateConversationGroup
+      this._unsubscribeSyncSet.push({
+        type: "onUpdateConversationGroup",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //eject member(conversationId)
+    const onEjectMember = this.onEjectMember(
+      conversationId,
+      this._onEjectMemberSync
+    )
+
+    if (!(onEjectMember instanceof QIError)) {
+      const { unsubscribe, uuid } = onEjectMember
+      this._unsubscribeSyncSet.push({
+        type: "onEjectMember",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //leave group/conversation(conversationId)
+    const onLeaveConversation = this.onLeaveConversation(
+      conversationId,
+      this._onLeaveConversationSync
+    )
+
+    if (!(onLeaveConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onLeaveConversation
+      this._unsubscribeSyncSet.push({
+        type: "onLeaveConversation",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //mute conversation(conversationId)
+    const onMuteConversation = this.onMuteConversation(
+      conversationId,
+      this._onMuteConversationSync
+    )
+
+    if (!(onMuteConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onMuteConversation
+      this._unsubscribeSyncSet.push({
+        type: "onMuteConversation",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+
+    //unmute conversation(conversationId)
+    const onUnmuteConversation = this.onUnmuteConversation(
+      conversationId,
+      this._onUnmuteConversationSync
+    )
+
+    if (!(onUnmuteConversation instanceof QIError)) {
+      const { unsubscribe, uuid } = onUnmuteConversation
+      this._unsubscribeSyncSet.push({
+        type: "onUnmuteConversation",
+        unsubscribe,
+        uuid,
+        conversationId,
+      })
+    }
+  }
+
+  private _removeSubscribtionsSync(conversationId: string) {
+    //let's remove first the subscriptions
+    const unsubscribeItems = this._unsubscribeSyncSet.filter((item) => {
+      return item.conversationId === conversationId
+    })
+
+    unsubscribeItems.forEach((item) => {
+      try {
+        item.unsubscribe()
+      } catch (error) {
+        console.log("[ERROR]: unsubscribe() -> ", item.uuid, item.type)
+      }
+    })
+
+    //let's remove the unsubscriptions functions from the _unsubscribeSyncSet since we have unsubscribed everything
+    this._unsubscribeSyncSet = this._unsubscribeSyncSet.filter((item) => {
+      return item.conversationId !== conversationId
+    })
+
+    //let's update also the _conversationsMap and turn this conversation as unactive
+    const index = this._conversationsMap.findIndex((conversation) => {
+      return conversation.conversationId === conversationId
+    })
+
+    if (index > -1) this._conversationsMap[index].type = "CANCELED"
+  }
+
+  /** Mutations */
 
   /**
    * Blocks a user by their ID.
@@ -2281,7 +3402,7 @@ export class Chat
 
     //let's update the local db
     this._storage.insertBulkSafe("message", [
-      Converter.fromMessageToWebMessage(
+      Converter.fromMessageToLocalDBMessage(
         message,
         this._account!.did,
         this._account!.organizationId,
@@ -2383,7 +3504,7 @@ export class Chat
 
     //let's update the local db
     this._storage.insertBulkSafe("message", [
-      Converter.fromMessageToWebMessage(
+      Converter.fromMessageToLocalDBMessage(
         message,
         this._account!.did,
         this._account!.organizationId,
@@ -4819,1131 +5940,18 @@ export class Chat
     return { unsubscribe, uuid }
   }
 
-  /** syncing data with backend*/
-
-  private async recoverUserConversations(
-    type: ActiveUserConversationType
-  ): Promise<Maybe<Array<Conversation>>> {
-    try {
-      let AUCfirstSet = await this.listAllActiveUserConversationIds({
-        type,
-      })
-
-      if (AUCfirstSet instanceof QIError)
-        throw new Error(JSON.stringify(AUCfirstSet))
-
-      let { nextToken, items } = AUCfirstSet
-      let activeIds = [...items]
-
-      while (nextToken) {
-        const set = await this.listAllActiveUserConversationIds({
-          type,
-          nextToken,
-        })
-
-        if (set instanceof QIError) break
-
-        const { nextToken: token, items } = set
-
-        activeIds = [...activeIds, ...items]
-
-        if (token) nextToken = token
-        else break
-      }
-
-      let conversationfirstSet = await this.listConversationsByIds(activeIds)
-
-      if (conversationfirstSet instanceof QIError)
-        throw new Error(JSON.stringify(conversationfirstSet))
-
-      let { unprocessedKeys, items: conversations } = conversationfirstSet
-      let conversationsItems = [...conversations]
-
-      while (unprocessedKeys) {
-        const set = await this.listConversationsByIds(unprocessedKeys)
-
-        if (set instanceof QIError) break
-
-        const { unprocessedKeys: ids, items } = set
-
-        conversationsItems = [...conversationsItems, ...items]
-
-        if (ids) unprocessedKeys = ids
-        else break
-      }
-
-      const currentUser = await this.getCurrentUser()
-
-      if (currentUser instanceof QIError)
-        throw new Error(JSON.stringify(currentUser))
-
-      //stores/update the conversations into the local db
-      if (this._storage.typeOf() === "DexieStorage") {
-        await this._storage.insertBulkSafe<WebConversation>(
-          "conversation",
-          conversationsItems.map((conversation: Conversation) => {
-            let isConversationArchived = false
-
-            if (currentUser.archivedConversations) {
-              const index = currentUser.archivedConversations.findIndex(
-                (id) => {
-                  return id === conversation.id
-                }
-              )
-
-              if (index > -1) isConversationArchived = true
-            }
-
-            return Converter.fromConversationToWebConversation(
-              conversation,
-              this._account!.did,
-              this._account!.organizationId,
-              isConversationArchived
-            )
-          })
-        )
-      } else if (this._storage.typeOf() === "RealmStorage") {
-        //mobile insert TODO
-      }
-
-      return conversationsItems
-      //TODO, still thinking how to integrate the local db objects with Chat, Conversation object that comes from GraphQL
-    } catch (error) {
-      console.log("[ERROR]: recoverUserConversations() -> ", error)
-    }
-
-    return null
-  }
-
-  private async recoverKeysFromConversations(): Promise<boolean> {
-    try {
-      let firstConversationMemberSet =
-        await this.listConversationMemberByUserId()
-
-      if (firstConversationMemberSet instanceof QIError)
-        throw new Error(JSON.stringify(firstConversationMemberSet))
-
-      let { nextToken, items } = firstConversationMemberSet
-      let conversationMemberItems = [...items]
-
-      while (nextToken) {
-        const set = await this.listConversationMemberByUserId(nextToken)
-
-        if (set instanceof QIError) break
-
-        const { nextToken: token, items } = set
-
-        conversationMemberItems = [...conversationMemberItems, ...items]
-
-        if (token) nextToken = token
-        else break
-      }
-
-      //let's take all the information related to our keys into _userKeyPair object. These are the public and private key of the current user.
-      //To do that, let's do a query on the local user table. If the _userKeyPair is already set, we skip this operation.
-      if (!this._userKeyPair) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const user = (await this._storage.get(
-            "user",
-            "did",
-            this._account!.did
-          )) as WebUser
-
-          const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user
-          const { e2eSecret } = this._account!
-          const { e2eSecretIV } = this._account!
-
-          const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
-            e2eEncryptedPrivateKey,
-            Buffer.from(e2eSecret).toString("base64"),
-            Buffer.from(e2eSecretIV).toString("base64")
-          )
-
-          const userKeyPair = await Crypto.generateKeyPairFromPem(
-            e2ePublicKeyPem,
-            e2ePrivateKeyPem
-          )
-
-          if (!userKeyPair)
-            throw new Error("Impossible to recover the user key pair.")
-
-          this.setUserKeyPair(userKeyPair)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-        }
-      }
-
-      //now, from the private key of the user, we will decrypt all the information about the conversation member.
-      //we will store these decrypted pairs public keys/private keys into the _keyPairsMap array.
-      const _keyPairsMap: Array<KeyPairItem> = []
-      let isError: boolean = false
-
-      for (const conversationMember of conversationMemberItems) {
-        const {
-          encryptedConversationPrivateKey,
-          encryptedConversationPublicKey,
-        } = conversationMember
-        const privateKeyPem = Crypto.decryptStringOrFail(
-          this.getUserKeyPair()!.privateKey,
-          encryptedConversationPrivateKey
-        )
-        const publicKeyPem = Crypto.decryptStringOrFail(
-          this.getUserKeyPair()!.privateKey,
-          encryptedConversationPublicKey
-        )
-        const keypair = await Crypto.generateKeyPairFromPem(
-          privateKeyPem,
-          publicKeyPem
-        )
-
-        if (!keypair) {
-          isError = true
-          break
-        }
-
-        _keyPairsMap.push({
-          id: conversationMember.conversationId,
-          keypair,
-        })
-      }
-
-      if (isError)
-        throw new Error("Failed to convert a public/private key pair.")
-
-      this.setKeyPairMap(_keyPairsMap)
-
-      return true
-    } catch (error) {
-      console.log("[ERROR]: recoverKeysFromConversations() -> ", error)
-    }
-
-    return false
-  }
-
-  private async recoverMessagesFromConversations(
-    conversations: Array<Conversation>
-  ): Promise<boolean> {
-    try {
-      for (const conversation of conversations) {
-        const { id, lastMessageSentAt } = conversation
-
-        //if the conversation hasn't any message it's useless to download the messages.
-        if (!lastMessageSentAt) continue
-
-        //let's see if the last message sent into the conversation is more recent than the last message stored in the database
-        if (this._storage.typeOf() === "DexieStorage") {
-          //messages important handling
-          const messagesImportantFirstSet =
-            await this.listMessagesImportantByUserConversationId({
-              conversationId: id,
-            })
-
-          if (messagesImportantFirstSet instanceof QIError)
-            throw new Error(JSON.stringify(messagesImportantFirstSet))
-
-          let { nextToken, items } = messagesImportantFirstSet
-          let messagesImportant = [...items]
-
-          while (nextToken) {
-            const set = await this.listMessagesImportantByUserConversationId({
-              conversationId: id,
-              nextToken,
-            })
-
-            if (set instanceof QIError) break
-
-            const { nextToken: token, items } = set
-
-            messagesImportant = [...messagesImportant, ...items]
-
-            if (token) nextToken = token
-            else break
-          }
-
-          //messages handling
-          const messageTable = this._storage.getTable("message") as Dexie.Table<
-            WebMessage,
-            string,
-            WebMessage
-          >
-          const lastMessageStored = await messageTable
-            .orderBy("createdAt")
-            .filter(
-              (element) =>
-                element.origin === "USER" &&
-                element.userDid === this._account!.did
-            )
-            .reverse()
-            .first()
-
-          const canDownloadMessages =
-            !lastMessageStored ||
-            (lastMessageStored &&
-              lastMessageStored.createdAt < lastMessageSentAt)
-
-          //the check of history message is already done on backend side
-
-          if (canDownloadMessages) {
-            const messagesFirstSet = await this.listMessagesByConversationId({
-              id,
-            })
-
-            if (messagesFirstSet instanceof QIError)
-              throw new Error(JSON.stringify(messagesFirstSet))
-
-            let { nextToken, items } = messagesFirstSet
-            let messages = [...items]
-
-            while (nextToken) {
-              const set = await this.listMessagesByConversationId({
-                id,
-                nextToken,
-              })
-
-              if (set instanceof QIError) break
-
-              const { nextToken: token, items } = set
-
-              messages = [...messages, ...items]
-
-              if (token) nextToken = token
-              else break
-            }
-
-            //let's store the messages without create duplicates
-            if (messages.length > 0)
-              //it's possible this array is empty when the chat history settings has value 'false'
-              this._storage.insertBulkSafe(
-                "message",
-                messages.map((message) => {
-                  const isMessageImportant =
-                    messagesImportant.findIndex((important) => {
-                      return important.messageId === message.id
-                    }) > -1
-
-                  return Converter.fromMessageToWebMessage(
-                    message,
-                    this._account!.did,
-                    this._account!.organizationId,
-                    isMessageImportant,
-                    "USER"
-                  )
-                })
-              )
-          }
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-
-      return true
-    } catch (error) {
-      console.log("[ERROR]: recoverMessagesFromConversations() -> ", error)
-    }
-
-    return false
-  }
-
-  private async _sync(syncingCounter: number): Promise<void> {
-    this._isSyncing = true
-    this._emit("syncing", this._syncingCounter)
-
-    //first operation. Recover the list of the conversations in which the user is a member.
-    //unactive conversations are the convos in which the user left the group or has been ejected
-    const activeConversations = await this.recoverUserConversations(
-      ActiveUserConversationType.Active
-    )
-    const unactiveConversations = await this.recoverUserConversations(
-      ActiveUserConversationType.Canceled
-    )
-
-    if (!activeConversations || !unactiveConversations) {
-      this._emit("syncError", { error: `error during conversation sincying.` })
-      return
-    }
-
-    //second operation. Recover the list of conversation member objects, in order to retrieve the public & private keys of all conversations.
-    const keysRecovered = await this.recoverKeysFromConversations()
-    if (!keysRecovered) {
-      this._emit("syncError", {
-        error: `error during recovering of the keys from conversations.`,
-      })
-      return
-    }
-
-    //third operation. For each conversation, we need to download the messages if the lastMessageSentAt of the conversation is != null
-    //and the date of the last message stored in the local db is less recent than the lastMessageSentAt date.
-    const messagesRecovered = await this.recoverMessagesFromConversations([
-      ...activeConversations,
-      ...unactiveConversations,
-    ])
-    if (!messagesRecovered) {
-      this._emit("syncError", {
-        error: `error during recovering of the messages from conversations.`,
-      })
-      return
-    }
-
-    //let's setup an array of the conversations in the first sync cycle.
-    //This will allow to map the conversations in every single cycle that comes after the first one.
-    if (syncingCounter === 0) {
-      for (const activeConversation of activeConversations)
-        this._conversationsMap.push({
-          type: "ACTIVE",
-          conversationId: activeConversation.id,
-          conversation: activeConversation,
-        })
-
-      for (const unactiveConversation of unactiveConversations)
-        this._conversationsMap.push({
-          type: "CANCELED",
-          conversationId: unactiveConversation.id,
-          conversation: unactiveConversation,
-        })
-    } else {
-      //this situation happens when a subscription between onAddMemberToConversation, onEjectMember, onLeaveConversation doesn't fire properly.
-      //here we can check if there are differences between the previous sync and the current one
-      //theoretically since we have subscriptions, we should be in a situation in which we don't have any difference
-      //since the subscription role is to keep the array _conversationsMap synchronized.
-      //But it can be also the opposite. So inside this block we will check if there are conversations that need
-      //subscriptions to be added or the opposite (so subscriptions that need to be removed)
-
-      const conversations = [...activeConversations, ...unactiveConversations]
-      const flatConversationMap = this._conversationsMap.map(
-        (item) => item.conversation
-      )
-
-      const { added, removed } = findAddedAndRemovedConversation(
-        conversations,
-        flatConversationMap
-      )
-
-      if (added.length > 0)
-        for (const conversation of added)
-          this._addSubscriptionsSync(conversation.id)
-
-      if (removed.length > 0)
-        for (const conversation of removed)
-          this._removeSubscribtionsSync(conversation.id)
-    }
-
-    if (syncingCounter === 0) this._emit("sync")
-    else this._emit("syncUpdate", this._syncingCounter)
-
-    this._syncingCounter++
-
-    setTimeout(async () => {
-      await this._sync(this._syncingCounter)
-    }, Chat.SYNCING_TIME)
-  }
-
-  private async _onAddMemberToConversationSync(
-    response:
-      | QIError
-      | {
-          conversationId: string
-          memberId: string
-          item: ConversationMember
-        },
-    source: OperationResult<
-      {
-        onAddMemberToConversation: AddMemberToConversationResultGraphQL
-      },
-      SubscriptionOnAddMemberToConversationArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        //we need to update the _keyPairsMap with the new keys of the new conversation
-        const { conversationId } = response
-        const {
-          encryptedConversationPrivateKey,
-          encryptedConversationPublicKey,
-        } = response.item
-        //these pair is encrypted with the public key of the current user, so we need to decrypt them
-        const conversationPrivateKeyPem = Crypto.decryptStringOrFail(
-          this._userKeyPair!.privateKey,
-          encryptedConversationPrivateKey
-        )
-        const conversationPublicKeyPem = Crypto.decryptStringOrFail(
-          this._userKeyPair!.privateKey,
-          encryptedConversationPublicKey
-        )
-        const keypair = await Crypto.generateKeyPairFromPem(
-          conversationPublicKeyPem,
-          conversationPrivateKeyPem
-        )
-
-        //this add a key pair only if it doesn't exist. if it does, then internally skip this operation
-        this.addKeyPairItem({
-          id: conversationId,
-          keypair: keypair!,
-        })
-
-        //we update also the _unsubscribeSyncSet array using the uuid emitted by the subscription
-        //in order to map the unsubscribe function with the conversation
-        const index = this._unsubscribeSyncSet.findIndex((item) => {
-          return item.uuid === uuid
-        })
-
-        if (index > -1)
-          this._unsubscribeSyncSet[index].conversationId = conversationId
-
-        //now we store the conversation in the local database
-        const responseConversation = await this.listConversationsByIds([
-          conversationId,
-        ])
-
-        if (!(responseConversation instanceof QIError)) {
-          const { items } = responseConversation
-          const conversation = items[0]
-
-          //we need to check if the conversation was already inside the _conversationsMap array. If it exists then we update the array
-          //otherwise we add a new element
-          const index = this._conversationsMap.findIndex((conversationItem) => {
-            return conversationItem.conversationId === conversation.id
-          })
-
-          //this is an additional check that it's used to avoid to add the subscriptions to a conversation that potentially
-          //could have them already. This could happen potentially if the _sync() is executed
-          //immediately before the _onAddMemberToConversationSync() in the javascript event loop
-          const subscriptionConversationCheck = {
-            conversationWasActive: false,
-          }
-
-          if (index > -1) {
-            //it should never be ACTIVE at this point, but this is for more safety
-            if (this._conversationsMap[index].type === "ACTIVE")
-              subscriptionConversationCheck.conversationWasActive = true
-
-            this._conversationsMap[index].type = "ACTIVE"
-            this._conversationsMap[index].conversation = conversation
-          } else
-            this._conversationsMap.push({
-              conversation,
-              conversationId: conversation.id,
-              type: "ACTIVE",
-            })
-
-          const currentUser = await this.getCurrentUser()
-
-          if (currentUser instanceof QIError)
-            throw new Error(JSON.stringify(currentUser))
-
-          //stores/update the conversations into the local db
-          if (this._storage.typeOf() === "DexieStorage") {
-            let isConversationArchived = false
-
-            if (currentUser.archivedConversations) {
-              const index = currentUser.archivedConversations.findIndex(
-                (id) => {
-                  return id === conversationId
-                }
-              )
-
-              if (index > -1) isConversationArchived = true
-            }
-
-            this._storage.insertBulkSafe<WebConversation>("conversation", [
-              Converter.fromConversationToWebConversation(
-                conversation,
-                this._account!.did,
-                this._account!.organizationId,
-                isConversationArchived
-              ),
-            ])
-          } else if (this._storage.typeOf() === "RealmStorage") {
-            //mobile insert TODO
-          }
-
-          //let's remove all the subscriptions previously added
-          if (subscriptionConversationCheck.conversationWasActive) {
-            this._removeSubscribtionsSync(conversationId)
-            this._conversationsMap[index].type = "ACTIVE" //assign again "type" the value "ACTIVE" because _removeSubscribtionsSync() turns type to "CANCELED"
-          }
-
-          //let's add the subscriptions in order to keep synchronized this conversation
-          this._addSubscriptionsSync(conversationId)
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onAddMemberToConversationSync() -> ", error)
-    }
-  }
-
-  private async _onAddReactionSync(
-    response: QIError | Message,
-    source: OperationResult<
-      {
-        onAddReaction: MessageGraphQL
-      },
-      SubscriptionOnAddReactionArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToWebMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onAddReactionSync() -> ", error)
-    }
-  }
-
-  private async _onRemoveReactionSync(
-    response: QIError | Message,
-    source: OperationResult<
-      {
-        onRemoveReaction: MessageGraphQL
-      },
-      SubscriptionOnRemoveReactionArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToWebMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onRemoveReactionSync() -> ", error)
-    }
-  }
-
-  private async _onSendMessageSync(
-    response: Message | QIError,
-    source: OperationResult<
-      {
-        onSendMessage: MessageGraphQL
-      },
-      SubscriptionOnSendMessageArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          //let's insert the new message
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToWebMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-
-          //let's update the conversation in the case it was deleted locally by the user.
-          //the conversation if it is deleted, returns visible for the user.
-          this._storage.query(
-            (
-              db: Dexie,
-              table: Table<WebConversation, string, WebConversation>
-            ) => {
-              table.update(response.conversationId, {
-                deletedAt: null,
-              })
-            },
-            "conversation"
-          )
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onSendMessageSync() -> ", error)
-    }
-  }
-
-  private async _onEditMessageSync(
-    response: QIError | Message,
-    source: OperationResult<
-      {
-        onEditMessage: MessageGraphQL
-      },
-      SubscriptionOnEditMessageArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToWebMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onEditMessageSync() -> ", error)
-    }
-  }
-
-  private async _onDeleteMessageSync(
-    response: QIError | Message,
-    source: OperationResult<
-      {
-        onDeleteMessage: MessageGraphQL
-      },
-      SubscriptionOnDeleteMessageArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.deleteItem("message", response.id)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onDeleteMessageSync() -> ", error)
-    }
-  }
-
-  private async _onBatchDeleteMessagesSync(
-    response:
-      | QIError
-      | {
-          conversationId: string
-          messagesIds: string[]
-        },
-    source: OperationResult<
-      {
-        onBatchDeleteMessages: BatchDeleteMessagesResultGraphQL
-      },
-      SubscriptionOnBatchDeleteMessagesArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.deleteBulk("message", response.messagesIds)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onBatchDeleteMessagesSync() -> ", error)
-    }
-  }
-
-  private async _onUpdateConversationGroupSync(
-    response: QIError | Conversation,
-    source: OperationResult<
-      {
-        onUpdateConversationGroup: ConversationGraphQL
-      },
-      SubscriptionOnUpdateConversationGroupArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const conversationStored = (await this._storage.get(
-            "conversation",
-            "id",
-            response.id
-          )) as Maybe<WebConversation>
-
-          this._storage.insertBulkSafe("conversation", [
-            Converter.fromConversationToWebConversation(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              conversationStored ? conversationStored.isArchived : false
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onUpdateConversationGroupSync() -> ", error)
-    }
-  }
-
-  private _onEjectMemberSync(
-    response:
-      | QIError
-      | { conversationId: string; conversation: Conversation; memberOut: User },
-    source: OperationResult<
-      {
-        onEjectMember: MemberOutResultGraphQL
-      },
-      SubscriptionOnEjectMemberArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const conversationId = response.conversationId
-          this._removeSubscribtionsSync(conversationId)
-
-          //handling system messages that shows the user was ejected
-          this._storage.insertBulkSafe("message", [
-            {
-              id: uuidv4(),
-              userId: response.memberOut.id,
-              organizationId: this._account!.organizationId,
-              userDid: this._account!.did,
-              conversationId: response.conversationId,
-              content: "",
-              reactions: [],
-              isImportant: false,
-              type: "EJECTED",
-              origin: "SYSTEM",
-              messageRoot: null,
-              messageRootId: null,
-              createdAt: new Date(),
-              updateAt: null,
-              deletedAt: null,
-            },
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onEjectMemberSync() -> ", error)
-    }
-  }
-
-  private _onLeaveConversationSync(
-    response:
-      | QIError
-      | { conversationId: string; conversation: Conversation; memberOut: User },
-    source: OperationResult<
-      {
-        onLeaveConversation: MemberOutResultGraphQL
-      },
-      SubscriptionOnLeaveConversationArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    //TODO handling system messages that shows the user left the conversation
-    try {
-      if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const conversationId = response.conversationId
-          this._removeSubscribtionsSync(conversationId)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onLeaveConversationSync() -> ", error)
-    }
-  }
-
-  private _onMuteConversationSync(
-    response: QIError | Conversation,
-    source: OperationResult<
-      {
-        onMuteConversation: ConversationGraphQL
-      },
-      SubscriptionOnMuteConversationArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    //TODO socket notification handling
-    try {
-      if (!(response instanceof QIError)) {
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onMuteConversationSync() -> ", error)
-    }
-  }
-
-  private _onUnmuteConversationSync(
-    response: QIError | Conversation,
-    source: OperationResult<
-      {
-        onUnmuteConversation: ConversationGraphQL
-      },
-      SubscriptionOnUnmuteConversationArgs & {
-        jwt: string
-      }
-    >,
-    uuid: string
-  ) {
-    //TODO socket notification handling
-    try {
-      if (!(response instanceof QIError)) {
-      }
-    } catch (error) {
-      console.log("[ERROR]: _onUnmuteConversationSync() -> ", error)
-    }
-  }
-
-  private _addSubscriptionsSync(conversationId: string) {
-    //add reaction(conversationId)
-    const onAddReaction = this.onAddReaction(
-      conversationId,
-      this._onAddReactionSync
-    )
-
-    if (!(onAddReaction instanceof QIError)) {
-      const { unsubscribe, uuid } = onAddReaction
-      this._unsubscribeSyncSet.push({
-        type: "onAddReaction",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //remove reaction(conversationId)
-    const onRemoveReaction = this.onRemoveReaction(
-      conversationId,
-      this._onRemoveReactionSync
-    )
-
-    if (!(onRemoveReaction instanceof QIError)) {
-      const { unsubscribe, uuid } = onRemoveReaction
-      this._unsubscribeSyncSet.push({
-        type: "onRemoveReaction",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //send message(conversationId)
-    const onSendMessage = this.onSendMessage(
-      conversationId,
-      this._onSendMessageSync
-    )
-
-    if (!(onSendMessage instanceof QIError)) {
-      const { unsubscribe, uuid } = onSendMessage
-      this._unsubscribeSyncSet.push({
-        type: "onSendMessage",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //edit message(conversationId)
-    const onEditMessage = this.onEditMessage(
-      conversationId,
-      this._onEditMessageSync
-    )
-
-    if (!(onEditMessage instanceof QIError)) {
-      const { unsubscribe, uuid } = onEditMessage
-      this._unsubscribeSyncSet.push({
-        type: "onEditMessage",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //delete message(conversationId)
-    const onDeleteMessage = this.onDeleteMessage(
-      conversationId,
-      this._onDeleteMessageSync
-    )
-
-    if (!(onDeleteMessage instanceof QIError)) {
-      const { unsubscribe, uuid } = onDeleteMessage
-      this._unsubscribeSyncSet.push({
-        type: "onDeleteMessage",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //delete batch messages(conversationId)
-    const onBatchDeleteMessages = this.onBatchDeleteMessages(
-      conversationId,
-      this._onBatchDeleteMessagesSync
-    )
-
-    if (!(onBatchDeleteMessages instanceof QIError)) {
-      const { unsubscribe, uuid } = onBatchDeleteMessages
-      this._unsubscribeSyncSet.push({
-        type: "onBatchDeleteMessages",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //update settings group(conversationId)
-    const onUpdateConversationGroup = this.onUpdateConversationGroup(
-      conversationId,
-      this._onUpdateConversationGroupSync
-    )
-
-    if (!(onUpdateConversationGroup instanceof QIError)) {
-      const { unsubscribe, uuid } = onUpdateConversationGroup
-      this._unsubscribeSyncSet.push({
-        type: "onUpdateConversationGroup",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //eject member(conversationId)
-    const onEjectMember = this.onEjectMember(
-      conversationId,
-      this._onEjectMemberSync
-    )
-
-    if (!(onEjectMember instanceof QIError)) {
-      const { unsubscribe, uuid } = onEjectMember
-      this._unsubscribeSyncSet.push({
-        type: "onEjectMember",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //leave group/conversation(conversationId)
-    const onLeaveConversation = this.onLeaveConversation(
-      conversationId,
-      this._onLeaveConversationSync
-    )
-
-    if (!(onLeaveConversation instanceof QIError)) {
-      const { unsubscribe, uuid } = onLeaveConversation
-      this._unsubscribeSyncSet.push({
-        type: "onLeaveConversation",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //mute conversation(conversationId)
-    const onMuteConversation = this.onMuteConversation(
-      conversationId,
-      this._onMuteConversationSync
-    )
-
-    if (!(onMuteConversation instanceof QIError)) {
-      const { unsubscribe, uuid } = onMuteConversation
-      this._unsubscribeSyncSet.push({
-        type: "onMuteConversation",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-
-    //unmute conversation(conversationId)
-    const onUnmuteConversation = this.onUnmuteConversation(
-      conversationId,
-      this._onUnmuteConversationSync
-    )
-
-    if (!(onUnmuteConversation instanceof QIError)) {
-      const { unsubscribe, uuid } = onUnmuteConversation
-      this._unsubscribeSyncSet.push({
-        type: "onUnmuteConversation",
-        unsubscribe,
-        uuid,
-        conversationId,
-      })
-    }
-  }
-
-  private _removeSubscribtionsSync(conversationId: string) {
-    //let's remove first the subscriptions
-    const unsubscribeItems = this._unsubscribeSyncSet.filter((item) => {
-      return item.conversationId === conversationId
-    })
-
-    unsubscribeItems.forEach((item) => {
-      try {
-        item.unsubscribe()
-      } catch (error) {
-        console.log("[ERROR]: unsubscribe() -> ", item.uuid, item.type)
-      }
-    })
-
-    //let's remove the unsubscriptions functions from the _unsubscribeSyncSet since we have unsubscribed everything
-    this._unsubscribeSyncSet = this._unsubscribeSyncSet.filter((item) => {
-      return item.conversationId !== conversationId
-    })
-
-    //let's update also the _conversationsMap and turn this conversation as unactive
-    const index = this._conversationsMap.findIndex((conversation) => {
-      return conversation.conversationId === conversationId
-    })
-
-    if (index > -1) this._conversationsMap[index].type = "CANCELED"
-  }
+  /** Syncing methods */
 
   async sync(callback: Function) {
     if (!this._account)
       throw new Error("You must be authenticated before to sync.")
     if (!this._storage.isStorageEnabled())
       throw new Error("sync() is available only if you enable the storage.")
-    if (this._syncingCounter > 0)
+    if (
+      this._eventsCallback.findIndex((item) => {
+        return item.event === "sync"
+      }) > -1
+    )
       throw new Error("You have already launched sync().")
 
     this._on("sync", () => {
@@ -5987,6 +5995,573 @@ export class Chat
   syncUpdate(callback: (syncingCounter: number) => void) {
     this._on("syncUpdate", (syncingCounter: number) => {
       callback(syncingCounter)
+    })
+  }
+
+  /** local database events */
+
+  onLocalDBNewMessage(
+    conversationId: string,
+    callback: (message: LocalDBMessage) => void,
+    callbackError: (error: unknown) => void
+  ) {
+    try {
+      if (this._storage.typeOf() === "DexieStorage") {
+        this._storage.query(
+          (db, message: Table<LocalDBMessage, string, LocalDBMessage>) => {
+            message.hook("creating", (primaryKey, record) => {
+              const _message = {
+                ...record,
+                content: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(conversationId),
+                  record.content
+                ),
+                reactions: record.reactions.map((reaction) => {
+                  return {
+                    ...reaction,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      reaction.content
+                    ),
+                  }
+                }),
+              }
+
+              _message.messageRoot = record.messageRoot
+                ? {
+                    ...record.messageRoot,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      record.messageRoot.content
+                    ),
+                    reactions: record.messageRoot.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    }),
+                  }
+                : null
+
+              callback({
+                ..._message,
+              })
+            })
+          },
+          "message"
+        )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+      }
+    } catch (error) {
+      callbackError(error)
+    }
+  }
+
+  onLocalDBDeleteMessage(
+    conversationId: string,
+    callback: (message: LocalDBMessage) => void,
+    callbackError: (error: unknown) => void
+  ) {
+    try {
+      if (this._storage.typeOf() === "DexieStorage") {
+        this._storage.query(
+          (db, message: Table<LocalDBMessage, string, LocalDBMessage>) => {
+            message.hook("deleting", (primaryKey, record) => {
+              const _message = {
+                ...record,
+                content: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(conversationId),
+                  record.content
+                ),
+                reactions: record.reactions.map((reaction) => {
+                  return {
+                    ...reaction,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      reaction.content
+                    ),
+                  }
+                }),
+              }
+
+              _message.messageRoot = record.messageRoot
+                ? {
+                    ...record.messageRoot,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      record.messageRoot.content
+                    ),
+                    reactions: record.messageRoot.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    }),
+                  }
+                : null
+
+              callback({
+                ..._message,
+              })
+            })
+          },
+          "message"
+        )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+      }
+    } catch (error) {
+      callbackError(error)
+    }
+  }
+
+  onLocalDBUpdateMessage(
+    conversationId: string,
+    callback: (message: LocalDBMessage) => void,
+    callbackError: (error: unknown) => void
+  ) {
+    try {
+      if (this._storage.typeOf() === "DexieStorage") {
+        this._storage.query(
+          (db, message: Table<LocalDBMessage, string, LocalDBMessage>) => {
+            message.hook("updating", (modifications, primaryKey, record) => {
+              const _message = {
+                ...record,
+                content: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(conversationId),
+                  record.content
+                ),
+                reactions: record.reactions.map((reaction) => {
+                  return {
+                    ...reaction,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      reaction.content
+                    ),
+                  }
+                }),
+              }
+
+              _message.messageRoot = record.messageRoot
+                ? {
+                    ...record.messageRoot,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      record.messageRoot.content
+                    ),
+                    reactions: record.messageRoot.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    }),
+                  }
+                : null
+
+              callback({
+                ..._message,
+              })
+            })
+          },
+          "message"
+        )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+      }
+    } catch (error) {
+      callbackError(error)
+    }
+  }
+
+  onLocalDBNewConversation(
+    callback: (conversation: LocalDBConversation) => void,
+    callbackError: (error: unknown) => void
+  ) {
+    try {
+      if (this._storage.typeOf() === "DexieStorage") {
+        this._storage.query(
+          (
+            db,
+            conversation: Table<
+              LocalDBConversation,
+              string,
+              LocalDBConversation
+            >
+          ) => {
+            conversation.hook("creating", (primaryKey, record) => {
+              const _conversation = {
+                ...record,
+                name: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.name
+                ),
+                description: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.description
+                ),
+                imageURL: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.imageURL
+                ),
+                bannerImageURL: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.bannerImageURL
+                ),
+                settings: JSON.parse(
+                  Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.settings
+                  )
+                ),
+              }
+
+              callback(_conversation)
+            })
+          },
+          "conversation"
+        )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+      }
+    } catch (error) {
+      callbackError(error)
+    }
+  }
+
+  onLocalDBUpdateConversation(
+    callback: (conversation: LocalDBConversation) => void,
+    callbackError: (error: unknown) => void
+  ) {
+    try {
+      if (this._storage.typeOf() === "DexieStorage") {
+        this._storage.query(
+          (
+            db,
+            conversation: Table<
+              LocalDBConversation,
+              string,
+              LocalDBConversation
+            >
+          ) => {
+            conversation.hook(
+              "updating",
+              (modifications, primaryKey, record) => {
+                const _conversation = {
+                  ...record,
+                  name: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.name
+                  ),
+                  description: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.description
+                  ),
+                  imageURL: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.imageURL
+                  ),
+                  bannerImageURL: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.bannerImageURL
+                  ),
+                  settings: JSON.parse(
+                    Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(record.id),
+                      record.settings
+                    )
+                  ),
+                }
+
+                callback(_conversation)
+              }
+            )
+          },
+          "conversation"
+        )
+      } else if (this._storage.typeOf() === "RealmStorage") {
+      }
+    } catch (error) {
+      callbackError(error)
+    }
+  }
+
+  /** read local database */
+
+  fetchLocalDBMessages(
+    conversationId: string,
+    page: number,
+    numberElements: number
+  ): Promise<LocalDBMessage[]> {
+    if (!this._account) throw new Error("Account must be initialized.")
+
+    return new Promise((resolve, reject) => {
+      try {
+        if (page < 0 || numberElements <= 0) resolve([])
+
+        const offset = (page - 1) * numberElements
+
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.query(
+            async (
+              db,
+              message: Table<LocalDBMessage, string, LocalDBMessage>
+            ) => {
+              const messages = await message
+                .orderBy("createdAt")
+                .reverse()
+                .offset(offset)
+                .limit(numberElements)
+                .filter(
+                  (element) =>
+                    element.conversationId === conversationId &&
+                    element.userDid === this._account!.did &&
+                    typeof element.deletedAt !== "undefined" &&
+                    !!element.deletedAt
+                )
+                .toArray()
+
+              if (!messages) reject([])
+
+              resolve(
+                messages.map((message) => {
+                  const _message = {
+                    ...message,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      message.content
+                    ),
+                    reactions: message.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    }),
+                  }
+
+                  _message.messageRoot = message.messageRoot
+                    ? {
+                        ...message.messageRoot,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          message.messageRoot.content
+                        ),
+                        reactions: message.messageRoot.reactions.map(
+                          (reaction) => {
+                            return {
+                              ...reaction,
+                              content: Crypto.decryptStringOrFail(
+                                this.findPrivateKeyById(conversationId),
+                                reaction.content
+                              ),
+                            }
+                          }
+                        ),
+                      }
+                    : null
+
+                  return _message
+                })
+              )
+            },
+            "message"
+          )
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      } catch (error) {
+        console.log("[ERROR]: fetchLocalDBMessages() -> ", error)
+        reject([])
+      }
+    })
+  }
+
+  fetchLocalDBConversations(
+    page: number,
+    numberElements: number
+  ): Promise<LocalDBConversation[]> {
+    if (!this._account) throw new Error("Account must be initialized.")
+
+    return new Promise((resolve, reject) => {
+      try {
+        if (page < 0 || numberElements <= 0) resolve([])
+
+        const offset = (page - 1) * numberElements
+
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.query(
+            async (
+              db,
+              conversation: Table<
+                LocalDBConversation,
+                string,
+                LocalDBConversation
+              >
+            ) => {
+              const conversations = await conversation
+                .orderBy("createdAt")
+                .reverse()
+                .offset(offset)
+                .limit(numberElements)
+                .filter(
+                  (element) =>
+                    element.userDid === this._account!.did &&
+                    typeof element.deletedAt !== "undefined" &&
+                    !!element.deletedAt
+                )
+                .toArray()
+
+              if (!conversations) reject([])
+
+              resolve(
+                conversations.map((conversation) => {
+                  return {
+                    ...conversation,
+                    name: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversation.id),
+                      conversation.name
+                    ),
+                    description: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversation.id),
+                      conversation.description
+                    ),
+                    imageURL: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversation.id),
+                      conversation.imageURL
+                    ),
+                    bannerImageURL: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversation.id),
+                      conversation.bannerImageURL
+                    ),
+                  }
+                })
+              )
+            },
+            "conversation"
+          )
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      } catch (error) {
+        console.log("[ERROR]: fetchLocalDBMessages() -> ", error)
+        reject([])
+      }
+    })
+  }
+
+  async searchTermsOnLocalDB(
+    terms: Array<string>
+  ): Promise<Array<{ conversationId: string; messageId: string }>> {
+    if (!this._account) throw new Error("Account must be initialized.")
+    return new Promise((resolve, reject) => {
+      try {
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.query(
+            async (
+              db,
+              message: Table<LocalDBMessage, string, LocalDBMessage>
+            ) => {
+              const results = await Dexie.Promise.all(
+                terms.map((prefix) =>
+                  message
+                    .where("content")
+                    .startsWith(prefix)
+                    .and((m) => {
+                      return m.userDid === this._account!.did
+                    })
+                    .primaryKeys()
+                )
+              )
+
+              // Intersect result set of primary keys
+              const reduced = results.reduce((a, b) => {
+                const set = new Set(b)
+                return a.filter((k) => set.has(k))
+              })
+
+              const messages = (
+                await message.where(":id").anyOf(reduced).toArray()
+              ).map((message) => {
+                return {
+                  messageId: message.id,
+                  conversationId: message.conversationId,
+                }
+              })
+
+              resolve(messages)
+            },
+            "message"
+          )
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  /** delete operations local database */
+
+  softDeleteConversationOnLocalDB(conversationId: string): Promise<void> {
+    if (!this._account) throw new Error("Account must be initialized.")
+    return new Promise((resolve, reject) => {
+      try {
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.query(async (db, table) => {
+            await table
+              .where("[id+userDid]")
+              .equals([conversationId, this._account!.did])
+              .modify((conversation: LocalDBConversation) => {
+                conversation.deletedAt = new Date()
+              })
+
+            resolve()
+          }, "conversation")
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      } catch (error) {
+        reject(error)
+      }
+    })
+  }
+
+  async truncateTableOnLocalDB(tableName: "message" | "user" | "conversation") {
+    if (!this._account) throw new Error("Account must be initialized.")
+    if (this._storage.typeOf() === "DexieStorage") {
+      await this._storage.truncate(tableName)
+    } else if (this._storage.typeOf() === "RealmStorage") {
+    }
+  }
+
+  /** update operations local database */
+
+  readMessage(conversationId: string): Promise<void> {
+    if (!this._account) throw new Error("Account must be initialized.")
+
+    return new Promise((resolve, reject) => {
+      try {
+        if (this._storage.typeOf() === "DexieStorage") {
+          this._storage.query(async (db, table) => {
+            await table
+              .where("[id+userDid]")
+              .equals([conversationId, this._account!.did])
+              .modify((conversation: LocalDBConversation) => {
+                conversation.lastMessageRead = new Date()
+              })
+
+            resolve()
+          }, "conversation")
+        } else if (this._storage.typeOf() === "RealmStorage") {
+        }
+      } catch (error) {
+        reject(error)
+      }
     })
   }
 }

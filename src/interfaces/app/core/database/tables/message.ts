@@ -1,10 +1,10 @@
 import { Maybe } from "@src/types"
 
-export interface WebMessage {
+export interface LocalDBMessage {
   id: string //primary key
+  userDid: string //primary key
   userId: string
   organizationId: string
-  userDid: string
   conversationId: string
   content: string
   reactions: Array<{ content: string; userId: string; createdAt: Date }>
@@ -18,7 +18,7 @@ export interface WebMessage {
     | "EJECTED"
     | "LEFT"
   origin: "SYSTEM" | "USER"
-  messageRoot: Maybe<WebMessage>
+  messageRoot: Maybe<LocalDBMessage>
   messageRootId: Maybe<string>
   createdAt: Date
   updateAt: Maybe<Date>

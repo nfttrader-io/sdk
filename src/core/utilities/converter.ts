@@ -1,39 +1,45 @@
-import { WebConversation, WebMessage } from "@src/interfaces/app/core/database"
+import {
+  LocalDBConversation,
+  LocalDBMessage,
+} from "@src/interfaces/app/core/database"
 import { Conversation, Message } from "../chat"
 
 export class Converter {
-  static fromConversationToWebConversation(
+  static fromConversationToLocalDBConversation(
     conversation: Conversation,
     userDid: string,
     organizationId: string,
     isArchived: boolean
-  ): WebConversation {
+  ): LocalDBConversation {
     return {
       id: conversation.id,
       userDid,
       organizationId,
       name: conversation.name,
       description: conversation.description ? conversation.description : "",
-      imageURL: new URL(conversation.imageURL ? conversation.imageURL : ""),
+      imageURL: new URL(
+        conversation.imageURL ? conversation.imageURL : ""
+      ).toString(),
       bannerImageURL: new URL(
         conversation.bannerImageURL ? conversation.bannerImageURL : ""
-      ),
+      ).toString(),
       settings: JSON.stringify(conversation.settings),
       isArchived,
       lastMessageSentAt: conversation.lastMessageSentAt,
+      lastMessageRead: null,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
       deletedAt: null,
     }
   }
 
-  static fromMessageToWebMessage(
+  static fromMessageToLocalDBMessage(
     message: Message | Omit<Message, "messageRoot">,
     userDid: string,
     organizationId: string,
     isImportant: boolean,
     origin: "SYSTEM" | "USER"
-  ): WebMessage {
+  ): LocalDBMessage {
     return {
       id: message.id,
       userId: message.userId,
@@ -53,7 +59,7 @@ export class Converter {
       isImportant,
       type: message.type!,
       origin,
-      messageRoot: Converter.fromMessageToWebMessage(
+      messageRoot: Converter.fromMessageToLocalDBMessage(
         "messageRoot" in message ? message : message,
         userDid,
         organizationId,
