@@ -2,8 +2,8 @@ import {
   LocalDBConversation,
   LocalDBMessage,
   LocalDBUser,
-} from "@src/interfaces/app/core/database"
-import { BaseStorage } from "../../interfaces/app"
+} from "@src/core/app/database"
+import { BaseStorage } from "./basestorage"
 import { CreateOrConnectDexieArgs } from "../../types/app"
 import Dexie, { Table } from "dexie"
 
@@ -26,7 +26,7 @@ export class DexieStorage extends Dexie implements BaseStorage {
     this._dbVersion = dbVersion
 
     this.version(this._dbVersion).stores({
-      user: "++id, did, organizationId",
+      user: "[did+organizationId]",
       conversation: "[id+userDid], name, description, createdAt",
       message: "[id+userDid], content, origin, userDid, type, createdAt",
       migration: "key",
@@ -51,7 +51,7 @@ export class DexieStorage extends Dexie implements BaseStorage {
   async get(
     tableName: "user" | "conversation" | "message",
     key: string,
-    value: string
+    value: string | string[]
   ): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -77,19 +77,19 @@ export class DexieStorage extends Dexie implements BaseStorage {
   }
 
   async deleteItem(
-    tableName:
-      | "user"
-      | "conversation"
-      | "message"
-      | "conversationSystemMessage",
-    id: string
+    tableName: "user" | "conversation" | "message",
+    key: string,
+    value: string | string[]
   ): Promise<void> {
     if (!this._enableStorage) return
     return new Promise(async (resolve, reject) => {
       this.transaction("rw", tableName, async () => {
-        if (tableName === "conversation") await this.conversation.delete(id)
-        else if (tableName === "user") await this.user.delete(id)
-        else if (tableName === "message") await this.message.delete(id)
+        if (tableName === "conversation")
+          await this.conversation.where(key).equals(value).delete()
+        else if (tableName === "user")
+          await this.user.where(key).equals(value).delete()
+        else if (tableName === "message")
+          await this.message.where(key).equals(value).delete()
         resolve()
       }).catch((error) => {
         reject(error)
@@ -181,6 +181,8 @@ export class DexieStorage extends Dexie implements BaseStorage {
   async truncate(
     tableName: "user" | "conversation" | "message"
   ): Promise<void> {
+    if (!this._enableStorage) return
+
     if (tableName === "user") {
       await this.user.clear()
     } else if (tableName === "conversation") {

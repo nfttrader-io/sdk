@@ -124,8 +124,8 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
       //save all the data related to this user into the db
       await storage.transaction("rw", storage.user, async () => {
         const existingUser = await storage.user
-          .where("did")
-          .equals(account.did)
+          .where("[did+organizationId]")
+          .equals([account.did, account.organizationId])
           .first()
 
         if (!existingUser)
@@ -160,9 +160,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
                   fid: account.farcasterFid,
                   displayName: account.farcasterDisplayName,
                   ownerAddress: account.farcasterOwnerAddress,
-                  pfp: new URL(
-                    account.farcasterPfp ? account.farcasterPfp : ""
-                  ),
+                  pfp: account.farcasterPfp,
                   username: account.farcasterUsername,
                 }
               : null,
@@ -206,9 +204,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
               ? {
                   firstName: account.telegramFirstName,
                   lastName: account.telegramLastName,
-                  photoUrl: account.telegramPhotoUrl
-                    ? new URL(account.telegramPhotoUrl)
-                    : null,
+                  photoUrl: account.telegramPhotoUrl,
                   userId: account.telegramUserId,
                   username: account.telegramUsername,
                 }
@@ -224,9 +220,7 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
               ? {
                   name: account.twitterName,
                   subject: account.twitterSubject,
-                  profilePictureUrl: account.twitterProfilePictureUrl
-                    ? new URL(account.twitterProfilePictureUrl)
-                    : null,
+                  profilePictureUrl: account.twitterProfilePictureUrl,
                   username: account.twitterUsername,
                 }
               : null,
@@ -253,11 +247,150 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
   }
 
   private async _handleRealm(account: Account) {
-    let keys = await this._generateKeys()
-    //if (!keys) throw new Error("Keys generation error.")
+    const storage = this._storage as RealmStorage
+    try {
+      const keys = await this._generateKeys()
+      if (!keys || typeof keys === "boolean")
+        throw new Error("Error during generation of public/private keys.")
 
-    return {
-      //...keys.server,
+      //let's encrypt first the private key. Private key will be always calculated runtime.
+      const encryptedPrivateKey = Crypto.encryptAES_CBC(
+        Crypto.convertRSAPrivateKeyToPem(keys.privateKey),
+        Buffer.from(account.e2eSecret).toString("base64"),
+        Buffer.from(account.e2eSecretIV).toString("base64")
+      )
+      const publicKey = Crypto.convertRSAPublicKeyToPem(keys.publicKey)
+
+      //save all the data related to this user into the db
+
+      storage.query((realm, user) => {
+        const existingUser = user.filtered(
+          `compositeKey == '${account.did}-${account.organizationId}'`
+        )
+
+        if (!existingUser)
+          realm.write(() => {
+            realm.create("User", {
+              did: account.did,
+              organizationId: account.organizationId,
+              username: account.username,
+              email: account.email,
+              bio: account.bio,
+              avatarUrl: account.avatarUrl,
+              isVerified: account.isVerified,
+              isNft: account.isNft,
+              wallet: {
+                address: account.walletAddress,
+                connectorType: account.walletConnectorType,
+              },
+              apple: account.appleSubject
+                ? {
+                    subject: account.appleSubject,
+                    email: account.email,
+                  }
+                : null,
+              discord: account.discordSubject
+                ? {
+                    subject: account.discordSubject,
+                    email: account.discordEmail,
+                    username: account.username,
+                  }
+                : null,
+              farcaster: account.farcasterFid
+                ? {
+                    fid: account.farcasterFid,
+                    displayName: account.farcasterDisplayName,
+                    ownerAddress: account.farcasterOwnerAddress,
+                    pfp: new URL(
+                      account.farcasterPfp ? account.farcasterPfp : ""
+                    ),
+                    username: account.farcasterUsername,
+                  }
+                : null,
+              github: account.githubSubject
+                ? {
+                    subject: account.githubSubject,
+                    email: account.githubEmail,
+                    name: account.githubName,
+                    username: account.githubUsername,
+                  }
+                : null,
+              google: account.googleSubject
+                ? {
+                    subject: account.googleSubject,
+                    email: account.googleEmail,
+                    name: account.googleName,
+                  }
+                : null,
+              instagram: account.instagramSubject
+                ? {
+                    subject: account.instagramSubject,
+                    username: account.instagramUsername,
+                  }
+                : null,
+              linkedin: account.linkedinSubject
+                ? {
+                    subject: account.linkedinSubject,
+                    email: account.linkedinEmail,
+                    name: account.linkedinName,
+                    vanityName: account.linkedinVanityName,
+                  }
+                : null,
+              spotify: account.spotifySubject
+                ? {
+                    subject: account.spotifySubject,
+                    email: account.spotifyEmail,
+                    name: account.spotifyName,
+                  }
+                : null,
+              telegram: account.telegramUserId
+                ? {
+                    firstName: account.telegramFirstName,
+                    lastName: account.telegramLastName,
+                    photoUrl: account.telegramPhotoUrl
+                      ? new URL(account.telegramPhotoUrl)
+                      : null,
+                    userId: account.telegramUserId,
+                    username: account.telegramUsername,
+                  }
+                : null,
+              tiktok: account.tiktokSubject
+                ? {
+                    name: account.tiktokName,
+                    subject: account.tiktokSubject,
+                    username: account.tiktokUsername,
+                  }
+                : null,
+              twitter: account.twitterSubject
+                ? {
+                    name: account.twitterName,
+                    subject: account.twitterSubject,
+                    profilePictureUrl: account.twitterProfilePictureUrl
+                      ? new URL(account.twitterProfilePictureUrl)
+                      : null,
+                    username: account.twitterUsername,
+                  }
+                : null,
+              allowNotification: account.allowNotification,
+              allowNotificationSound: account.allowNotificationSound,
+              visibility: account.visibility,
+              onlineStatus: account.onlineStatus,
+              allowReadReceipt: account.allowReadReceipt,
+              allowReceiveMessageFrom: account.allowReceiveMessageFrom,
+              allowAddToGroupsFrom: account.allowAddToGroupsFrom,
+              allowGroupsSuggestion: account.allowGroupsSuggestion,
+              e2ePublicKey: publicKey,
+              e2eEncryptedPrivateKey: encryptedPrivateKey,
+              createdAt: account.createdAt,
+              updatedAt: account.updatedAt,
+            })
+          })
+      }, "user")
+    } catch (error) {
+      console.log(error)
+      throw new Error(
+        "Error during setup of the local keys. Check the console to have more information."
+      )
     }
   }
 

@@ -1,7 +1,4 @@
-import {
-  LocalDBConversation,
-  LocalDBMessage,
-} from "@src/interfaces/app/core/database"
+import { LocalDBConversation, LocalDBMessage } from "@src/core/app/database"
 import { Conversation, Message } from "../chat"
 
 export class Converter {
@@ -68,7 +65,7 @@ export class Converter {
       ),
       messageRootId: message.messageRootId,
       createdAt: message.createdAt,
-      updateAt: message.updatedAt,
+      updatedAt: message.updatedAt,
       deletedAt: message.deletedAt,
     }
   }

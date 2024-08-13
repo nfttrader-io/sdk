@@ -1,12 +1,12 @@
 import { Maybe } from "@src/types"
 
 export interface LocalDBUser {
-  did: string
-  organizationId: string
+  did: string //primary key
+  organizationId: string //primary key
   username: string
   email: string
   bio: string
-  avatarUrl: URL
+  avatarUrl: string
   isVerified: boolean
   isNft: boolean
   wallet: {
@@ -26,7 +26,7 @@ export interface LocalDBUser {
     fid: Maybe<number>
     displayName: Maybe<string>
     ownerAddress: Maybe<string>
-    pfp: Maybe<URL>
+    pfp: Maybe<string>
     username: Maybe<string>
   }>
   github: Maybe<{
@@ -58,7 +58,7 @@ export interface LocalDBUser {
   telegram: Maybe<{
     firstName: Maybe<string>
     lastName: Maybe<string>
-    photoUrl: Maybe<URL>
+    photoUrl: Maybe<string>
     userId: Maybe<string>
     username: Maybe<string>
   }>
@@ -70,7 +70,7 @@ export interface LocalDBUser {
   twitter: Maybe<{
     name: Maybe<string>
     subject: Maybe<string>
-    profilePictureUrl: Maybe<URL>
+    profilePictureUrl: Maybe<string>
     username: Maybe<string>
   }>
   allowNotification: boolean

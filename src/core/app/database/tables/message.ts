@@ -7,7 +7,7 @@ export interface LocalDBMessage {
   organizationId: string
   conversationId: string
   content: string
-  reactions: Array<{ content: string; userId: string; createdAt: Date }>
+  reactions: Maybe<Array<{ content: string; userId: string; createdAt: Date }>>
   isImportant: boolean
   type:
     | "TEXTUAL"
@@ -21,6 +21,6 @@ export interface LocalDBMessage {
   messageRoot: Maybe<LocalDBMessage>
   messageRootId: Maybe<string>
   createdAt: Date
-  updateAt: Maybe<Date>
+  updatedAt: Maybe<Date>
   deletedAt: Maybe<Date>
 }

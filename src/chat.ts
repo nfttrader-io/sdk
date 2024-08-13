@@ -213,11 +213,15 @@ import {
   LocalDBConversation,
   LocalDBMessage,
   LocalDBUser,
-} from "./interfaces/app/core/database"
-import { Account, Converter, findAddedAndRemovedConversation } from "./core"
+} from "./core/app/database"
+import { Converter, findAddedAndRemovedConversation } from "./core"
 import Dexie, { Table } from "dexie"
 import { Reaction } from "./core/chat/reaction"
 import { v4 as uuidv4 } from "uuid"
+import { DexieStorage, RealmStorage } from "./core/app"
+import { DefaultObject } from "realm/dist/public-types/schema"
+import Realm, { Results } from "realm"
+import { RealmObject } from "realm/dist/public-types/Object"
 
 export class Chat
   extends Engine
@@ -371,36 +375,29 @@ export class Chat
         throw new Error(JSON.stringify(currentUser))
 
       //stores/update the conversations into the local db
-      if (this._storage.typeOf() === "DexieStorage") {
-        await this._storage.insertBulkSafe<LocalDBConversation>(
-          "conversation",
-          conversationsItems.map((conversation: Conversation) => {
-            let isConversationArchived = false
+      await this._storage.insertBulkSafe<LocalDBConversation>(
+        "conversation",
+        conversationsItems.map((conversation: Conversation) => {
+          let isConversationArchived = false
 
-            if (currentUser.archivedConversations) {
-              const index = currentUser.archivedConversations.findIndex(
-                (id) => {
-                  return id === conversation.id
-                }
-              )
+          if (currentUser.archivedConversations) {
+            const index = currentUser.archivedConversations.findIndex((id) => {
+              return id === conversation.id
+            })
 
-              if (index > -1) isConversationArchived = true
-            }
+            if (index > -1) isConversationArchived = true
+          }
 
-            return Converter.fromConversationToLocalDBConversation(
-              conversation,
-              this._account!.did,
-              this._account!.organizationId,
-              isConversationArchived
-            )
-          })
-        )
-      } else if (this._storage.typeOf() === "RealmStorage") {
-        //mobile insert TODO
-      }
+          return Converter.fromConversationToLocalDBConversation(
+            conversation,
+            this._account!.did,
+            this._account!.organizationId,
+            isConversationArchived
+          )
+        })
+      )
 
       return conversationsItems
-      //TODO, still thinking how to integrate the local db objects with Chat, Conversation object that comes from GraphQL
     } catch (error) {
       console.log("[ERROR]: recoverUserConversations() -> ", error)
     }
@@ -435,34 +432,40 @@ export class Chat
       //let's take all the information related to our keys into _userKeyPair object. These are the public and private key of the current user.
       //To do that, let's do a query on the local user table. If the _userKeyPair is already set, we skip this operation.
       if (!this._userKeyPair) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const user = (await this._storage.get(
+        let user
+
+        if (this._storage instanceof DexieStorage) {
+          user = (await this._storage.get("user", "[did+organizationId]", [
+            this._account!.did,
+            this._account!.organizationId,
+          ])) as LocalDBUser
+        } else if (this._storage instanceof RealmStorage) {
+          user = await this._storage.get(
             "user",
-            "did",
-            this._account!.did
-          )) as LocalDBUser
-
-          const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user
-          const { e2eSecret } = this._account!
-          const { e2eSecretIV } = this._account!
-
-          const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
-            e2eEncryptedPrivateKey,
-            Buffer.from(e2eSecret).toString("base64"),
-            Buffer.from(e2eSecretIV).toString("base64")
+            "compositeKey",
+            `${this._account!.did}-${this._account!.organizationId}`
           )
-
-          const userKeyPair = await Crypto.generateKeyPairFromPem(
-            e2ePublicKeyPem,
-            e2ePrivateKeyPem
-          )
-
-          if (!userKeyPair)
-            throw new Error("Impossible to recover the user key pair.")
-
-          this.setUserKeyPair(userKeyPair)
-        } else if (this._storage.typeOf() === "RealmStorage") {
         }
+
+        const { e2eEncryptedPrivateKey, e2ePublicKey: e2ePublicKeyPem } = user!
+        const { e2eSecret } = this._account!
+        const { e2eSecretIV } = this._account!
+
+        const e2ePrivateKeyPem = Crypto.decryptAES_CBC(
+          e2eEncryptedPrivateKey,
+          Buffer.from(e2eSecret).toString("base64"),
+          Buffer.from(e2eSecretIV).toString("base64")
+        )
+
+        const userKeyPair = await Crypto.generateKeyPairFromPem(
+          e2ePublicKeyPem,
+          e2ePrivateKeyPem
+        )
+
+        if (!userKeyPair)
+          throw new Error("Impossible to recover the user key pair.")
+
+        this.setUserKeyPair(userKeyPair)
       }
 
       //now, from the private key of the user, we will decrypt all the information about the conversation member.
@@ -523,42 +526,46 @@ export class Chat
         if (!lastMessageSentAt) continue
 
         //let's see if the last message sent into the conversation is more recent than the last message stored in the database
-        if (this._storage.typeOf() === "DexieStorage") {
-          //messages important handling
-          const messagesImportantFirstSet =
-            await this.listMessagesImportantByUserConversationId({
-              conversationId: id,
-            })
 
-          if (messagesImportantFirstSet instanceof QIError)
-            throw new Error(JSON.stringify(messagesImportantFirstSet))
+        //messages important handling
+        const messagesImportantFirstSet =
+          await this.listMessagesImportantByUserConversationId({
+            conversationId: id,
+          })
 
-          let { nextToken, items } = messagesImportantFirstSet
-          let messagesImportant = [...items]
+        if (messagesImportantFirstSet instanceof QIError)
+          throw new Error(JSON.stringify(messagesImportantFirstSet))
 
-          while (nextToken) {
-            const set = await this.listMessagesImportantByUserConversationId({
-              conversationId: id,
-              nextToken,
-            })
+        let { nextToken, items } = messagesImportantFirstSet
+        let messagesImportant = [...items]
 
-            if (set instanceof QIError) break
+        while (nextToken) {
+          const set = await this.listMessagesImportantByUserConversationId({
+            conversationId: id,
+            nextToken,
+          })
 
-            const { nextToken: token, items } = set
+          if (set instanceof QIError) break
 
-            messagesImportant = [...messagesImportant, ...items]
+          const { nextToken: token, items } = set
 
-            if (token) nextToken = token
-            else break
-          }
+          messagesImportant = [...messagesImportant, ...items]
 
-          //messages handling
-          const messageTable = this._storage.getTable("message") as Dexie.Table<
+          if (token) nextToken = token
+          else break
+        }
+
+        let messageTable
+        let lastMessageStored
+
+        //messages handling
+        if (this._storage instanceof DexieStorage) {
+          messageTable = this._storage.getTable("message") as Dexie.Table<
             LocalDBMessage,
             string,
             LocalDBMessage
           >
-          const lastMessageStored = await messageTable
+          lastMessageStored = await messageTable
             .orderBy("createdAt")
             .filter(
               (element) =>
@@ -567,64 +574,70 @@ export class Chat
             )
             .reverse()
             .first()
+        } else if (this._storage instanceof RealmStorage) {
+          messageTable =
+            this._storage.getTable<
+              Realm.Results<Realm.Object<DefaultObject, never> & DefaultObject>
+            >("message")
+          lastMessageStored = messageTable
+            .filtered(`origin == 'USER' AND userDid == ${this._account!.did}`)
+            .sorted("createdAt", true)[0]
+        }
 
-          const canDownloadMessages =
-            !lastMessageStored ||
-            (lastMessageStored &&
-              lastMessageStored.createdAt < lastMessageSentAt)
+        const canDownloadMessages =
+          !lastMessageStored ||
+          (lastMessageStored &&
+            lastMessageStored.createdAt! < lastMessageSentAt)
 
-          //the check of history message is already done on backend side
+        //the check of history message is already done on backend side
 
-          if (canDownloadMessages) {
-            const messagesFirstSet = await this.listMessagesByConversationId({
+        if (canDownloadMessages) {
+          const messagesFirstSet = await this.listMessagesByConversationId({
+            id,
+          })
+
+          if (messagesFirstSet instanceof QIError)
+            throw new Error(JSON.stringify(messagesFirstSet))
+
+          let { nextToken, items } = messagesFirstSet
+          let messages = [...items]
+
+          while (nextToken) {
+            const set = await this.listMessagesByConversationId({
               id,
+              nextToken,
             })
 
-            if (messagesFirstSet instanceof QIError)
-              throw new Error(JSON.stringify(messagesFirstSet))
+            if (set instanceof QIError) break
 
-            let { nextToken, items } = messagesFirstSet
-            let messages = [...items]
+            const { nextToken: token, items } = set
 
-            while (nextToken) {
-              const set = await this.listMessagesByConversationId({
-                id,
-                nextToken,
-              })
+            messages = [...messages, ...items]
 
-              if (set instanceof QIError) break
-
-              const { nextToken: token, items } = set
-
-              messages = [...messages, ...items]
-
-              if (token) nextToken = token
-              else break
-            }
-
-            //let's store the messages without create duplicates
-            if (messages.length > 0)
-              //it's possible this array is empty when the chat history settings has value 'false'
-              this._storage.insertBulkSafe(
-                "message",
-                messages.map((message) => {
-                  const isMessageImportant =
-                    messagesImportant.findIndex((important) => {
-                      return important.messageId === message.id
-                    }) > -1
-
-                  return Converter.fromMessageToLocalDBMessage(
-                    message,
-                    this._account!.did,
-                    this._account!.organizationId,
-                    isMessageImportant,
-                    "USER"
-                  )
-                })
-              )
+            if (token) nextToken = token
+            else break
           }
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
+
+          //let's store the messages without create duplicates
+          if (messages.length > 0)
+            //it's possible this array is empty when the chat history settings has value 'false'
+            this._storage.insertBulkSafe(
+              "message",
+              messages.map((message) => {
+                const isMessageImportant =
+                  messagesImportant.findIndex((important) => {
+                    return important.messageId === message.id
+                  }) > -1
+
+                return Converter.fromMessageToLocalDBMessage(
+                  message,
+                  this._account!.did,
+                  this._account!.organizationId,
+                  isMessageImportant,
+                  "USER"
+                )
+              })
+            )
         }
       }
 
@@ -826,30 +839,24 @@ export class Chat
             throw new Error(JSON.stringify(currentUser))
 
           //stores/update the conversations into the local db
-          if (this._storage.typeOf() === "DexieStorage") {
-            let isConversationArchived = false
+          let isConversationArchived = false
 
-            if (currentUser.archivedConversations) {
-              const index = currentUser.archivedConversations.findIndex(
-                (id) => {
-                  return id === conversationId
-                }
-              )
+          if (currentUser.archivedConversations) {
+            const index = currentUser.archivedConversations.findIndex((id) => {
+              return id === conversationId
+            })
 
-              if (index > -1) isConversationArchived = true
-            }
-
-            this._storage.insertBulkSafe<LocalDBConversation>("conversation", [
-              Converter.fromConversationToLocalDBConversation(
-                conversation,
-                this._account!.did,
-                this._account!.organizationId,
-                isConversationArchived
-              ),
-            ])
-          } else if (this._storage.typeOf() === "RealmStorage") {
-            //mobile insert TODO
+            if (index > -1) isConversationArchived = true
           }
+
+          this._storage.insertBulkSafe<LocalDBConversation>("conversation", [
+            Converter.fromConversationToLocalDBConversation(
+              conversation,
+              this._account!.did,
+              this._account!.organizationId,
+              isConversationArchived
+            ),
+          ])
 
           //let's remove all the subscriptions previously added
           if (subscriptionConversationCheck.conversationWasActive) {
@@ -880,19 +887,15 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToLocalDBMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        this._storage.insertBulkSafe("message", [
+          Converter.fromMessageToLocalDBMessage(
+            response,
+            this._account!.did,
+            this._account!.organizationId,
+            false,
+            "USER"
+          ),
+        ])
       }
     } catch (error) {
       console.log("[ERROR]: _onAddReactionSync() -> ", error)
@@ -913,19 +916,15 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToLocalDBMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        this._storage.insertBulkSafe("message", [
+          Converter.fromMessageToLocalDBMessage(
+            response,
+            this._account!.did,
+            this._account!.organizationId,
+            false,
+            "USER"
+          ),
+        ])
       }
     } catch (error) {
       console.log("[ERROR]: _onRemoveReactionSync() -> ", error)
@@ -946,33 +945,52 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          //let's insert the new message
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToLocalDBMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
+        //let's insert the new message
+        this._storage.insertBulkSafe("message", [
+          Converter.fromMessageToLocalDBMessage(
+            response,
+            this._account!.did,
+            this._account!.organizationId,
+            false,
+            "USER"
+          ),
+        ])
 
-          //let's update the conversation in the case it was deleted locally by the user.
-          //the conversation if it is deleted, returns visible for the user.
+        //let's update the conversation in the case it was deleted locally by the user.
+        //the conversation if it is deleted, returns visible for the user.
+        if (this._storage instanceof DexieStorage) {
           this._storage.query(
-            (
+            async (
               db: Dexie,
               table: Table<LocalDBConversation, string, LocalDBConversation>
             ) => {
-              table.update(response.conversationId, {
+              const conversation = await this._storage.get(
+                "conversation",
+                "[conversationId+userDid]",
+                [response.conversationId, this._account!.did]
+              )
+              table.update(conversation, {
                 deletedAt: null,
               })
             },
             "conversation"
           )
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
+        } else if (this._storage instanceof RealmStorage) {
+          this._storage.query(
+            (
+              db: Realm,
+              table: Results<RealmObject<DefaultObject, never> & DefaultObject>
+            ) => {
+              table
+                .filtered(
+                  `compositeKey == ${response.conversationId}-${
+                    this._account!.did
+                  }`
+                )
+                .update("deletedAt", null)
+            },
+            "conversation"
+          )
         }
       }
     } catch (error) {
@@ -994,19 +1012,15 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          this._storage.insertBulkSafe("message", [
-            Converter.fromMessageToLocalDBMessage(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              false,
-              "USER"
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        this._storage.insertBulkSafe("message", [
+          Converter.fromMessageToLocalDBMessage(
+            response,
+            this._account!.did,
+            this._account!.organizationId,
+            false,
+            "USER"
+          ),
+        ])
       }
     } catch (error) {
       console.log("[ERROR]: _onEditMessageSync() -> ", error)
@@ -1027,11 +1041,13 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.deleteItem("message", response.id)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        await this._storage.deleteItem(
+          "message",
+          this._storage instanceof DexieStorage ? `[id+userDid]` : ``,
+          this._storage instanceof DexieStorage
+            ? [response.id, this._account!.did]
+            : `${response.id}-${this._account!.did}`
+        )
       }
     } catch (error) {
       console.log("[ERROR]: _onDeleteMessageSync() -> ", error)
@@ -1057,10 +1073,14 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          await this._storage.deleteBulk("message", response.messagesIds)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
+        for (const id of response.messagesIds) {
+          await this._storage.deleteItem(
+            "message",
+            this._storage instanceof DexieStorage ? `[id+userDid]` : ``,
+            this._storage instanceof DexieStorage
+              ? [id, this._account!.did]
+              : `${id}-${this._account!.did}`
+          )
         }
       }
     } catch (error) {
@@ -1082,24 +1102,24 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const conversationStored = (await this._storage.get(
-            "conversation",
-            "id",
-            response.id
-          )) as Maybe<LocalDBConversation>
+        const conversationStored = (await this._storage.get(
+          "conversation",
+          this._storage instanceof DexieStorage
+            ? "[id+userDid]"
+            : `compositeKey`,
+          this._storage instanceof DexieStorage
+            ? [response.id, this._account!.did]
+            : `${response.id}-${this._account!.did}`
+        )) as Maybe<LocalDBConversation>
 
-          this._storage.insertBulkSafe("conversation", [
-            Converter.fromConversationToLocalDBConversation(
-              response,
-              this._account!.did,
-              this._account!.organizationId,
-              conversationStored ? conversationStored.isArchived : false
-            ),
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        this._storage.insertBulkSafe("conversation", [
+          Converter.fromConversationToLocalDBConversation(
+            response,
+            this._account!.did,
+            this._account!.organizationId,
+            conversationStored ? conversationStored.isArchived : false
+          ),
+        ])
       }
     } catch (error) {
       console.log("[ERROR]: _onUpdateConversationGroupSync() -> ", error)
@@ -1122,33 +1142,28 @@ export class Chat
   ) {
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const conversationId = response.conversationId
-          this._removeSubscribtionsSync(conversationId)
+        const conversationId = response.conversationId
+        this._removeSubscribtionsSync(conversationId)
 
-          //handling system messages that shows the user was ejected
-          this._storage.insertBulkSafe("message", [
-            {
-              id: uuidv4(),
-              userId: response.memberOut.id,
-              organizationId: this._account!.organizationId,
-              userDid: this._account!.did,
-              conversationId: response.conversationId,
-              content: "",
-              reactions: [],
-              isImportant: false,
-              type: "EJECTED",
-              origin: "SYSTEM",
-              messageRoot: null,
-              messageRootId: null,
-              createdAt: new Date(),
-              updateAt: null,
-              deletedAt: null,
-            },
-          ])
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        this._storage.insertBulkSafe("message", [
+          {
+            id: uuidv4(),
+            userId: response.memberOut.id,
+            organizationId: this._account!.organizationId,
+            userDid: this._account!.did,
+            conversationId: response.conversationId,
+            content: "",
+            reactions: [],
+            isImportant: false,
+            type: "EJECTED",
+            origin: "SYSTEM",
+            messageRoot: null,
+            messageRootId: null,
+            createdAt: new Date(),
+            updateAt: null,
+            deletedAt: null,
+          },
+        ])
       }
     } catch (error) {
       console.log("[ERROR]: _onEjectMemberSync() -> ", error)
@@ -1172,12 +1187,29 @@ export class Chat
     //TODO handling system messages that shows the user left the conversation
     try {
       if (!(response instanceof QIError)) {
-        if (this._storage.typeOf() === "DexieStorage") {
-          const conversationId = response.conversationId
-          this._removeSubscribtionsSync(conversationId)
-        } else if (this._storage.typeOf() === "RealmStorage") {
-          //TODO
-        }
+        const conversationId = response.conversationId
+        this._removeSubscribtionsSync(conversationId)
+
+        //handling system messages that shows the user left the conversation
+        this._storage.insertBulkSafe("message", [
+          {
+            id: uuidv4(),
+            userId: response.memberOut.id,
+            organizationId: this._account!.organizationId,
+            userDid: this._account!.did,
+            conversationId: response.conversationId,
+            content: "",
+            reactions: [],
+            isImportant: false,
+            type: "LEFT",
+            origin: "SYSTEM",
+            messageRoot: null,
+            messageRootId: null,
+            createdAt: new Date(),
+            updateAt: null,
+            deletedAt: null,
+          },
+        ])
       }
     } catch (error) {
       console.log("[ERROR]: _onLeaveConversationSync() -> ", error)
@@ -6006,7 +6038,7 @@ export class Chat
     callbackError: (error: unknown) => void
   ) {
     try {
-      if (this._storage.typeOf() === "DexieStorage") {
+      if (this._storage instanceof DexieStorage) {
         this._storage.query(
           (db, message: Table<LocalDBMessage, string, LocalDBMessage>) => {
             message.hook("creating", (primaryKey, record) => {
@@ -6016,15 +6048,17 @@ export class Chat
                   this.findPrivateKeyById(conversationId),
                   record.content
                 ),
-                reactions: record.reactions.map((reaction) => {
-                  return {
-                    ...reaction,
-                    content: Crypto.decryptStringOrFail(
-                      this.findPrivateKeyById(conversationId),
-                      reaction.content
-                    ),
-                  }
-                }),
+                reactions: record.reactions
+                  ? record.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    })
+                  : null,
               }
 
               _message.messageRoot = record.messageRoot
@@ -6034,7 +6068,39 @@ export class Chat
                       this.findPrivateKeyById(conversationId),
                       record.messageRoot.content
                     ),
-                    reactions: record.messageRoot.reactions.map((reaction) => {
+                    reactions: record.messageRoot.reactions
+                      ? record.messageRoot.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
+                  }
+                : null
+
+              callback(_message)
+            })
+          },
+          "message"
+        )
+      } else if (this._storage instanceof RealmStorage) {
+        this._storage.query((db, table) => {
+          table.addListener((collection, changes) => {
+            changes.insertions.forEach((index) => {
+              const record = collection[index] as unknown as LocalDBMessage
+
+              const _message = {
+                ...record,
+                content: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(conversationId),
+                  record.content
+                ),
+                reactions: record.reactions
+                  ? record.reactions.map((reaction) => {
                       return {
                         ...reaction,
                         content: Crypto.decryptStringOrFail(
@@ -6042,18 +6108,35 @@ export class Chat
                           reaction.content
                         ),
                       }
-                    }),
+                    })
+                  : null,
+              }
+
+              _message.messageRoot = record.messageRoot
+                ? {
+                    ...record.messageRoot,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      record.messageRoot.content
+                    ),
+                    reactions: record.messageRoot.reactions
+                      ? record.messageRoot.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
                   }
                 : null
 
-              callback({
-                ..._message,
-              })
+              callback(_message)
             })
-          },
-          "message"
-        )
-      } else if (this._storage.typeOf() === "RealmStorage") {
+          })
+        }, "message")
       }
     } catch (error) {
       callbackError(error)
@@ -6066,7 +6149,7 @@ export class Chat
     callbackError: (error: unknown) => void
   ) {
     try {
-      if (this._storage.typeOf() === "DexieStorage") {
+      if (this._storage instanceof DexieStorage) {
         this._storage.query(
           (db, message: Table<LocalDBMessage, string, LocalDBMessage>) => {
             message.hook("deleting", (primaryKey, record) => {
@@ -6076,15 +6159,17 @@ export class Chat
                   this.findPrivateKeyById(conversationId),
                   record.content
                 ),
-                reactions: record.reactions.map((reaction) => {
-                  return {
-                    ...reaction,
-                    content: Crypto.decryptStringOrFail(
-                      this.findPrivateKeyById(conversationId),
-                      reaction.content
-                    ),
-                  }
-                }),
+                reactions: record.reactions
+                  ? record.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    })
+                  : null,
               }
 
               _message.messageRoot = record.messageRoot
@@ -6094,7 +6179,39 @@ export class Chat
                       this.findPrivateKeyById(conversationId),
                       record.messageRoot.content
                     ),
-                    reactions: record.messageRoot.reactions.map((reaction) => {
+                    reactions: record.messageRoot.reactions
+                      ? record.messageRoot.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
+                  }
+                : null
+
+              callback(_message)
+            })
+          },
+          "message"
+        )
+      } else if (this._storage instanceof RealmStorage) {
+        this._storage.query((db, table) => {
+          table.addListener((collection, changes) => {
+            changes.deletions.forEach((index) => {
+              const record = collection[index] as unknown as LocalDBMessage
+
+              const _message = {
+                ...record,
+                content: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(conversationId),
+                  record.content
+                ),
+                reactions: record.reactions
+                  ? record.reactions.map((reaction) => {
                       return {
                         ...reaction,
                         content: Crypto.decryptStringOrFail(
@@ -6102,18 +6219,35 @@ export class Chat
                           reaction.content
                         ),
                       }
-                    }),
+                    })
+                  : null,
+              }
+
+              _message.messageRoot = record.messageRoot
+                ? {
+                    ...record.messageRoot,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      record.messageRoot.content
+                    ),
+                    reactions: record.messageRoot.reactions
+                      ? record.messageRoot.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
                   }
                 : null
 
-              callback({
-                ..._message,
-              })
+              callback(_message)
             })
-          },
-          "message"
-        )
-      } else if (this._storage.typeOf() === "RealmStorage") {
+          })
+        }, "message")
       }
     } catch (error) {
       callbackError(error)
@@ -6126,7 +6260,7 @@ export class Chat
     callbackError: (error: unknown) => void
   ) {
     try {
-      if (this._storage.typeOf() === "DexieStorage") {
+      if (this._storage instanceof DexieStorage) {
         this._storage.query(
           (db, message: Table<LocalDBMessage, string, LocalDBMessage>) => {
             message.hook("updating", (modifications, primaryKey, record) => {
@@ -6136,15 +6270,17 @@ export class Chat
                   this.findPrivateKeyById(conversationId),
                   record.content
                 ),
-                reactions: record.reactions.map((reaction) => {
-                  return {
-                    ...reaction,
-                    content: Crypto.decryptStringOrFail(
-                      this.findPrivateKeyById(conversationId),
-                      reaction.content
-                    ),
-                  }
-                }),
+                reactions: record.reactions
+                  ? record.reactions.map((reaction) => {
+                      return {
+                        ...reaction,
+                        content: Crypto.decryptStringOrFail(
+                          this.findPrivateKeyById(conversationId),
+                          reaction.content
+                        ),
+                      }
+                    })
+                  : null,
               }
 
               _message.messageRoot = record.messageRoot
@@ -6154,7 +6290,39 @@ export class Chat
                       this.findPrivateKeyById(conversationId),
                       record.messageRoot.content
                     ),
-                    reactions: record.messageRoot.reactions.map((reaction) => {
+                    reactions: record.messageRoot.reactions
+                      ? record.messageRoot.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
+                  }
+                : null
+
+              callback(_message)
+            })
+          },
+          "message"
+        )
+      } else if (this._storage instanceof RealmStorage) {
+        this._storage.query((db, table) => {
+          table.addListener((collection, changes) => {
+            changes.newModifications.forEach((index) => {
+              const record = collection[index] as unknown as LocalDBMessage
+
+              const _message = {
+                ...record,
+                content: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(conversationId),
+                  record.content
+                ),
+                reactions: record.reactions
+                  ? record.reactions.map((reaction) => {
                       return {
                         ...reaction,
                         content: Crypto.decryptStringOrFail(
@@ -6162,18 +6330,35 @@ export class Chat
                           reaction.content
                         ),
                       }
-                    }),
+                    })
+                  : null,
+              }
+
+              _message.messageRoot = record.messageRoot
+                ? {
+                    ...record.messageRoot,
+                    content: Crypto.decryptStringOrFail(
+                      this.findPrivateKeyById(conversationId),
+                      record.messageRoot.content
+                    ),
+                    reactions: record.messageRoot.reactions
+                      ? record.messageRoot.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
                   }
                 : null
 
-              callback({
-                ..._message,
-              })
+              callback(_message)
             })
-          },
-          "message"
-        )
-      } else if (this._storage.typeOf() === "RealmStorage") {
+          })
+        }, "message")
       }
     } catch (error) {
       callbackError(error)
@@ -6185,7 +6370,7 @@ export class Chat
     callbackError: (error: unknown) => void
   ) {
     try {
-      if (this._storage.typeOf() === "DexieStorage") {
+      if (this._storage instanceof DexieStorage) {
         this._storage.query(
           (
             db,
@@ -6227,7 +6412,41 @@ export class Chat
           },
           "conversation"
         )
-      } else if (this._storage.typeOf() === "RealmStorage") {
+      } else if (this._storage instanceof RealmStorage) {
+        this._storage.query((db, conversation) => {
+          conversation.addListener((collection, changes) => {
+            changes.insertions.forEach((index) => {
+              const record = collection[index] as unknown as LocalDBConversation
+              const _conversation = {
+                ...record,
+                name: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.name
+                ),
+                description: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.description
+                ),
+                imageURL: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.imageURL
+                ),
+                bannerImageURL: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.bannerImageURL
+                ),
+                settings: JSON.parse(
+                  Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.settings
+                  )
+                ),
+              }
+
+              callback(_conversation)
+            })
+          })
+        }, "conversation")
       }
     } catch (error) {
       callbackError(error)
@@ -6239,7 +6458,7 @@ export class Chat
     callbackError: (error: unknown) => void
   ) {
     try {
-      if (this._storage.typeOf() === "DexieStorage") {
+      if (this._storage instanceof DexieStorage) {
         this._storage.query(
           (
             db,
@@ -6284,7 +6503,41 @@ export class Chat
           },
           "conversation"
         )
-      } else if (this._storage.typeOf() === "RealmStorage") {
+      } else if (this._storage instanceof RealmStorage) {
+        this._storage.query((db, conversation) => {
+          conversation.addListener((collection, changes) => {
+            changes.newModifications.forEach((index) => {
+              const record = collection[index] as unknown as LocalDBConversation
+              const _conversation = {
+                ...record,
+                name: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.name
+                ),
+                description: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.description
+                ),
+                imageURL: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.imageURL
+                ),
+                bannerImageURL: Crypto.decryptStringOrFail(
+                  this.findPrivateKeyById(record.id),
+                  record.bannerImageURL
+                ),
+                settings: JSON.parse(
+                  Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(record.id),
+                    record.settings
+                  )
+                ),
+              }
+
+              callback(_conversation)
+            })
+          })
+        }, "conversation")
       }
     } catch (error) {
       callbackError(error)
@@ -6306,7 +6559,7 @@ export class Chat
 
         const offset = (page - 1) * numberElements
 
-        if (this._storage.typeOf() === "DexieStorage") {
+        if (this._storage instanceof DexieStorage) {
           this._storage.query(
             async (
               db,
@@ -6336,15 +6589,17 @@ export class Chat
                       this.findPrivateKeyById(conversationId),
                       message.content
                     ),
-                    reactions: message.reactions.map((reaction) => {
-                      return {
-                        ...reaction,
-                        content: Crypto.decryptStringOrFail(
-                          this.findPrivateKeyById(conversationId),
-                          reaction.content
-                        ),
-                      }
-                    }),
+                    reactions: message.reactions
+                      ? message.reactions.map((reaction) => {
+                          return {
+                            ...reaction,
+                            content: Crypto.decryptStringOrFail(
+                              this.findPrivateKeyById(conversationId),
+                              reaction.content
+                            ),
+                          }
+                        })
+                      : null,
                   }
 
                   _message.messageRoot = message.messageRoot
@@ -6354,17 +6609,17 @@ export class Chat
                           this.findPrivateKeyById(conversationId),
                           message.messageRoot.content
                         ),
-                        reactions: message.messageRoot.reactions.map(
-                          (reaction) => {
-                            return {
-                              ...reaction,
-                              content: Crypto.decryptStringOrFail(
-                                this.findPrivateKeyById(conversationId),
-                                reaction.content
-                              ),
-                            }
-                          }
-                        ),
+                        reactions: message.messageRoot.reactions
+                          ? message.messageRoot.reactions.map((reaction) => {
+                              return {
+                                ...reaction,
+                                content: Crypto.decryptStringOrFail(
+                                  this.findPrivateKeyById(conversationId),
+                                  reaction.content
+                                ),
+                              }
+                            })
+                          : null,
                       }
                     : null
 
@@ -6374,7 +6629,76 @@ export class Chat
             },
             "message"
           )
-        } else if (this._storage.typeOf() === "RealmStorage") {
+        } else if (this._storage instanceof RealmStorage) {
+          const offset = (page - 1) * numberElements
+
+          this._storage.query((db, message) => {
+            const messages = message
+              .sorted("createdAt", true)
+              .filtered(
+                `conversationId = '${conversationId}' AND userDid = '${
+                  this._account!.did
+                }' AND deletedAt != null`
+              )
+              .slice(offset, numberElements)
+
+            if (!messages) reject([])
+
+            resolve(
+              messages.map((message) => {
+                const _message = {
+                  ...(message as unknown as LocalDBMessage),
+                  content: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(conversationId),
+                    (message as unknown as LocalDBMessage).content
+                  ),
+                  reactions: message.reactions
+                    ? (message as unknown as LocalDBMessage).reactions
+                      ? (message as unknown as LocalDBMessage).reactions!.map(
+                          (reaction) => {
+                            return {
+                              ...reaction,
+                              content: Crypto.decryptStringOrFail(
+                                this.findPrivateKeyById(conversationId),
+                                reaction.content
+                              ),
+                            }
+                          }
+                        )
+                      : null
+                    : null,
+                }
+
+                _message.messageRoot = (message as unknown as LocalDBMessage)
+                  .messageRoot
+                  ? {
+                      ...(message as unknown as LocalDBMessage).messageRoot!,
+                      content: Crypto.decryptStringOrFail(
+                        this.findPrivateKeyById(conversationId),
+                        (message as unknown as LocalDBMessage).messageRoot!
+                          .content
+                      ),
+                      reactions: (message as unknown as LocalDBMessage)
+                        .messageRoot!.reactions
+                        ? (
+                            message as unknown as LocalDBMessage
+                          ).messageRoot!.reactions!.map((reaction) => {
+                            return {
+                              ...reaction,
+                              content: Crypto.decryptStringOrFail(
+                                this.findPrivateKeyById(conversationId),
+                                reaction.content
+                              ),
+                            }
+                          })
+                        : null,
+                    }
+                  : null
+
+                return _message
+              })
+            )
+          }, "message")
         }
       } catch (error) {
         console.log("[ERROR]: fetchLocalDBMessages() -> ", error)
@@ -6395,7 +6719,7 @@ export class Chat
 
         const offset = (page - 1) * numberElements
 
-        if (this._storage.typeOf() === "DexieStorage") {
+        if (this._storage instanceof DexieStorage) {
           this._storage.query(
             async (
               db,
@@ -6446,7 +6770,50 @@ export class Chat
             },
             "conversation"
           )
-        } else if (this._storage.typeOf() === "RealmStorage") {
+        } else if (this._storage instanceof RealmStorage) {
+          this._storage.query((db, conversation) => {
+            const conversations = conversation
+              .sorted("createdAt", true)
+              .filtered(
+                `userDid = '${this._account!.did}' AND deletedAt != null`
+              )
+              .slice(offset, numberElements)
+
+            if (!conversations) reject([])
+
+            resolve(
+              conversations.map((conversation) => {
+                return {
+                  ...(conversation as unknown as LocalDBConversation),
+                  name: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(
+                      (conversation as unknown as LocalDBConversation).id
+                    ),
+                    (conversation as unknown as LocalDBConversation).name
+                  ),
+                  description: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(
+                      (conversation as unknown as LocalDBConversation).id
+                    ),
+                    (conversation as unknown as LocalDBConversation).description
+                  ),
+                  imageURL: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(
+                      (conversation as unknown as LocalDBConversation).id
+                    ),
+                    (conversation as unknown as LocalDBConversation).imageURL
+                  ),
+                  bannerImageURL: Crypto.decryptStringOrFail(
+                    this.findPrivateKeyById(
+                      (conversation as unknown as LocalDBConversation).id
+                    ),
+                    (conversation as unknown as LocalDBConversation)
+                      .bannerImageURL
+                  ),
+                }
+              })
+            )
+          }, "conversation")
         }
       } catch (error) {
         console.log("[ERROR]: fetchLocalDBMessages() -> ", error)
@@ -6461,7 +6828,7 @@ export class Chat
     if (!this._account) throw new Error("Account must be initialized.")
     return new Promise((resolve, reject) => {
       try {
-        if (this._storage.typeOf() === "DexieStorage") {
+        if (this._storage instanceof DexieStorage) {
           this._storage.query(
             async (
               db,
@@ -6498,7 +6865,24 @@ export class Chat
             },
             "message"
           )
-        } else if (this._storage.typeOf() === "RealmStorage") {
+        } else if (this._storage instanceof RealmStorage) {
+          this._storage.query((db, message) => {
+            const query = terms
+              .map((term) => `content CONTAINS[c] "${term}"`)
+              .join(" OR ")
+
+            const messages = message.filtered(query).map((message) => {
+              return {
+                messageId: message.id,
+                conversationId: message.conversationId,
+              } as {
+                messageId: string
+                conversationId: string
+              }
+            })
+
+            resolve(messages)
+          }, "message")
         }
       } catch (error) {
         reject(error)
@@ -6512,7 +6896,7 @@ export class Chat
     if (!this._account) throw new Error("Account must be initialized.")
     return new Promise((resolve, reject) => {
       try {
-        if (this._storage.typeOf() === "DexieStorage") {
+        if (this._storage instanceof DexieStorage) {
           this._storage.query(async (db, table) => {
             await table
               .where("[id+userDid]")
@@ -6520,11 +6904,18 @@ export class Chat
               .modify((conversation: LocalDBConversation) => {
                 conversation.deletedAt = new Date()
               })
-
-            resolve()
           }, "conversation")
-        } else if (this._storage.typeOf() === "RealmStorage") {
+        } else if (this._storage instanceof RealmStorage) {
+          this._storage.query(async (db, table) => {
+            table
+              .filtered(
+                `compositeKey == ${conversationId}-${this._account!.did}`
+              )
+              .update("deletedAt", new Date())
+          }, "conversation")
         }
+
+        resolve()
       } catch (error) {
         reject(error)
       }
@@ -6533,10 +6924,10 @@ export class Chat
 
   async truncateTableOnLocalDB(tableName: "message" | "user" | "conversation") {
     if (!this._account) throw new Error("Account must be initialized.")
-    if (this._storage.typeOf() === "DexieStorage") {
+    if (this._storage instanceof DexieStorage)
       await this._storage.truncate(tableName)
-    } else if (this._storage.typeOf() === "RealmStorage") {
-    }
+    else if (this._storage instanceof RealmStorage)
+      this._storage.truncate(tableName)
   }
 
   /** update operations local database */
@@ -6546,7 +6937,7 @@ export class Chat
 
     return new Promise((resolve, reject) => {
       try {
-        if (this._storage.typeOf() === "DexieStorage") {
+        if (this._storage instanceof DexieStorage) {
           this._storage.query(async (db, table) => {
             await table
               .where("[id+userDid]")
@@ -6554,11 +6945,18 @@ export class Chat
               .modify((conversation: LocalDBConversation) => {
                 conversation.lastMessageRead = new Date()
               })
-
-            resolve()
           }, "conversation")
-        } else if (this._storage.typeOf() === "RealmStorage") {
+        } else if (this._storage instanceof RealmStorage) {
+          this._storage.query((db, table) => {
+            table
+              .filtered(
+                `compositeKey == ${conversationId}-${this._account!.did}`
+              )
+              .update("lastMessageRead", new Date())
+          }, "conversation")
         }
+
+        resolve()
       } catch (error) {
         reject(error)
       }

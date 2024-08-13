@@ -11,7 +11,8 @@ export interface BaseStorage {
   ): Promise<void>
   deleteItem(
     tableName: "user" | "conversation" | "message",
-    id: string
+    key: string,
+    value: string | string[]
   ): Promise<void>
   deleteBulk(
     tableName: "user" | "conversation" | "message",

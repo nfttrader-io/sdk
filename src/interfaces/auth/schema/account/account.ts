@@ -19,7 +19,7 @@ export interface AccountSchema {
   farcasterOwnerAddress: Maybe<string>
   farcasterPfp: Maybe<string>
   farcasterSignerPublicKey: Maybe<string>
-  farcasterUrl: Maybe<URL>
+  farcasterUrl: Maybe<string>
   farcasterUsername: Maybe<string>
   githubSubject: Maybe<string>
   githubEmail: Maybe<string>
@@ -39,7 +39,7 @@ export interface AccountSchema {
   spotifySubject: Maybe<string>
   telegramFirstName: Maybe<string>
   telegramLastName: Maybe<string>
-  telegramPhotoUrl: Maybe<URL>
+  telegramPhotoUrl: Maybe<string>
   telegramUserId: Maybe<string>
   telegramUsername: Maybe<string>
   tiktokName: Maybe<string>
@@ -47,14 +47,14 @@ export interface AccountSchema {
   tiktokUsername: Maybe<string>
   twitterName: Maybe<string>
   twitterSubject: Maybe<string>
-  twitterProfilePictureUrl: Maybe<URL>
+  twitterProfilePictureUrl: Maybe<string>
   twitterUsername: Maybe<string>
   dynamoDBUserID: string
   username: string
   email: string
   bio: string
   firstLogin: boolean
-  avatarUrl: URL
+  avatarUrl: string
   phone: Maybe<string>
   isVerified: boolean
   isNft: boolean

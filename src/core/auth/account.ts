@@ -20,7 +20,7 @@ export class Account implements AccountSchema {
   readonly farcasterOwnerAddress: Maybe<string>
   readonly farcasterPfp: Maybe<string>
   readonly farcasterSignerPublicKey: Maybe<string>
-  readonly farcasterUrl: Maybe<URL>
+  readonly farcasterUrl: Maybe<string>
   readonly farcasterUsername: Maybe<string>
   readonly githubSubject: Maybe<string>
   readonly githubEmail: Maybe<string>
@@ -40,7 +40,7 @@ export class Account implements AccountSchema {
   readonly spotifySubject: Maybe<string>
   readonly telegramFirstName: Maybe<string>
   readonly telegramLastName: Maybe<string>
-  readonly telegramPhotoUrl: Maybe<URL>
+  readonly telegramPhotoUrl: Maybe<string>
   readonly telegramUserId: Maybe<string>
   readonly telegramUsername: Maybe<string>
   readonly tiktokName: Maybe<string>
@@ -48,14 +48,14 @@ export class Account implements AccountSchema {
   readonly tiktokUsername: Maybe<string>
   readonly twitterName: Maybe<string>
   readonly twitterSubject: Maybe<string>
-  readonly twitterProfilePictureUrl: Maybe<URL>
+  readonly twitterProfilePictureUrl: Maybe<string>
   readonly twitterUsername: Maybe<string>
   readonly dynamoDBUserID: string
   readonly username: string
   readonly email: string
   readonly bio: string
   readonly firstLogin: boolean
-  readonly avatarUrl: URL
+  readonly avatarUrl: string
   readonly phone: Maybe<string>
   readonly isVerified: boolean
   readonly isNft: boolean
@@ -108,8 +108,6 @@ export class Account implements AccountSchema {
     this.farcasterPfp = config.farcasterPfp
     this.farcasterSignerPublicKey = config.farcasterSignerPublicKey
     this.farcasterUrl = config.farcasterUrl
-      ? new URL(config.farcasterUrl)
-      : null
     this.farcasterUsername = config.farcasterUsername
     this.githubSubject = config.githubSubject
     this.githubEmail = config.githubEmail
@@ -130,8 +128,6 @@ export class Account implements AccountSchema {
     this.telegramFirstName = config.telegramFirstName
     this.telegramLastName = config.telegramLastName
     this.telegramPhotoUrl = config.telegramPhotoUrl
-      ? new URL(config.telegramPhotoUrl)
-      : null
     this.telegramUserId = config.telegramUserId
     this.telegramUsername = config.telegramUsername
     this.tiktokName = config.tiktokName
@@ -140,15 +136,13 @@ export class Account implements AccountSchema {
     this.twitterName = config.twitterName
     this.twitterSubject = config.twitterSubject
     this.twitterProfilePictureUrl = config.twitterProfilePictureUrl
-      ? new URL(config.twitterProfilePictureUrl)
-      : null
     this.twitterUsername = config.twitterUsername
     this.dynamoDBUserID = config.dynamoDBUserID
     this.username = config.username
     this.email = config.email
     this.bio = config.bio
     this.firstLogin = config.firstLogin
-    this.avatarUrl = new URL(config.avatarUrl)
+    this.avatarUrl = config.avatarUrl
     this.phone = config.phone
     this.isVerified = config.isVerified
     this.isNft = config.isNft
