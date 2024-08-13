@@ -4,6 +4,7 @@ import { Maybe } from "../../types"
 import { LocalDBConversation, LocalDBMessage, LocalDBUser } from "./database"
 import { RealmObject } from "realm/dist/public-types/Object"
 import { DefaultObject } from "realm/dist/public-types/schema"
+import { CLIENT_DB_NAME } from "@src/constants/app"
 
 class Conversation extends Realm.Object implements LocalDBConversation {
   compositeKey!: string
@@ -218,7 +219,10 @@ export class RealmStorage implements BaseStorage {
   private _enableStorage = true
 
   private constructor() {
-    this.realm = new Realm({ schema: [Conversation, Message, User] })
+    this.realm = new Realm({
+      path: `${CLIENT_DB_NAME}.realm`,
+      schema: [Conversation, Message, User],
+    })
   }
 
   static async createOrConnect(): Promise<RealmStorage> {
