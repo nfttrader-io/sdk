@@ -529,10 +529,6 @@ export class Engine extends HTTPClient implements IEngine {
     }
   }
 
-  setCurrentAccount(account: Account) {
-    this._account = account
-  }
-
   /**
    * Refreshes the JWT token with the provided token and updates the realtime authorization token.
    * @param {string} jwt - The new JWT token to be set.

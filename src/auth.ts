@@ -91,10 +91,10 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
     //OAuth providers login error handling
     this.on("__onLoginError", (error: PrivyErrorCode) => {
-      this._emit("onAuthError")
+      this._emit("onAuthError", error)
     })
     this.on("__onLinkAccountError", (error: PrivyErrorCode) => {
-      this._emit("onLinkError")
+      this._emit("onLinkError", error)
     })
   }
 
@@ -427,11 +427,15 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
       const account = new Account(user)
 
-      this._tradeRef?.setAuthToken(authInfo.authToken)
-      this._oracleRef?.setAuthToken(authInfo.authToken)
-      this._postRef?.setAuthToken(authInfo.authToken)
-      this._chatRef?.setAuthToken(authInfo.authToken)
-      this._chatRef?.setCurrentAccount(account)
+      this._tradeRef.setAuthToken(authInfo.authToken)
+      this._oracleRef.setAuthToken(authInfo.authToken)
+      this._postRef.setAuthToken(authInfo.authToken)
+      this._chatRef.setAuthToken(authInfo.authToken)
+
+      this._chatRef.setCurrentAccount(account)
+      this._tradeRef.setCurrentAccount(account)
+      this._oracleRef.setCurrentAccount(account)
+      this._postRef.setCurrentAccount(account)
 
       //generation of the table and local keys for e2e encryption
       if (device === "desktop") await this._handleDexie(account)
@@ -492,11 +496,15 @@ export class Auth extends HTTPClient implements AuthInternalEvents {
 
       const account = new Account(user)
 
-      this._tradeRef?.setAuthToken(authInfo.authToken)
-      this._oracleRef?.setAuthToken(authInfo.authToken)
-      this._postRef?.setAuthToken(authInfo.authToken)
-      this._chatRef?.setAuthToken(authInfo.authToken)
-      this._chatRef?.setCurrentAccount(account)
+      this._tradeRef.setAuthToken(authInfo.authToken)
+      this._oracleRef.setAuthToken(authInfo.authToken)
+      this._postRef.setAuthToken(authInfo.authToken)
+      this._chatRef.setAuthToken(authInfo.authToken)
+
+      this._chatRef.setCurrentAccount(account)
+      this._tradeRef.setCurrentAccount(account)
+      this._oracleRef.setCurrentAccount(account)
+      this._postRef.setCurrentAccount(account)
 
       //generation of the table and local keys for e2e encryption
       if (device === "desktop") await this._handleDexie(account)

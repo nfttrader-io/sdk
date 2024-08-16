@@ -1,5 +1,6 @@
 import { Maybe } from "@src/types"
 import { HTTPRequestInit, HTTPResponse } from "../interfaces/base"
+import { Account } from "./app"
 
 /**
  * Class representing an HTTP client for making HTTP requests.
@@ -18,6 +19,8 @@ export class HTTPClient {
    */
 
   protected _authToken: Maybe<string> = null
+
+  protected _account: Maybe<Account> = null
 
   /**
    * Fetches data from a specified URL using XMLHttpRequest.
@@ -211,5 +214,13 @@ export class HTTPClient {
 
   setAuthToken(authToken: string): void {
     this._authToken = authToken
+  }
+
+  setCurrentAccount(account: Account) {
+    this._account = account
+  }
+
+  getCurrentAccount() {
+    return this._account
   }
 }

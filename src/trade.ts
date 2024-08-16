@@ -3,11 +3,7 @@ import { ItemType } from "@opensea/seaport-js/lib/constants"
 import { CreateOrderInput } from "@opensea/seaport-js/lib/types"
 import { ethers } from "ethers"
 import { AssetsArray } from "./core/assetsarray"
-import {
-  royaltyRegistriesEngines,
-  seaportSmartContracts,
-  royaltyRegistryEngineAbi,
-} from "./constants/trade"
+import { seaportSmartContracts } from "./constants/trade"
 import events from "./constants/trade/events"
 import { HTTPClient } from "./core/httpclient"
 import { ApiKeyAuthorized, Maybe, Network } from "./types/base"
@@ -84,14 +80,6 @@ export class Trade extends HTTPClient {
     super()
 
     this._blocksNumberConfirmationRequired = this._MIN_BLOCKS_REQUIRED
-
-    if (
-      !("apiKey" in config) ||
-      ("apiKey" in config &&
-        (typeof config.apiKey !== "string" || !config.apiKey.length))
-    )
-      throw new Error("an API key must be provided.")
-
     this._apiKey = config.apiKey
   }
 
@@ -370,7 +358,7 @@ export class Trade extends HTTPClient {
         : config.web3Provider
     }
 
-    this._seaport = new Seaport(this._provider, { seaportVersion: "1.5" })
+    //this._seaport = new Seaport(this._provider, { seaportVersion: "1.6" })
   }
 
   /**
@@ -400,8 +388,6 @@ export class Trade extends HTTPClient {
    */
   setNetworkId(networkId: string) {
     if (!networkId) throw new Error("network must be provided.")
-    if (!Object.keys(royaltyRegistriesEngines).includes(`${networkId}`))
-      throw new Error("Invalid network")
 
     this._network = networkId as Network
   }
@@ -462,22 +448,6 @@ export class Trade extends HTTPClient {
    */
   getSeaportContractsAddresses(): Record<Network, string> {
     return seaportSmartContracts
-  }
-
-  /**
-   * Returns a record of royalty registries engines mapped to their respective networks.
-   * @returns {Record<Network, string>} A record containing the royalty registries engines for each network.
-   */
-  getRoyaltyRegistriesEngines(): Record<Network, string> {
-    return royaltyRegistriesEngines
-  }
-
-  /**
-   * Retrieves the ABI (Application Binary Interface) for the Royalty Registry Engine.
-   * @returns {Array<any>} An array containing the ABI for the Royalty Registry Engine.
-   */
-  getRoyaltyRegistryEngineABI(): Array<any> {
-    return royaltyRegistryEngineAbi
   }
 
   /**
@@ -638,11 +608,12 @@ export class Trade extends HTTPClient {
         this.__emit("execTradeTransactionCreated")
 
         const transact = await executeAllActions()
+
         try {
-          const receipt = await transact.wait(
-            this._blocksNumberConfirmationRequired
-          )
-          this.__emit("execTradeTransactionMined", { receipt })
+          //const receipt = await transact.wait(
+          //this._blocksNumberConfirmationRequired
+          //)
+          //this.__emit("execTradeTransactionMined", { receipt })
         } catch (error) {
           return this.__emit("execTradeTransactionError", {
             error,
@@ -716,7 +687,7 @@ export class Trade extends HTTPClient {
             this._blocksNumberConfirmationRequired
           )
 
-          this.__emit("cancelTradeTransactionMined", { receipt })
+          //this.__emit("cancelTradeTransactionMined", { receipt })
         } catch (error) {
           return this.__emit("cancelTradeTransactionError", {
             error,

@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 import { useSDK as useMetamaskSDK } from "@metamask/sdk-react"
 import { useLoginWithSiwe, usePrivy } from "@privy-io/expo"
 
-export const usePrivyMobileWallets = (
+export const usePrivyMobileAuthWallets = (
   auth: Auth,
   device: "desktop" | "mobile"
 ) => {

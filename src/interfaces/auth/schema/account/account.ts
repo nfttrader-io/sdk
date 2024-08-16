@@ -1,3 +1,4 @@
+import { ConnectedWallet } from "@privy-io/react-auth"
 import { Maybe } from "@src/types"
 
 export interface AccountSchema {
@@ -85,4 +86,6 @@ export interface AccountSchema {
   createdAt: Date
   updatedAt: Maybe<Date>
   deletedAt: Maybe<Date>
+  wallets(): Array<ConnectedWallet>
+  setWallets(wallets: Array<ConnectedWallet>): void
 }

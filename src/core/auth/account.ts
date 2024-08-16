@@ -1,6 +1,7 @@
 import { AccountSchema } from "@src/interfaces/auth"
 import { Maybe } from "../../types"
 import { AccountInitConfig } from "../../types/auth/account"
+import { ConnectedWallet } from "@privy-io/react-auth"
 
 export class Account implements AccountSchema {
   readonly did: string
@@ -88,6 +89,8 @@ export class Account implements AccountSchema {
   readonly allowAddToGroupsFrom: "ONLY_FOLLOWED" | "EVERYONE"
   readonly allowGroupsSuggestion: boolean
 
+  private connectedWallets: Array<ConnectedWallet> = []
+
   constructor(config: AccountInitConfig) {
     this.did = config.did
     this.organizationId = config.organizationId
@@ -173,5 +176,13 @@ export class Account implements AccountSchema {
     this.allowReceiveMessageFrom = config.allowReceiveMessageFrom
     this.allowAddToGroupsFrom = config.allowAddToGroupsFrom
     this.allowGroupsSuggestion = config.allowGroupsSuggestion
+  }
+
+  wallets(): Array<ConnectedWallet> {
+    return this.connectedWallets
+  }
+
+  setWallets(wallets: Array<ConnectedWallet>): void {
+    this.connectedWallets = wallets
   }
 }

@@ -1,5 +1,5 @@
 export * from "./useLoopz"
-export * from "./usePrivyMobileWallets"
+export * from "./usePrivyMobileAuthWallets"
 export * from "./usePrivyLinkAccount"
 export * from "./usePrivyLogin"
 export * from "./usePrivyLogout"
